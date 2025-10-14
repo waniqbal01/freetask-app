@@ -31,4 +31,22 @@ class Validators {
     }
     return null;
   }
+
+  static String? validateRequired(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'This field is required.';
+    }
+    return null;
+  }
+
+  static String? validateNumber(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'This field is required.';
+    }
+    final number = double.tryParse(value.trim());
+    if (number == null || number <= 0) {
+      return 'Enter a valid number.';
+    }
+    return null;
+  }
 }

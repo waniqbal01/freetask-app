@@ -7,8 +7,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'config/routes.dart';
 import 'config/theme.dart';
 import 'controllers/auth/auth_bloc.dart';
+import 'controllers/chat/chat_list_bloc.dart';
+import 'controllers/job/job_bloc.dart';
+import 'controllers/nav/role_nav_cubit.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
+import 'services/chat_service.dart';
+import 'services/job_service.dart';
+import 'services/notification_service.dart';
+import 'services/socket_service.dart';
 import 'services/storage_service.dart';
 
 Future<void> main() async {
@@ -33,6 +40,15 @@ class FreetaskApp extends StatelessWidget {
             getIt<StorageService>(),
           ),
         ),
+        BlocProvider<RoleNavCubit>(
+          create: (_) => RoleNavCubit(),
+        ),
+        BlocProvider<JobBloc>(
+          create: (_) => JobBloc(getIt<JobService>()),
+        ),
+        BlocProvider<ChatListBloc>(
+          create: (_) => ChatListBloc(getIt<ChatService>()),
+        ),
       ],
       child: MaterialApp(
         title: 'Freetask',
@@ -53,11 +69,19 @@ Future<void> _configureDependencies() async {
   final dio = Dio();
   final apiClient = ApiClient(dio, storage);
   final authService = AuthService(apiClient, storage);
+  final jobService = JobService(apiClient);
+  final chatService = ChatService(apiClient);
+  final socketService = SocketService();
+  final notificationService = NotificationService(apiClient);
 
   getIt
     ..registerSingleton<SharedPreferences>(prefs)
     ..registerSingleton<StorageService>(storage)
     ..registerSingleton<Dio>(dio)
     ..registerSingleton<ApiClient>(apiClient)
-    ..registerSingleton<AuthService>(authService);
+    ..registerSingleton<AuthService>(authService)
+    ..registerSingleton<JobService>(jobService)
+    ..registerSingleton<ChatService>(chatService)
+    ..registerSingleton<SocketService>(socketService)
+    ..registerSingleton<NotificationService>(notificationService);
 }

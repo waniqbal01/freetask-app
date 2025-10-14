@@ -1,11 +1,26 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../../config/routes.dart';
 import '../../controllers/auth/auth_bloc.dart';
-import '../../controllers/auth/auth_event.dart';
 import '../../controllers/auth/auth_state.dart';
-import '../../models/user.dart';
+import '../../controllers/chat/chat_list_bloc.dart';
+import '../../controllers/job/job_bloc.dart';
+import '../../controllers/job/job_event.dart';
+import '../../controllers/nav/role_nav_cubit.dart';
+import '../../models/job.dart';
+import '../../models/message.dart';
+import '../../services/notification_service.dart';
+import '../../services/socket_service.dart';
+import '../../services/storage_service.dart';
+import '../chat/chat_list_screen.dart';
+import '../jobs/create_job_screen.dart';
+import '../jobs/job_list_screen.dart';
+import '../profile/profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -15,110 +30,179 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  int _currentIndex = 0;
+  final _getIt = GetIt.instance;
+  late final SocketService _socketService;
+  late final NotificationService _notificationService;
+  late final StorageService _storageService;
+  StreamSubscription<Message>? _messageSubscription;
+  StreamSubscription<RemoteMessage>? _notificationSubscription;
 
-  void _onLogout() {
-    context.read<AuthBloc>().add(const LogoutRequested());
+  @override
+  void initState() {
+    super.initState();
+    _socketService = _getIt<SocketService>();
+    _notificationService = _getIt<NotificationService>();
+    _storageService = _getIt<StorageService>();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleAuthState(context.read<AuthBloc>().state);
+    });
   }
 
   @override
-  Widget build(BuildContext context) {
-    final user = context.select<AuthBloc, User?>(
-      (bloc) => bloc.state is AuthAuthenticated
-          ? (bloc.state as AuthAuthenticated).user
-          : null,
-    );
+  void dispose() {
+    _messageSubscription?.cancel();
+    _notificationSubscription?.cancel();
+    super.dispose();
+  }
 
-    final tabs = [
-      _DashboardHomeTab(user: user),
-      const _DashboardJobsTab(),
-      _DashboardProfileTab(user: user, onLogout: _onLogout),
-    ];
+  void _handleAuthState(AuthState state) {
+    if (!mounted) return;
+    if (state is AuthAuthenticated) {
+      context.read<RoleNavCubit>().updateRole(state.user.role);
+      final token = _storageService.token;
+      if (token != null && token.isNotEmpty) {
+        _socketService.connect(token: token, userId: state.user.id);
+        _messageSubscription?.cancel();
+        _messageSubscription = _socketService.messages.listen((message) {
+          if (!mounted || message.senderId == state.user.id) return;
+          context.read<ChatListBloc>().add(const RefreshChatThreads());
+          if (ModalRoute.of(context)?.isCurrent ?? false) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('New message received.')),
+            );
+          }
+        });
+      }
 
-    return BlocListener<AuthBloc, AuthState>(
-      listenWhen: (previous, current) => current is AuthUnauthenticated,
-      listener: (context, state) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          AppRoutes.login,
-          (route) => false,
+      _notificationService.initialize();
+      _notificationSubscription ??=
+          _notificationService.messages.listen((remoteMessage) {
+        final notification = remoteMessage.notification;
+        if (!mounted || notification == null) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(notification.title ?? 'Notification'),
+          ),
         );
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            _currentIndex == 0
-                ? 'Dashboard'
-                : _currentIndex == 1
-                    ? 'Jobs'
-                    : 'Profile',
-          ),
-        ),
-        body: IndexedStack(
-          index: _currentIndex,
-          children: tabs,
-        ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _currentIndex,
-          onDestinationSelected: (value) {
-            setState(() => _currentIndex = value);
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard),
-              label: 'Home',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.work_outline),
-              selectedIcon: Icon(Icons.work),
-              label: 'Jobs',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
-        ),
-      ),
-    );
+      });
+    } else if (state is AuthUnauthenticated) {
+      _socketService.disconnect();
+      _messageSubscription?.cancel();
+      _messageSubscription = null;
+    }
   }
-}
-
-class _DashboardHomeTab extends StatelessWidget {
-  const _DashboardHomeTab({required this.user});
-
-  final User? user;
 
   @override
   Widget build(BuildContext context) {
-    final greeting = "Welcome, ${user?.name ?? 'there'}! 👋";
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            greeting,
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.w600),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Your personalized dashboard is coming soon.',
-            style: Theme.of(context).textTheme.bodyLarge,
-            textAlign: TextAlign.center,
-          ),
-        ],
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (previous, current) => current is! AuthLoading,
+      listener: (context, state) {
+        if (state is AuthUnauthenticated) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRoutes.login,
+            (route) => false,
+          );
+        } else {
+          _handleAuthState(state);
+        }
+      },
+      child: BlocBuilder<RoleNavCubit, RoleNavState>(
+        builder: (context, navState) {
+          final pages = navState.tabs
+              .map((tab) => _buildPage(context, tab.target))
+              .toList();
+
+          final currentTab = navState.tabs[navState.index];
+
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(currentTab.label),
+            ),
+            body: IndexedStack(
+              index: navState.index,
+              children: pages,
+            ),
+            bottomNavigationBar: NavigationBar(
+              selectedIndex: navState.index,
+              onDestinationSelected: (value) {
+                context.read<RoleNavCubit>().setIndex(value);
+                final target = navState.tabs[value].target;
+                if (target == RoleNavTarget.myJobs) {
+                  context.read<JobBloc>().add(const LoadJobList(JobListType.mine));
+                } else if (target == RoleNavTarget.availableJobs) {
+                  context
+                      .read<JobBloc>()
+                      .add(const LoadJobList(JobListType.available));
+                }
+              },
+              destinations: navState.tabs
+                  .map(
+                    (tab) => NavigationDestination(
+                      icon: Icon(tab.icon),
+                      selectedIcon: Icon(tab.selectedIcon),
+                      label: tab.label,
+                    ),
+                  )
+                  .toList(),
+            ),
+          );
+        },
       ),
     );
   }
+
+  Widget _buildPage(BuildContext context, RoleNavTarget target) {
+    switch (target) {
+      case RoleNavTarget.availableJobs:
+        return JobListScreen(
+          key: const ValueKey('available_jobs_tab'),
+          initialTab: JobListType.available,
+        );
+      case RoleNavTarget.myJobs:
+        return JobListScreen(
+          key: const ValueKey('my_jobs_tab'),
+          initialTab: JobListType.mine,
+          showCreateButton: context.read<RoleNavCubit>().state.role == 'client',
+          onCreatePressed: () {
+            final roleNavCubit = context.read<RoleNavCubit>();
+            final createIndex = roleNavCubit.state.tabs
+                .indexWhere((tab) => tab.target == RoleNavTarget.createJob);
+            if (createIndex != -1) {
+              roleNavCubit.setIndex(createIndex);
+            }
+          },
+        );
+      case RoleNavTarget.createJob:
+        return const CreateJobScreen();
+      case RoleNavTarget.chat:
+        return const ChatListScreen(key: ValueKey('chat_list_tab'));
+      case RoleNavTarget.profile:
+        return const ProfileScreen();
+      case RoleNavTarget.overview:
+        return _PlaceholderScreen(
+          title: 'Overview',
+          subtitle: 'Admin overview dashboard coming soon.',
+        );
+      case RoleNavTarget.users:
+        return _PlaceholderScreen(
+          title: 'Users',
+          subtitle: 'User management tools are under development.',
+        );
+      case RoleNavTarget.jobs:
+        return JobListScreen(
+          key: const ValueKey('admin_jobs_tab'),
+          initialTab: JobListType.available,
+        );
+    }
+  }
 }
 
-class _DashboardJobsTab extends StatelessWidget {
-  const _DashboardJobsTab();
+class _PlaceholderScreen extends StatelessWidget {
+  const _PlaceholderScreen({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -126,102 +210,27 @@ class _DashboardJobsTab extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.search,
-              size: 72,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            Icon(Icons.construction,
+                size: 72, color: Theme.of(context).colorScheme.primary),
             const SizedBox(height: 16),
             Text(
-              'Browse and manage jobs',
+              title,
               style: Theme.of(context)
                   .textTheme
-                  .titleLarge
+                  .headlineSmall
                   ?.copyWith(fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
-              'All your jobs will appear here once the modules are connected.',
+              subtitle,
               style: Theme.of(context).textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _DashboardProfileTab extends StatelessWidget {
-  const _DashboardProfileTab({required this.user, required this.onLogout});
-
-  final User? user;
-  final VoidCallback onLogout;
-
-  @override
-  Widget build(BuildContext context) {
-    final initials = user != null && user!.name.isNotEmpty
-        ? user!.name[0].toUpperCase()
-        : '?';
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 32,
-                child: Text(
-                  initials,
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user?.name ?? 'Guest',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user?.email ?? 'No email',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Chip(
-                      label: Text(user?.role ?? 'Unknown'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          ListTile(
-            leading: const Icon(Icons.settings_outlined),
-            title: const Text('Account settings'),
-            subtitle: const Text('Update your details and preferences'),
-            onTap: () {},
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Log out'),
-            onTap: onLogout,
-          ),
-        ],
       ),
     );
   }
