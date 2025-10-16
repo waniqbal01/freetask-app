@@ -4,12 +4,15 @@ import 'package:dio/dio.dart';
 
 import '../models/chat.dart';
 import '../models/message.dart';
+import '../models/pending_message.dart';
 import 'api_client.dart';
+import 'chat_cache_service.dart';
 
 class ChatService {
-  ChatService(this._apiClient);
+  ChatService(this._apiClient, this._cacheService);
 
   final ApiClient _apiClient;
+  final ChatCacheService _cacheService;
 
   Future<List<ChatThread>> fetchThreads() async {
     try {
@@ -45,32 +48,15 @@ class ChatService {
     List<File> attachments = const [],
   }) async {
     try {
-      final files = <MultipartFile>[];
-      for (final attachment in attachments) {
-        files.add(
-          await MultipartFile.fromFile(
-            attachment.path,
-            filename: attachment.uri.pathSegments.isNotEmpty
-                ? attachment.uri.pathSegments.last
-                : 'attachment-${DateTime.now().millisecondsSinceEpoch}',
-          ),
-        );
-      }
-      final formData = FormData();
-      formData.fields.add(MapEntry('text', text));
-      if (files.isNotEmpty) {
-        formData.files.addAll(
-          files.map((file) => MapEntry('attachments', file)),
-        );
-      }
-      final response = await _apiClient.client.post<Map<String, dynamic>>(
-        '/chat/$chatId/messages',
-        data: formData,
-        options: Options(contentType: 'multipart/form-data'),
+      return await _performSend(
+        chatId: chatId,
+        text: text,
+        attachments: attachments,
       );
-      final data = response.data ?? <String, dynamic>{};
-      return Message.fromJson(data);
     } on DioException catch (error) {
+      if (_isOffline(error)) {
+        throw ChatException('Unable to send message while offline. It will retry automatically.');
+      }
       throw ChatException(_mapError(error));
     }
   }
@@ -88,6 +74,76 @@ class ChatService {
     } on DioException catch (error) {
       throw ChatException(_mapError(error));
     }
+  }
+
+  Future<void> flushPendingQueues() async {
+    final chatIds = _cacheService.getPendingChatIds();
+    for (final chatId in chatIds) {
+      final queue = _cacheService.getPendingMessages(chatId);
+      if (queue.isEmpty) {
+        await _cacheService.clearPendingMessages(chatId);
+        continue;
+      }
+      final remaining = <PendingMessage>[];
+      for (final pending in queue) {
+        try {
+          final files = pending.attachments
+              .map((attachment) => File(attachment.path))
+              .where((file) => file.existsSync())
+              .toList();
+          await _performSend(
+            chatId: chatId,
+            text: pending.text,
+            attachments: files,
+          );
+        } catch (_) {
+          remaining.add(pending);
+        }
+      }
+      if (remaining.isEmpty) {
+        await _cacheService.clearPendingMessages(chatId);
+      } else {
+        await _cacheService.savePendingMessages(chatId, remaining);
+      }
+    }
+  }
+
+  Future<Message> _performSend({
+    required String chatId,
+    required String text,
+    List<File> attachments = const [],
+  }) async {
+    final files = <MultipartFile>[];
+    for (final attachment in attachments) {
+      files.add(
+        await MultipartFile.fromFile(
+          attachment.path,
+          filename: attachment.uri.pathSegments.isNotEmpty
+              ? attachment.uri.pathSegments.last
+              : 'attachment-${DateTime.now().millisecondsSinceEpoch}',
+        ),
+      );
+    }
+    final formData = FormData();
+    formData.fields.add(MapEntry('text', text));
+    if (files.isNotEmpty) {
+      formData.files.addAll(files.map((file) => MapEntry('attachments', file)));
+    }
+    final response = await _apiClient.client.post<Map<String, dynamic>>(
+      '/chat/$chatId/messages',
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+    final data = response.data ?? <String, dynamic>{};
+    return Message.fromJson(data);
+  }
+
+  bool _isOffline(DioException error) {
+    return error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.sendTimeout ||
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.connectionError ||
+        error.error is SocketException;
   }
 
   String _mapError(DioException error) {

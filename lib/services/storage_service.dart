@@ -16,6 +16,7 @@ class StorageService {
   static const _tokenExpiryKey = 'auth_token_expiry';
   static const _roleKey = 'auth_role';
   static const _themeModeKey = 'app_theme_mode';
+  static const _jobFeedPrefix = 'cache:job_feed:';
 
   Future<void> saveToken(String token) async {
     await _prefs.setString(_tokenKey, token);
@@ -112,5 +113,85 @@ class StorageService {
       (mode) => mode.name == value,
       orElse: () => ThemeMode.system,
     );
+  }
+
+  Future<void> cacheJobFeed(
+    String cacheKey,
+    List<Map<String, dynamic>> jobs,
+    DateTime timestamp, {
+    required int page,
+    required int pageSize,
+    required int total,
+  }) async {
+    final key = _buildJobFeedKey(cacheKey);
+    final payload = jsonEncode({
+      'timestamp': timestamp.toIso8601String(),
+      'jobs': jobs,
+      'page': page,
+      'pageSize': pageSize,
+      'total': total,
+    });
+    await _prefs.setString(key, payload);
+  }
+
+  JobFeedCache? getCachedJobFeed(String cacheKey) {
+    final key = _buildJobFeedKey(cacheKey);
+    final raw = _prefs.getString(key);
+    if (raw == null) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return null;
+      final timestamp = DateTime.tryParse(decoded['timestamp']?.toString() ?? '');
+      final jobs = (decoded['jobs'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .toList(growable: false);
+      if (timestamp == null) return null;
+      final page = decoded['page'] is int
+          ? decoded['page'] as int
+          : int.tryParse(decoded['page']?.toString() ?? '1') ?? 1;
+      final pageSize = decoded['pageSize'] is int
+          ? decoded['pageSize'] as int
+          : int.tryParse(decoded['pageSize']?.toString() ?? '20') ?? 20;
+      final total = decoded['total'] is int
+          ? decoded['total'] as int
+          : int.tryParse(decoded['total']?.toString() ?? '${jobs.length}') ??
+              jobs.length;
+      return JobFeedCache(
+        timestamp: timestamp.toLocal(),
+        jobs: jobs,
+        page: page,
+        pageSize: pageSize,
+        total: total,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> clearCachedJobFeed(String cacheKey) async {
+    final key = _buildJobFeedKey(cacheKey);
+    await _prefs.remove(key);
+  }
+
+  String _buildJobFeedKey(String cacheKey) => '$_jobFeedPrefix$cacheKey';
+}
+
+class JobFeedCache {
+  const JobFeedCache({
+    required this.timestamp,
+    required this.jobs,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  });
+
+  final DateTime timestamp;
+  final List<Map<String, dynamic>> jobs;
+  final int page;
+  final int pageSize;
+  final int total;
+
+  bool isFresh(Duration maxAge) {
+    return DateTime.now().difference(timestamp) <= maxAge;
   }
 }
