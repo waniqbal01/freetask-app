@@ -148,6 +148,18 @@ class RolePermissions {
     return config(permission).requiresAuth;
   }
 
+  static bool roleCanPostJob(String? role) {
+    return isAllowed(role, RolePermission.createJob);
+  }
+
+  static bool roleCanApplyJob(String? role) {
+    return isAllowed(role, RolePermission.acceptJob);
+  }
+
+  static bool roleCanSeeAdmin(String? role) {
+    return isAllowed(role, RolePermission.manageUsers);
+  }
+
   /// Allows overriding permissions at runtime for future expansion if needed.
   static void register(
     RolePermission permission,
