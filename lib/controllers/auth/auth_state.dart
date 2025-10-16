@@ -2,6 +2,8 @@ import 'package:equatable/equatable.dart';
 
 import '../../models/user.dart';
 
+enum AuthFlow { general, login, signup }
+
 abstract class AuthState extends Equatable {
   const AuthState();
 
@@ -14,7 +16,12 @@ class AuthUnauthenticated extends AuthState {
 }
 
 class AuthLoading extends AuthState {
-  const AuthLoading();
+  const AuthLoading({this.flow = AuthFlow.general});
+
+  final AuthFlow flow;
+
+  @override
+  List<Object?> get props => [flow];
 }
 
 class AuthAuthenticated extends AuthState {
@@ -27,10 +34,11 @@ class AuthAuthenticated extends AuthState {
 }
 
 class AuthError extends AuthState {
-  const AuthError(this.message);
+  const AuthError(this.message, {this.flow = AuthFlow.general});
 
   final String message;
+  final AuthFlow flow;
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, flow];
 }

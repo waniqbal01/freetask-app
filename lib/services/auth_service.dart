@@ -22,11 +22,18 @@ class AuthService {
           'email': email,
           'password': password,
         },
+        options: Options(extra: const {'skipAuth': true}),
       );
       final data = response.data ?? <String, dynamic>{};
       final authResponse = AuthResponse.fromJson(data);
       await _persistSession(authResponse);
-      return authResponse;
+      final user = await fetchMe();
+      return AuthResponse(
+        token: authResponse.token,
+        refreshToken: authResponse.refreshToken,
+        expiresAt: authResponse.expiresAt,
+        user: user,
+      );
     } on DioException catch (error) {
       throw AuthException(_mapError(error));
     }
@@ -47,11 +54,18 @@ class AuthService {
           'password': password,
           'role': role,
         },
+        options: Options(extra: const {'skipAuth': true}),
       );
       final data = response.data ?? <String, dynamic>{};
       final authResponse = AuthResponse.fromJson(data);
       await _persistSession(authResponse);
-      return authResponse;
+      final user = await fetchMe();
+      return AuthResponse(
+        token: authResponse.token,
+        refreshToken: authResponse.refreshToken,
+        expiresAt: authResponse.expiresAt,
+        user: user,
+      );
     } on DioException catch (error) {
       throw AuthException(_mapError(error));
     }
@@ -73,8 +87,54 @@ class AuthService {
 
   Future<void> logout() => _storage.clearAll();
 
+  Future<String> refreshToken() async {
+    final refreshToken = _storage.refreshToken;
+    if (refreshToken == null || refreshToken.isEmpty) {
+      await _storage.clearAll();
+      throw AuthException('Session expired. Please log in again.');
+    }
+
+    try {
+      final response = await _apiClient.client.post<Map<String, dynamic>>(
+        '/auth/refresh',
+        data: {'refreshToken': refreshToken},
+        options: Options(extra: const {'skipAuth': true}),
+      );
+      final data = response.data ?? <String, dynamic>{};
+      final newToken = data['token'] as String? ?? '';
+      if (newToken.isEmpty) {
+        await _storage.clearAll();
+        throw AuthException('Unable to refresh session. Please sign in again.');
+      }
+
+      final newRefreshToken =
+          data['refreshToken'] as String? ?? data['refresh_token'] as String?;
+      final expiresRaw = data['expiresAt'] ?? data['expires_in'];
+      DateTime? expiresAt;
+      if (expiresRaw is String) {
+        expiresAt = DateTime.tryParse(expiresRaw)?.toLocal();
+      } else if (expiresRaw is int) {
+        expiresAt = DateTime.now().add(Duration(seconds: expiresRaw));
+      }
+
+      await _storage.saveToken(newToken);
+      if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
+        await _storage.saveRefreshToken(newRefreshToken);
+      }
+      await _storage.saveTokenExpiry(expiresAt);
+      return newToken;
+    } on DioException catch (error) {
+      await _storage.clearAll();
+      throw AuthException(_mapError(error));
+    }
+  }
+
   Future<void> _persistSession(AuthResponse authResponse) async {
     await _storage.saveToken(authResponse.token);
+    if ((authResponse.refreshToken ?? '').isNotEmpty) {
+      await _storage.saveRefreshToken(authResponse.refreshToken!);
+    }
+    await _storage.saveTokenExpiry(authResponse.expiresAt);
     await _storage.saveUser(authResponse.user);
   }
 

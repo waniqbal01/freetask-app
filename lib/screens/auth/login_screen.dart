@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../config/routes.dart';
 import '../../controllers/auth/auth_bloc.dart';
 import '../../controllers/auth/auth_event.dart';
 import '../../controllers/auth/auth_state.dart';
+import '../../controllers/nav/role_nav_cubit.dart';
 import '../../utils/validators.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_input.dart';
@@ -55,15 +57,25 @@ class _LoginScreenState extends State<LoginScreen> {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthAuthenticated) {
-          Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
-        } else if (state is AuthError) {
+          context.read<RoleNavCubit>().updateRole(state.user.role);
+          showAppSnackBar(
+            context,
+            'Welcome back, ${state.user.name.split(' ').first}!',
+          );
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRoutes.dashboard,
+            (route) => false,
+          );
+        } else if (state is AuthError && state.flow == AuthFlow.general) {
           showAppSnackBar(context, state.message, isError: true);
         }
       },
       builder: (context, state) {
-        final isLoading = state is AuthLoading;
+        final isLoading = state is AuthLoading && state.flow == AuthFlow.login;
+        final formError =
+            state is AuthError && state.flow == AuthFlow.login ? state.message : null;
         return Scaffold(
-          appBar: AppBar(title: const Text('Login')),
+          appBar: AppBar(title: const Text('Sign in')),
           body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -88,26 +100,77 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 32),
-                    AppInput(
-                      controller: _emailController,
-                      label: 'Email',
-                      hintText: 'name@example.com',
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      validator: Validators.validateEmail,
+                    AutofillGroup(
+                      child: Column(
+                        children: [
+                          AppInput(
+                            controller: _emailController,
+                            label: 'Email',
+                            hintText: 'name@example.com',
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            validator: Validators.validateEmail,
+                            autofillHints: const [AutofillHints.email],
+                          ),
+                          const SizedBox(height: 16),
+                          AppInput(
+                            controller: _passwordController,
+                            label: 'Password',
+                            hintText: 'Enter your password',
+                            obscureText: true,
+                            enableObscureToggle: true,
+                            textInputAction: TextInputAction.done,
+                            validator: Validators.validatePassword,
+                            autofillHints: const [AutofillHints.password],
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    AppInput(
-                      controller: _passwordController,
-                      label: 'Password',
-                      hintText: '••••••',
-                      obscureText: true,
-                      textInputAction: TextInputAction.done,
-                      validator: Validators.validatePassword,
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      child: formError == null
+                          ? const SizedBox.shrink()
+                          : Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .errorContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    size: 20,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onErrorContainer,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      formError,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onErrorContainer,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     AppButton(
-                      label: 'Login',
+                      label: 'Sign in',
                       onPressed: _submit,
                       isLoading: isLoading,
                       icon: Icons.lock_open,

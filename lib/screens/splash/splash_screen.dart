@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../config/routes.dart';
 import '../../controllers/auth/auth_bloc.dart';
 import '../../controllers/auth/auth_state.dart';
+import '../../controllers/nav/role_nav_cubit.dart';
 import '../../widgets/app_snackbar.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void _handleNavigation(BuildContext context, AuthState state) {
     if (_navigated) return;
     if (state is AuthAuthenticated) {
+      context.read<RoleNavCubit>().updateRole(state.user.role);
       _navigated = true;
       Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
     } else if (state is AuthUnauthenticated) {
