@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../config/routes.dart';
 import '../../controllers/auth/auth_bloc.dart';
 import '../../controllers/auth/auth_event.dart';
 import '../../controllers/auth/auth_state.dart';
+import '../../controllers/nav/role_nav_cubit.dart';
 import '../../utils/validators.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_input.dart';
@@ -22,6 +24,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   String _role = 'client';
   bool _submitted = false;
 
@@ -30,6 +33,7 @@ class _SignupScreenState extends State<SignupScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -59,13 +63,23 @@ class _SignupScreenState extends State<SignupScreen> {
     return BlocConsumer<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthAuthenticated) {
-          Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
-        } else if (state is AuthError) {
+          context.read<RoleNavCubit>().updateRole(state.user.role);
+          showAppSnackBar(
+            context,
+            'Account created! Welcome, ${state.user.name.split(' ').first}.',
+          );
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRoutes.dashboard,
+            (route) => false,
+          );
+        } else if (state is AuthError && state.flow == AuthFlow.general) {
           showAppSnackBar(context, state.message, isError: true);
         }
       },
       builder: (context, state) {
-        final isLoading = state is AuthLoading;
+        final isLoading = state is AuthLoading && state.flow == AuthFlow.signup;
+        final formError =
+            state is AuthError && state.flow == AuthFlow.signup ? state.message : null;
         return Scaffold(
           appBar: AppBar(title: const Text('Create account')),
           body: SafeArea(
@@ -98,24 +112,48 @@ class _SignupScreenState extends State<SignupScreen> {
                       hintText: 'John Doe',
                       textInputAction: TextInputAction.next,
                       validator: Validators.validateName,
+                      autofillHints: const [AutofillHints.name],
                     ),
                     const SizedBox(height: 16),
-                    AppInput(
-                      controller: _emailController,
-                      label: 'Email',
-                      hintText: 'name@example.com',
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      validator: Validators.validateEmail,
-                    ),
-                    const SizedBox(height: 16),
-                    AppInput(
-                      controller: _passwordController,
-                      label: 'Password',
-                      hintText: 'At least 6 characters',
-                      obscureText: true,
-                      textInputAction: TextInputAction.done,
-                      validator: Validators.validatePassword,
+                    AutofillGroup(
+                      child: Column(
+                        children: [
+                          AppInput(
+                            controller: _emailController,
+                            label: 'Email',
+                            hintText: 'name@example.com',
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            validator: Validators.validateEmail,
+                            autofillHints: const [AutofillHints.email],
+                          ),
+                          const SizedBox(height: 16),
+                          AppInput(
+                            controller: _passwordController,
+                            label: 'Password',
+                            hintText: 'Minimum 8 characters with letters & numbers',
+                            obscureText: true,
+                            enableObscureToggle: true,
+                            textInputAction: TextInputAction.next,
+                            validator: Validators.validatePassword,
+                            autofillHints: const [AutofillHints.newPassword],
+                          ),
+                          const SizedBox(height: 16),
+                          AppInput(
+                            controller: _confirmPasswordController,
+                            label: 'Confirm password',
+                            hintText: 'Re-enter your password',
+                            obscureText: true,
+                            enableObscureToggle: true,
+                            textInputAction: TextInputAction.done,
+                            validator: (value) => Validators.validateConfirmPassword(
+                              value,
+                              _passwordController.text,
+                            ),
+                            autofillHints: const [AutofillHints.newPassword],
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
@@ -141,7 +179,49 @@ class _SignupScreenState extends State<SignupScreen> {
                               }
                             },
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 16),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      child: formError == null
+                          ? const SizedBox.shrink()
+                          : Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .errorContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    size: 20,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onErrorContainer,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      formError,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onErrorContainer,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                    ),
+                    const SizedBox(height: 24),
                     AppButton(
                       label: 'Sign up',
                       onPressed: _submit,

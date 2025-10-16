@@ -69,6 +69,7 @@ Future<void> _configureDependencies() async {
   final dio = Dio();
   final apiClient = ApiClient(dio, storage);
   final authService = AuthService(apiClient, storage);
+  apiClient.registerRefreshTokenCallback(authService.refreshToken);
   final jobService = JobService(apiClient);
   final chatService = ChatService(apiClient);
   final socketService = SocketService();
