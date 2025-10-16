@@ -74,7 +74,7 @@ class AuthService {
   Future<User> fetchMe() async {
     try {
       final response = await _apiClient.client.get<Map<String, dynamic>>(
-        '/auth/me',
+        '/users/me',
       );
       final data = response.data ?? <String, dynamic>{};
       final user = User.fromJson(data);
