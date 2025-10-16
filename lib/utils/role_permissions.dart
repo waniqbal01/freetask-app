@@ -28,6 +28,7 @@ enum RolePermission {
   createJob,
   acceptJob,
   completeJob,
+  cancelJob,
   payJob,
   viewChats,
 }
@@ -102,6 +103,14 @@ class RolePermissions {
         UserRoles.freelancer,
       },
       description: 'mark jobs as complete',
+    ),
+    RolePermission.cancelJob: RolePermissionConfig(
+      allowedRoles: {
+        UserRoles.client,
+        UserRoles.admin,
+        UserRoles.manager,
+      },
+      description: 'cancel jobs',
     ),
     RolePermission.payJob: RolePermissionConfig(
       allowedRoles: {

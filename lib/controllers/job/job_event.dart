@@ -9,8 +9,27 @@ abstract class JobEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class LoadJobList extends JobEvent {
-  const LoadJobList(this.type);
+class JobTabChanged extends JobEvent {
+  const JobTabChanged(this.tab);
+
+  final JobListType tab;
+
+  @override
+  List<Object?> get props => [tab];
+}
+
+class JobListRequested extends JobEvent {
+  const JobListRequested(this.type, {this.refresh = false});
+
+  final JobListType type;
+  final bool refresh;
+
+  @override
+  List<Object?> get props => [type, refresh];
+}
+
+class JobLoadMoreRequested extends JobEvent {
+  const JobLoadMoreRequested(this.type);
 
   final JobListType type;
 
@@ -18,13 +37,42 @@ class LoadJobList extends JobEvent {
   List<Object?> get props => [type];
 }
 
-class LoadJobDetail extends JobEvent {
-  const LoadJobDetail(this.jobId);
+class JobSearchChanged extends JobEvent {
+  const JobSearchChanged({
+    required this.type,
+    required this.query,
+  });
 
-  final String jobId;
+  final JobListType type;
+  final String query;
 
   @override
-  List<Object?> get props => [jobId];
+  List<Object?> get props => [type, query];
+}
+
+class JobFilterChanged extends JobEvent {
+  const JobFilterChanged({
+    required this.type,
+    this.status,
+    this.category,
+  });
+
+  final JobListType type;
+  final JobStatus? status;
+  final String? category;
+
+  @override
+  List<Object?> get props => [type, status, category];
+}
+
+class LoadJobDetail extends JobEvent {
+  const LoadJobDetail(this.jobId, {this.force = false});
+
+  final String jobId;
+  final bool force;
+
+  @override
+  List<Object?> get props => [jobId, force];
 }
 
 class CreateJobRequested extends JobEvent {
@@ -34,7 +82,7 @@ class CreateJobRequested extends JobEvent {
     required this.price,
     required this.category,
     required this.location,
-    this.attachments = const [],
+    this.imagePaths = const [],
   });
 
   final String title;
@@ -42,7 +90,7 @@ class CreateJobRequested extends JobEvent {
   final double price;
   final String category;
   final String location;
-  final List<String> attachments;
+  final List<String> imagePaths;
 
   @override
   List<Object?> get props => [
@@ -51,7 +99,7 @@ class CreateJobRequested extends JobEvent {
         price,
         category,
         location,
-        attachments,
+        imagePaths,
       ];
 }
 
@@ -73,6 +121,15 @@ class CompleteJobRequested extends JobEvent {
   List<Object?> get props => [jobId];
 }
 
+class CancelJobRequested extends JobEvent {
+  const CancelJobRequested(this.jobId);
+
+  final String jobId;
+
+  @override
+  List<Object?> get props => [jobId];
+}
+
 class PayJobRequested extends JobEvent {
   const PayJobRequested(this.jobId);
 
@@ -80,6 +137,15 @@ class PayJobRequested extends JobEvent {
 
   @override
   List<Object?> get props => [jobId];
+}
+
+class JobRealtimeUpdated extends JobEvent {
+  const JobRealtimeUpdated(this.job);
+
+  final Job job;
+
+  @override
+  List<Object?> get props => [job];
 }
 
 class ClearJobMessage extends JobEvent {
