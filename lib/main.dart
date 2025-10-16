@@ -13,6 +13,7 @@ import 'controllers/nav/role_nav_cubit.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/chat_service.dart';
+import 'services/chat_cache_service.dart';
 import 'services/job_service.dart';
 import 'services/notification_service.dart';
 import 'services/role_guard.dart';
@@ -85,6 +86,7 @@ Future<void> _configureDependencies() async {
   final chatService = ChatService(apiClient);
   final socketService = SocketService();
   final notificationService = NotificationService(apiClient);
+  final chatCacheService = ChatCacheService(prefs);
 
   getIt
     ..registerSingleton<SharedPreferences>(prefs)
@@ -94,6 +96,7 @@ Future<void> _configureDependencies() async {
     ..registerSingleton<AuthService>(authService)
     ..registerSingleton<JobService>(jobService)
     ..registerSingleton<ChatService>(chatService)
+    ..registerSingleton<ChatCacheService>(chatCacheService)
     ..registerSingleton<SocketService>(socketService)
     ..registerSingleton<NotificationService>(notificationService)
     ..registerSingleton<RoleGuard>(roleGuard);

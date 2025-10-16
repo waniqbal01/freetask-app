@@ -95,7 +95,7 @@ class _ChatThreadTile extends StatelessWidget {
       onTap: () {
         Navigator.of(context).pushNamed(
           AppRoutes.chat,
-          arguments: thread.id,
+          arguments: thread,
         );
       },
       leading: CircleAvatar(

@@ -42,19 +42,27 @@ class ChatService {
   Future<Message> sendMessage({
     required String chatId,
     required String text,
-    File? image,
+    List<File> attachments = const [],
   }) async {
     try {
-      final formData = FormData.fromMap({
-        'text': text,
-        if (image != null)
-          'image': await MultipartFile.fromFile(
-            image.path,
-            filename: image.uri.pathSegments.isNotEmpty
-                ? image.uri.pathSegments.last
-                : 'attachment.jpg',
+      final files = <MultipartFile>[];
+      for (final attachment in attachments) {
+        files.add(
+          await MultipartFile.fromFile(
+            attachment.path,
+            filename: attachment.uri.pathSegments.isNotEmpty
+                ? attachment.uri.pathSegments.last
+                : 'attachment-${DateTime.now().millisecondsSinceEpoch}',
           ),
-      });
+        );
+      }
+      final formData = FormData();
+      formData.fields.add(MapEntry('text', text));
+      if (files.isNotEmpty) {
+        formData.files.addAll(
+          files.map((file) => MapEntry('attachments', file)),
+        );
+      }
       final response = await _apiClient.client.post<Map<String, dynamic>>(
         '/chat/$chatId/messages',
         data: formData,
@@ -62,6 +70,21 @@ class ChatService {
       );
       final data = response.data ?? <String, dynamic>{};
       return Message.fromJson(data);
+    } on DioException catch (error) {
+      throw ChatException(_mapError(error));
+    }
+  }
+
+  Future<void> markMessagesRead({
+    required String chatId,
+    required List<String> messageIds,
+  }) async {
+    if (messageIds.isEmpty) return;
+    try {
+      await _apiClient.client.post<void>(
+        '/chat/$chatId/read',
+        data: {'messageIds': messageIds},
+      );
     } on DioException catch (error) {
       throw ChatException(_mapError(error));
     }

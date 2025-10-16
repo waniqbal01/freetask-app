@@ -9,8 +9,12 @@ import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/splash/splash_screen.dart';
 import '../screens/jobs/job_detail_screen.dart';
 import '../screens/chat/chat_screen.dart';
-import '../controllers/chat/chat_detail_bloc.dart';
+import '../models/chat.dart';
+import '../controllers/chat/chat_bloc.dart';
+import '../controllers/chat/chat_event.dart';
+import '../controllers/chat/chat_state.dart';
 import '../services/chat_service.dart';
+import '../services/chat_cache_service.dart';
 import '../services/socket_service.dart';
 import '../screens/unauthorized/unauthorized_screen.dart';
 import '../services/role_guard.dart';
@@ -77,8 +81,27 @@ class AppRoutes {
           message: 'You do not have permission to view this job.',
         );
       case chat:
-        final chatId = settings.arguments as String?;
         final getIt = GetIt.instance;
+        final args = settings.arguments;
+        ChatThread? thread;
+        String? chatId;
+        List<String> participantIds = const [];
+        if (args is ChatThread) {
+          thread = args;
+          chatId = args.id;
+          participantIds = args.participants;
+        } else if (args is Map<String, dynamic>) {
+          chatId = args['chatId']?.toString();
+          final participants = args['participants'];
+          if (participants is List) {
+            participantIds = participants
+                .map((participant) => participant.toString())
+                .toList();
+          }
+        } else if (args is String) {
+          chatId = args;
+        }
+
         if (chatId == null || chatId.isEmpty) {
           return MaterialPageRoute<void>(
             builder: (_) => const Scaffold(
@@ -91,13 +114,30 @@ class AppRoutes {
           settings: settings,
           requiresAuth: true,
           allowedRoles: RolePermissions.allowedRoles(RolePermission.viewChats),
-          builder: (_) => BlocProvider<ChatDetailBloc>(
-            create: (_) => ChatDetailBloc(
-              getIt<ChatService>(),
-              getIt<SocketService>(),
-            ),
-            child: ChatScreen(chatId: chatId),
-          ),
+          builder: (context) {
+            final authState = context.read<AuthBloc>().state;
+            final currentUserId =
+                authState is AuthAuthenticated ? authState.user.id : '';
+            final cacheService = getIt<ChatCacheService>();
+            final chatService = getIt<ChatService>();
+            final socketService = getIt<SocketService>();
+            final participants = participantIds
+                .where((participant) => participant != currentUserId)
+                .toList();
+            return BlocProvider<ChatBloc>(
+              create: (_) => ChatBloc(
+                chatService,
+                socketService,
+                cacheService,
+                currentUserId: currentUserId,
+              )..add(ChatStarted(chatId: chatId!, participantIds: participants)),
+              child: ChatScreen(
+                chatId: chatId!,
+                participantIds: participants,
+                thread: thread,
+              ),
+            );
+          },
           message: 'You do not have permission to open this chat.',
         );
       case unauthorized:
