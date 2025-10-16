@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 
 import '../models/job.dart';
@@ -5,29 +7,61 @@ import '../utils/role_permissions.dart';
 import 'api_client.dart';
 import 'role_guard.dart';
 
+class JobPaginationResult {
+  const JobPaginationResult({
+    required this.jobs,
+    required this.page,
+    required this.pageSize,
+    required this.total,
+  });
+
+  final List<Job> jobs;
+  final int page;
+  final int pageSize;
+  final int total;
+
+  bool get hasNextPage => jobs.length + (page - 1) * pageSize < total;
+}
+
 class JobService {
   JobService(this._apiClient, this._roleGuard);
 
   final ApiClient _apiClient;
   final RoleGuard _roleGuard;
 
-  Future<List<Job>> fetchJobs({JobStatus? status, bool mine = false}) async {
+  Future<JobPaginationResult> fetchJobs({
+    int page = 1,
+    int pageSize = 20,
+    JobStatus? status,
+    String? category,
+    String? search,
+    bool mine = false,
+    bool includeHistory = false,
+  }) async {
     try {
-      final permission = mine ? RolePermission.viewOwnJobs : RolePermission.viewJobs;
+      final permission = mine
+          ? RolePermission.viewOwnJobs
+          : RolePermission.viewJobs;
       _roleGuard.ensurePermission(permission);
-      final response = await _apiClient.client.get<List<dynamic>>(
+      final response = await _apiClient.client.get<dynamic>(
         '/jobs',
         queryParameters: {
-          if (status != null) 'status': _statusToParam(status),
+          'page': page,
+          'limit': pageSize,
+          if (status != null) 'status': status.apiValue,
+          if (category != null && category.isNotEmpty) 'category': category,
+          if (search != null && search.isNotEmpty) 'search': search,
           if (mine) 'mine': true,
+          if (includeHistory) 'history': true,
         },
         options: _apiClient.guard(permission: permission),
       );
-      final data = response.data ?? const [];
-      return data
-          .whereType<Map<String, dynamic>>()
-          .map(Job.fromJson)
-          .toList();
+
+      return _parsePaginationResult(
+        response.data,
+        fallbackPage: page,
+        fallbackPageSize: pageSize,
+      );
     } on DioException catch (error) {
       throw JobException(_mapError(error));
     } on RoleUnauthorizedException catch (error) {
@@ -57,21 +91,25 @@ class JobService {
     required double price,
     required String category,
     required String location,
-    List<String> attachments = const [],
+    List<String> imagePaths = const [],
   }) async {
     try {
       _roleGuard.ensurePermission(RolePermission.createJob);
+      final attachments = await _prepareAttachments(imagePaths);
+      final payload = FormData.fromMap({
+        'title': title,
+        'description': description,
+        'price': price,
+        'category': category,
+        'location': location,
+        if (attachments.isNotEmpty) 'attachments': attachments,
+      });
+
       final response = await _apiClient.client.post<Map<String, dynamic>>(
         '/jobs',
-        data: {
-          'title': title,
-          'description': description,
-          'price': price,
-          'category': category,
-          'location': location,
-          'attachments': attachments,
-        },
-        options: _apiClient.guard(permission: RolePermission.createJob),
+        data: payload,
+        options: _apiClient.guard(permission: RolePermission.createJob)
+            .copyWith(contentType: 'multipart/form-data'),
       );
       final data = response.data ?? <String, dynamic>{};
       return Job.fromJson(data);
@@ -83,27 +121,47 @@ class JobService {
   }
 
   Future<Job> acceptJob(String id) async {
-    try {
-      _roleGuard.ensurePermission(RolePermission.acceptJob);
-      final response = await _apiClient.client.post<Map<String, dynamic>>(
-        '/jobs/$id/accept',
-        options: _apiClient.guard(permission: RolePermission.acceptJob),
-      );
-      final data = response.data ?? <String, dynamic>{};
-      return Job.fromJson(data);
-    } on DioException catch (error) {
-      throw JobException(_mapError(error));
-    } on RoleUnauthorizedException catch (error) {
-      throw JobException(error.message);
-    }
+    return _transition(
+      id: id,
+      endpoint: '/jobs/$id/accept',
+      permission: RolePermission.acceptJob,
+    );
   }
 
   Future<Job> completeJob(String id) async {
+    return _transition(
+      id: id,
+      endpoint: '/jobs/$id/complete',
+      permission: RolePermission.completeJob,
+    );
+  }
+
+  Future<Job> cancelJob(String id) async {
+    return _transition(
+      id: id,
+      endpoint: '/jobs/$id/cancel',
+      permission: RolePermission.cancelJob,
+    );
+  }
+
+  Future<Job> payForJob(String id) async {
+    return _transition(
+      id: id,
+      endpoint: '/jobs/$id/pay',
+      permission: RolePermission.payJob,
+    );
+  }
+
+  Future<Job> _transition({
+    required String id,
+    required String endpoint,
+    required RolePermission permission,
+  }) async {
     try {
-      _roleGuard.ensurePermission(RolePermission.completeJob);
+      _roleGuard.ensurePermission(permission);
       final response = await _apiClient.client.post<Map<String, dynamic>>(
-        '/jobs/$id/complete',
-        options: _apiClient.guard(permission: RolePermission.completeJob),
+        endpoint,
+        options: _apiClient.guard(permission: permission),
       );
       final data = response.data ?? <String, dynamic>{};
       return Job.fromJson(data);
@@ -114,20 +172,99 @@ class JobService {
     }
   }
 
-  Future<Job> payForJob(String id) async {
-    try {
-      _roleGuard.ensurePermission(RolePermission.payJob);
-      final response = await _apiClient.client.post<Map<String, dynamic>>(
-        '/jobs/$id/pay',
-        options: _apiClient.guard(permission: RolePermission.payJob),
-      );
-      final data = response.data ?? <String, dynamic>{};
-      return Job.fromJson(data);
-    } on DioException catch (error) {
-      throw JobException(_mapError(error));
-    } on RoleUnauthorizedException catch (error) {
-      throw JobException(error.message);
+  Future<List<MultipartFile>> _prepareAttachments(List<String> imagePaths) async {
+    final uploads = <MultipartFile>[];
+    for (final path in imagePaths) {
+      if (path.isEmpty) continue;
+      try {
+        uploads.add(
+          await MultipartFile.fromFile(
+            path,
+            filename: path.split('/').last,
+          ),
+        );
+      } catch (_) {
+        // Ignore corrupt attachment silently
+      }
     }
+    return uploads;
+  }
+
+  JobPaginationResult _parsePaginationResult(
+    dynamic payload, {
+    required int fallbackPage,
+    required int fallbackPageSize,
+  }) {
+    if (payload is Map<String, dynamic>) {
+      final items = _extractItems(payload);
+      final meta = payload['meta'] ?? payload['pagination'] ?? payload['page'];
+      final total = _extractTotal(payload, items.length);
+      final page = _extractMetaField(meta, 'page') ?? fallbackPage;
+      final limit = _extractMetaField(meta, 'limit') ??
+          _extractMetaField(meta, 'pageSize') ??
+          fallbackPageSize;
+      return JobPaginationResult(
+        jobs: items,
+        page: page,
+        pageSize: limit,
+        total: total,
+      );
+    }
+    if (payload is List) {
+      final jobs = payload
+          .whereType<Map<String, dynamic>>()
+          .map(Job.fromJson)
+          .toList(growable: false);
+      return JobPaginationResult(
+        jobs: jobs,
+        page: fallbackPage,
+        pageSize: fallbackPageSize,
+        total: jobs.length + (fallbackPage - 1) * fallbackPageSize,
+      );
+    }
+    return JobPaginationResult(
+      jobs: const [],
+      page: fallbackPage,
+      pageSize: fallbackPageSize,
+      total: 0,
+    );
+  }
+
+  List<Job> _extractItems(Map<String, dynamic> payload) {
+    final candidates = [
+      payload['data'],
+      payload['jobs'],
+      payload['items'],
+      payload['results'],
+      payload['rows'],
+    ];
+    for (final candidate in candidates) {
+      if (candidate is List) {
+        return candidate
+            .whereType<Map<String, dynamic>>()
+            .map(Job.fromJson)
+            .toList(growable: false);
+      }
+    }
+    return const [];
+  }
+
+  int _extractTotal(Map<String, dynamic> payload, int defaultTotal) {
+    final meta = payload['meta'] ?? payload['pagination'] ?? payload['page'];
+    final total = _extractMetaField(meta, 'total') ??
+        _extractMetaField(meta, 'count') ??
+        payload['total'] as int?;
+    return total ?? defaultTotal;
+  }
+
+  int? _extractMetaField(dynamic meta, String key) {
+    if (meta is Map<String, dynamic>) {
+      final value = meta[key];
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      return int.tryParse(value?.toString() ?? '');
+    }
+    return null;
   }
 
   String _mapError(DioException error) {
@@ -148,8 +285,12 @@ class JobService {
         }
       }
       switch (response.statusCode) {
+        case 400:
+          return 'Invalid job data. Please review your input.';
         case 401:
           return 'Session expired. Please login again.';
+        case 403:
+          return 'You do not have permission to perform this action.';
         case 404:
           return 'Job not found.';
         default:
@@ -157,17 +298,6 @@ class JobService {
       }
     }
     return 'Something went wrong. Please try again later.';
-  }
-
-  String _statusToParam(JobStatus status) {
-    switch (status) {
-      case JobStatus.pending:
-        return 'pending';
-      case JobStatus.inProgress:
-        return 'in_progress';
-      case JobStatus.completed:
-        return 'completed';
-    }
   }
 }
 

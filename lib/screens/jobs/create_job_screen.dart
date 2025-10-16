@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../controllers/auth/auth_bloc.dart';
@@ -8,8 +9,6 @@ import '../../controllers/job/job_event.dart';
 import '../../controllers/job/job_state.dart';
 import '../../utils/role_permissions.dart';
 import '../../utils/validators.dart';
-import '../../widgets/app_button.dart';
-import '../../widgets/app_input.dart';
 import '../unauthorized/unauthorized_screen.dart';
 
 class CreateJobScreen extends StatefulWidget {
@@ -41,10 +40,26 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
   }
 
   Future<void> _pickAttachment() async {
-    final file = await _picker.pickImage(source: ImageSource.gallery);
-    if (file != null) {
-      setState(() => _attachments.add(file));
-    }
+    final files = await _picker.pickMultiImage(imageQuality: 85);
+    if (files.isEmpty) return;
+    setState(() {
+      final existing = _attachments.map((file) => file.path).toSet();
+      for (final file in files) {
+        if (existing.add(file.path)) {
+          _attachments.add(file);
+        }
+      }
+    });
+  }
+
+  Future<void> _pickFromCamera() async {
+    final file = await _picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    if (file == null) return;
+    setState(() => _attachments.add(file));
+  }
+
+  void _removeAttachment(XFile file) {
+    setState(() => _attachments.remove(file));
   }
 
   void _submit() {
@@ -61,7 +76,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
             price: price,
             category: _categoryController.text.trim(),
             location: _locationController.text.trim(),
-            attachments: _attachments.map((file) => file.path).toList(),
+            imagePaths: _attachments.map((file) => file.path).toList(),
           ),
         );
   }
@@ -94,7 +109,7 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.successMessage!)),
           );
-          Navigator.of(context).pop();
+          Navigator.of(context).maybePop();
         }
       },
       builder: (context, state) {
@@ -111,75 +126,84 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    AppInput(
+                    _BuildInput(
                       controller: _titleController,
                       label: 'Title',
+                      hint: 'Eg. Design a landing page',
                       validator: Validators.validateRequired,
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: 16),
-                    AppInput(
+                    _BuildInput(
                       controller: _descriptionController,
                       label: 'Description',
-                      minLines: 3,
-                      maxLines: 6,
+                      hint: 'Describe the scope, expectations and deliverables',
                       validator: Validators.validateRequired,
+                      minLines: 4,
+                      maxLines: 8,
                     ),
                     const SizedBox(height: 16),
-                    AppInput(
+                    _BuildInput(
                       controller: _priceController,
                       label: 'Budget (USD)',
+                      hint: 'Enter total budget',
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
                       validator: Validators.validateNumber,
                     ),
                     const SizedBox(height: 16),
-                    AppInput(
+                    _BuildInput(
                       controller: _categoryController,
                       label: 'Category',
+                      hint: 'Eg. Design, Development, Marketing',
                       validator: Validators.validateRequired,
+                      textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: 16),
-                    AppInput(
+                    _BuildInput(
                       controller: _locationController,
                       label: 'Location',
+                      hint: 'Eg. Remote, Kuala Lumpur',
                       validator: Validators.validateRequired,
                     ),
                     const SizedBox(height: 24),
                     Text(
                       'Attachments',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: 12,
+                      runSpacing: 12,
                       children: [
                         ..._attachments.map(
                           (file) => Chip(
+                            avatar: const Icon(Icons.image_outlined),
                             label: Text(file.name),
                             deleteIcon: const Icon(Icons.close),
-                            onDeleted: () {
-                              setState(() => _attachments.remove(file));
-                            },
+                            onDeleted: () => _removeAttachment(file),
                           ),
                         ),
                         ActionChip(
-                          avatar: const Icon(Icons.upload_file),
-                          label: const Text('Add image'),
+                          avatar: const Icon(Icons.photo_library_outlined),
+                          label: const Text('Gallery'),
                           onPressed: _pickAttachment,
+                        ),
+                        ActionChip(
+                          avatar: const Icon(Icons.photo_camera_outlined),
+                          label: const Text('Camera'),
+                          onPressed: _pickFromCamera,
                         ),
                       ],
                     ),
                     const SizedBox(height: 32),
-                    AppButton(
-                      label: 'Create job',
-                      icon: Icons.save_outlined,
-                      isLoading: state.isSubmitting,
+                    FilledButton.icon(
                       onPressed: state.isSubmitting ? null : _submit,
+                      icon: const Icon(Icons.save_outlined),
+                      label: Text(state.isSubmitting ? 'Creating...' : 'Create job'),
                     ),
                   ],
                 ),
@@ -188,6 +212,48 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _BuildInput extends StatelessWidget {
+  const _BuildInput({
+    required this.controller,
+    required this.label,
+    this.hint,
+    this.validator,
+    this.keyboardType,
+    this.textInputAction,
+    this.minLines,
+    this.maxLines,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String? hint;
+  final String? Function(String?)? validator;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final int? minLines;
+  final int? maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      validator: validator,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      minLines: minLines,
+      maxLines: maxLines ?? 1,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
     );
   }
 }

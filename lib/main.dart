@@ -51,7 +51,10 @@ class FreetaskApp extends StatelessWidget {
           },
         ),
         BlocProvider<JobBloc>(
-          create: (_) => JobBloc(getIt<JobService>()),
+          create: (_) => JobBloc(
+            getIt<JobService>(),
+            getIt<StorageService>(),
+          ),
         ),
         BlocProvider<ChatListBloc>(
           create: (_) => ChatListBloc(getIt<ChatService>()),

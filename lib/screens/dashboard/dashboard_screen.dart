@@ -12,7 +12,6 @@ import '../../controllers/chat/chat_list_bloc.dart';
 import '../../controllers/job/job_bloc.dart';
 import '../../controllers/job/job_event.dart';
 import '../../controllers/nav/role_nav_cubit.dart';
-import '../../models/job.dart';
 import '../../models/message.dart';
 import '../../services/notification_service.dart';
 import '../../services/socket_service.dart';
@@ -161,11 +160,17 @@ class _DashboardShellState extends State<DashboardShell> {
               context.read<RoleNavCubit>().setIndex(value);
               final target = navState.tabs[value].target;
               if (target == RoleNavTarget.myJobs) {
-                context.read<JobBloc>().add(const LoadJobList(JobListType.mine));
+                final bloc = context.read<JobBloc>();
+                bloc
+                  ..add(const JobTabChanged(JobListType.mine))
+                  ..add(const JobListRequested(JobListType.mine, refresh: true));
               } else if (target == RoleNavTarget.availableJobs) {
-                context
-                    .read<JobBloc>()
-                    .add(const LoadJobList(JobListType.available));
+                final bloc = context.read<JobBloc>();
+                bloc
+                  ..add(const JobTabChanged(JobListType.available))
+                  ..add(
+                    const JobListRequested(JobListType.available, refresh: true),
+                  );
               }
             },
             destinations: navState.tabs
