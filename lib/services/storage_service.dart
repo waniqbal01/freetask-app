@@ -13,6 +13,7 @@ class StorageService {
   static const _userKey = 'auth_user';
   static const _refreshTokenKey = 'auth_refresh_token';
   static const _tokenExpiryKey = 'auth_token_expiry';
+  static const _roleKey = 'auth_role';
 
   Future<void> saveToken(String token) async {
     await _prefs.setString(_tokenKey, token);
@@ -58,6 +59,7 @@ class StorageService {
 
   Future<void> saveUser(User user) async {
     await _prefs.setString(_userKey, jsonEncode(user.toJson()));
+    await saveRole(user.role);
   }
 
   User? getUser() {
@@ -73,6 +75,17 @@ class StorageService {
 
   Future<void> clearUser() async {
     await _prefs.remove(_userKey);
+    await clearRole();
+  }
+
+  Future<void> saveRole(String role) async {
+    await _prefs.setString(_roleKey, role);
+  }
+
+  String? get role => _prefs.getString(_roleKey);
+
+  Future<void> clearRole() async {
+    await _prefs.remove(_roleKey);
   }
 
   Future<void> clearAll() async {
@@ -81,6 +94,7 @@ class StorageService {
       _prefs.remove(_userKey),
       _prefs.remove(_refreshTokenKey),
       _prefs.remove(_tokenExpiryKey),
+      _prefs.remove(_roleKey),
     ]);
   }
 }

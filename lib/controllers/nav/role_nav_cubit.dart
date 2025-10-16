@@ -2,8 +2,11 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../utils/role_permissions.dart';
+
 class RoleNavCubit extends Cubit<RoleNavState> {
-  RoleNavCubit() : super(RoleNavState.forRole('client'));
+  RoleNavCubit({String initialRole = UserRoles.defaultRole})
+      : super(RoleNavState.forRole(initialRole));
 
   void updateRole(String role) {
     if (state.role == role) return;
@@ -79,89 +82,94 @@ enum RoleNavTarget {
 }
 
 List<RoleNavTab> _tabsFor(String role) {
-  switch (role) {
-    case 'client':
-      return const [
-        RoleNavTab(
-          label: 'Home',
-          icon: Icons.work_outline,
-          selectedIcon: Icons.work,
-          target: RoleNavTarget.myJobs,
-        ),
-        RoleNavTab(
-          label: 'Create',
-          icon: Icons.add_circle_outline,
-          selectedIcon: Icons.add_circle,
-          target: RoleNavTarget.createJob,
-        ),
-        RoleNavTab(
-          label: 'Chat',
-          icon: Icons.chat_bubble_outline,
-          selectedIcon: Icons.chat_bubble,
-          target: RoleNavTarget.chat,
-        ),
-        RoleNavTab(
-          label: 'Profile',
-          icon: Icons.person_outline,
-          selectedIcon: Icons.person,
-          target: RoleNavTarget.profile,
-        ),
-      ];
-    case 'freelancer':
-      return const [
-        RoleNavTab(
-          label: 'Home',
-          icon: Icons.explore_outlined,
-          selectedIcon: Icons.explore,
-          target: RoleNavTarget.availableJobs,
-        ),
-        RoleNavTab(
-          label: 'My Jobs',
-          icon: Icons.work_outline,
-          selectedIcon: Icons.work,
-          target: RoleNavTarget.myJobs,
-        ),
-        RoleNavTab(
-          label: 'Chat',
-          icon: Icons.chat_bubble_outline,
-          selectedIcon: Icons.chat_bubble,
-          target: RoleNavTarget.chat,
-        ),
-        RoleNavTab(
-          label: 'Profile',
-          icon: Icons.person_outline,
-          selectedIcon: Icons.person,
-          target: RoleNavTarget.profile,
-        ),
-      ];
-    case 'admin':
-      return const [
-        RoleNavTab(
-          label: 'Overview',
-          icon: Icons.dashboard_outlined,
-          selectedIcon: Icons.dashboard,
-          target: RoleNavTarget.overview,
-        ),
-        RoleNavTab(
-          label: 'Users',
-          icon: Icons.group_outlined,
-          selectedIcon: Icons.group,
-          target: RoleNavTarget.users,
-        ),
-        RoleNavTab(
-          label: 'Jobs',
-          icon: Icons.work_outline,
-          selectedIcon: Icons.work,
-          target: RoleNavTarget.jobs,
-        ),
-        RoleNavTab(
-          label: 'Profile',
-          icon: Icons.person_outline,
-          selectedIcon: Icons.person,
-          target: RoleNavTarget.profile,
-        ),
-      ];
-    default:
-      return _tabsFor('client');
-  }
+  const clientTabs = [
+    RoleNavTab(
+      label: 'Home',
+      icon: Icons.work_outline,
+      selectedIcon: Icons.work,
+      target: RoleNavTarget.myJobs,
+    ),
+    RoleNavTab(
+      label: 'Create',
+      icon: Icons.add_circle_outline,
+      selectedIcon: Icons.add_circle,
+      target: RoleNavTarget.createJob,
+    ),
+    RoleNavTab(
+      label: 'Chat',
+      icon: Icons.chat_bubble_outline,
+      selectedIcon: Icons.chat_bubble,
+      target: RoleNavTarget.chat,
+    ),
+    RoleNavTab(
+      label: 'Profile',
+      icon: Icons.person_outline,
+      selectedIcon: Icons.person,
+      target: RoleNavTarget.profile,
+    ),
+  ];
+
+  const freelancerTabs = [
+    RoleNavTab(
+      label: 'Home',
+      icon: Icons.explore_outlined,
+      selectedIcon: Icons.explore,
+      target: RoleNavTarget.availableJobs,
+    ),
+    RoleNavTab(
+      label: 'My Jobs',
+      icon: Icons.work_outline,
+      selectedIcon: Icons.work,
+      target: RoleNavTarget.myJobs,
+    ),
+    RoleNavTab(
+      label: 'Chat',
+      icon: Icons.chat_bubble_outline,
+      selectedIcon: Icons.chat_bubble,
+      target: RoleNavTarget.chat,
+    ),
+    RoleNavTab(
+      label: 'Profile',
+      icon: Icons.person_outline,
+      selectedIcon: Icons.person,
+      target: RoleNavTarget.profile,
+    ),
+  ];
+
+  const adminTabs = [
+    RoleNavTab(
+      label: 'Overview',
+      icon: Icons.dashboard_outlined,
+      selectedIcon: Icons.dashboard,
+      target: RoleNavTarget.overview,
+    ),
+    RoleNavTab(
+      label: 'Users',
+      icon: Icons.group_outlined,
+      selectedIcon: Icons.group,
+      target: RoleNavTarget.users,
+    ),
+    RoleNavTab(
+      label: 'Jobs',
+      icon: Icons.work_outline,
+      selectedIcon: Icons.work,
+      target: RoleNavTarget.jobs,
+    ),
+    RoleNavTab(
+      label: 'Profile',
+      icon: Icons.person_outline,
+      selectedIcon: Icons.person,
+      target: RoleNavTarget.profile,
+    ),
+  ];
+
+  final mapping = <String, List<RoleNavTab>>{
+    UserRoles.client: clientTabs,
+    UserRoles.freelancer: freelancerTabs,
+    UserRoles.admin: adminTabs,
+    UserRoles.manager: adminTabs,
+    UserRoles.support: adminTabs,
+  };
+
+  return mapping[role] ?? mapping[UserRoles.defaultRole]!;
 }

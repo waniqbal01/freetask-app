@@ -13,6 +13,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
     on<CreateJobRequested>(_onCreateJobRequested);
     on<AcceptJobRequested>(_onAcceptJobRequested);
     on<CompleteJobRequested>(_onCompleteJobRequested);
+    on<PayJobRequested>(_onPayJobRequested);
     on<ClearJobMessage>(_onClearJobMessage);
   }
 
@@ -193,6 +194,33 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         state.copyWith(
           isSubmitting: false,
           errorMessage: 'Unable to complete job.',
+        ),
+      );
+    }
+  }
+
+  Future<void> _onPayJobRequested(
+    PayJobRequested event,
+    Emitter<JobState> emit,
+  ) async {
+    emit(state.copyWith(isSubmitting: true, clearError: true));
+    try {
+      final job = await _jobService.payForJob(event.jobId);
+      _updateJobLists(emit, job, successMessage: 'Payment processed successfully.');
+    } on JobException catch (error, stackTrace) {
+      appLog('Failed to pay for job', error: error, stackTrace: stackTrace);
+      emit(
+        state.copyWith(
+          isSubmitting: false,
+          errorMessage: error.message,
+        ),
+      );
+    } catch (error, stackTrace) {
+      appLog('Unexpected error on pay job', error: error, stackTrace: stackTrace);
+      emit(
+        state.copyWith(
+          isSubmitting: false,
+          errorMessage: 'Unable to process payment.',
         ),
       );
     }

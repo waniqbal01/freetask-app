@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../controllers/auth/auth_bloc.dart';
 import '../../controllers/job/job_bloc.dart';
 import '../../controllers/job/job_event.dart';
 import '../../controllers/job/job_state.dart';
+import '../../utils/role_permissions.dart';
 import '../../utils/validators.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_input.dart';
+import '../unauthorized/unauthorized_screen.dart';
 
 class CreateJobScreen extends StatefulWidget {
   const CreateJobScreen({super.key});
@@ -65,6 +68,15 @@ class _CreateJobScreenState extends State<CreateJobScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final role = context.select<AuthBloc, String?>(
+      (bloc) => bloc.state.role,
+    );
+    if (role != UserRoles.client) {
+      return const UnauthorizedScreen(
+        message: 'Only clients can create new jobs.',
+      );
+    }
+
     return BlocConsumer<JobBloc, JobState>(
       listenWhen: (previous, current) =>
           previous.successMessage != current.successMessage ||

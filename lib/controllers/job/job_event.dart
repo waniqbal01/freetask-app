@@ -73,6 +73,15 @@ class CompleteJobRequested extends JobEvent {
   List<Object?> get props => [jobId];
 }
 
+class PayJobRequested extends JobEvent {
+  const PayJobRequested(this.jobId);
+
+  final String jobId;
+
+  @override
+  List<Object?> get props => [jobId];
+}
+
 class ClearJobMessage extends JobEvent {
   const ClearJobMessage();
 }

@@ -5,6 +5,7 @@ import '../../config/routes.dart';
 import '../../controllers/auth/auth_bloc.dart';
 import '../../controllers/auth/auth_state.dart';
 import '../../controllers/nav/role_nav_cubit.dart';
+import '../../utils/role_permissions.dart';
 import '../../widgets/app_snackbar.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -32,6 +33,7 @@ class _SplashScreenState extends State<SplashScreen> {
       _navigated = true;
       Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
     } else if (state is AuthUnauthenticated) {
+      context.read<RoleNavCubit>().updateRole(UserRoles.defaultRole);
       _navigated = true;
       Navigator.of(context).pushReplacementNamed(AppRoutes.onboarding);
     } else if (state is AuthError) {

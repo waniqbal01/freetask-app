@@ -7,6 +7,7 @@ import '../../controllers/auth/auth_bloc.dart';
 import '../../controllers/auth/auth_event.dart';
 import '../../controllers/auth/auth_state.dart';
 import '../../controllers/nav/role_nav_cubit.dart';
+import '../../utils/role_permissions.dart';
 import '../../utils/validators.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_input.dart';
@@ -25,7 +26,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  String _role = 'client';
+  String _role = UserRoles.client;
   bool _submitted = false;
 
   @override
@@ -163,11 +164,11 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                       items: const [
                         DropdownMenuItem(
-                          value: 'client',
+                          value: UserRoles.client,
                           child: Text('Client'),
                         ),
                         DropdownMenuItem(
-                          value: 'freelancer',
+                          value: UserRoles.freelancer,
                           child: Text('Freelancer'),
                         ),
                       ],

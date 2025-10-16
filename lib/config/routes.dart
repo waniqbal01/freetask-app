@@ -12,6 +12,10 @@ import '../screens/chat/chat_screen.dart';
 import '../controllers/chat/chat_detail_bloc.dart';
 import '../services/chat_service.dart';
 import '../services/socket_service.dart';
+import '../screens/unauthorized/unauthorized_screen.dart';
+import '../services/role_guard.dart';
+import '../services/storage_service.dart';
+import '../utils/role_permissions.dart';
 
 class AppRoutes {
   const AppRoutes._();
@@ -23,6 +27,7 @@ class AppRoutes {
   static const dashboard = '/dashboard';
   static const jobDetail = '/job-detail';
   static const chat = '/chat';
+  static const unauthorized = '/unauthorized';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -47,9 +52,12 @@ class AppRoutes {
           settings: settings,
         );
       case dashboard:
-        return MaterialPageRoute<void>(
-          builder: (_) => const DashboardScreen(),
+        return _guardedRoute(
           settings: settings,
+          builder: (_) => const DashboardScreen(),
+          requiresAuth: true,
+          allowedRoles: RolePermissions.allowedRoles(RolePermission.viewDashboard),
+          message: 'Please sign in with an authorized account to access the dashboard.',
         );
       case jobDetail:
         final jobId = settings.arguments as String?;
@@ -61,9 +69,12 @@ class AppRoutes {
             settings: settings,
           );
         }
-        return MaterialPageRoute<void>(
-          builder: (_) => JobDetailScreen(jobId: jobId),
+        return _guardedRoute(
           settings: settings,
+          builder: (_) => JobDetailScreen(jobId: jobId),
+          requiresAuth: true,
+          allowedRoles: RolePermissions.allowedRoles(RolePermission.viewJobs),
+          message: 'You do not have permission to view this job.',
         );
       case chat:
         final chatId = settings.arguments as String?;
@@ -76,7 +87,10 @@ class AppRoutes {
             settings: settings,
           );
         }
-        return MaterialPageRoute<void>(
+        return _guardedRoute(
+          settings: settings,
+          requiresAuth: true,
+          allowedRoles: RolePermissions.allowedRoles(RolePermission.viewChats),
           builder: (_) => BlocProvider<ChatDetailBloc>(
             create: (_) => ChatDetailBloc(
               getIt<ChatService>(),
@@ -84,6 +98,11 @@ class AppRoutes {
             ),
             child: ChatScreen(chatId: chatId),
           ),
+          message: 'You do not have permission to open this chat.',
+        );
+      case unauthorized:
+        return MaterialPageRoute<void>(
+          builder: (_) => const UnauthorizedScreen(),
           settings: settings,
         );
       default:
@@ -92,5 +111,45 @@ class AppRoutes {
           settings: settings,
         );
     }
+  }
+
+  static Route<dynamic> _guardedRoute({
+    required RouteSettings settings,
+    required WidgetBuilder builder,
+    bool requiresAuth = false,
+    Set<String>? allowedRoles,
+    String? message,
+  }) {
+    final getIt = GetIt.instance;
+    final storage = getIt<StorageService>();
+    final roleGuard = getIt<RoleGuard>();
+    final token = storage.token;
+    final role = roleGuard.currentRole ?? storage.role;
+
+    final isAuthenticated = token != null && token.isNotEmpty;
+
+    if (requiresAuth && !isAuthenticated) {
+      return MaterialPageRoute<void>(
+        builder: (_) => UnauthorizedScreen(message: message),
+        settings: settings,
+      );
+    }
+
+    if (allowedRoles != null && allowedRoles.isNotEmpty) {
+      if (role == null || !allowedRoles.contains(role)) {
+        return MaterialPageRoute<void>(
+          builder: (_) => UnauthorizedScreen(
+            message: message,
+            showLoginButton: !isAuthenticated,
+          ),
+          settings: settings,
+        );
+      }
+    }
+
+    return MaterialPageRoute<void>(
+      builder: builder,
+      settings: settings,
+    );
   }
 }
