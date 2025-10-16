@@ -10,12 +10,14 @@ import 'controllers/auth/auth_bloc.dart';
 import 'controllers/chat/chat_list_bloc.dart';
 import 'controllers/job/job_bloc.dart';
 import 'controllers/nav/role_nav_cubit.dart';
+import 'controllers/theme/theme_cubit.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/chat_service.dart';
 import 'services/chat_cache_service.dart';
 import 'services/job_service.dart';
 import 'services/notification_service.dart';
+import 'services/profile_service.dart';
 import 'services/role_guard.dart';
 import 'services/socket_service.dart';
 import 'services/storage_service.dart';
@@ -51,6 +53,13 @@ class FreetaskApp extends StatelessWidget {
             return RoleNavCubit(initialRole: initialRole);
           },
         ),
+        BlocProvider<ThemeCubit>(
+          create: (_) {
+            final storage = getIt<StorageService>();
+            final initialMode = storage.getThemeMode() ?? ThemeMode.system;
+            return ThemeCubit(storage, initialMode: initialMode);
+          },
+        ),
         BlocProvider<JobBloc>(
           create: (_) => JobBloc(
             getIt<JobService>(),
@@ -61,13 +70,17 @@ class FreetaskApp extends StatelessWidget {
           create: (_) => ChatListBloc(getIt<ChatService>()),
         ),
       ],
-      child: MaterialApp(
-        title: 'Freetask',
-        theme: AppTheme.lightTheme(),
-        darkTheme: AppTheme.darkTheme(),
-        themeMode: ThemeMode.system,
-        onGenerateRoute: AppRoutes.onGenerateRoute,
-        initialRoute: AppRoutes.splash,
+      child: BlocBuilder<ThemeCubit, ThemeMode>(
+        builder: (context, themeMode) {
+          return MaterialApp(
+            title: 'Freetask',
+            theme: AppTheme.lightTheme(),
+            darkTheme: AppTheme.darkTheme(),
+            themeMode: themeMode,
+            onGenerateRoute: AppRoutes.onGenerateRoute,
+            initialRoute: AppRoutes.splash,
+          );
+        },
       ),
     );
   }
@@ -83,6 +96,7 @@ Future<void> _configureDependencies() async {
   final authService = AuthService(apiClient, storage);
   apiClient.registerRefreshTokenCallback(authService.refreshToken);
   final jobService = JobService(apiClient, roleGuard);
+  final profileService = ProfileService(apiClient, storage);
   final chatService = ChatService(apiClient);
   final socketService = SocketService();
   final notificationService = NotificationService(apiClient);
@@ -95,6 +109,7 @@ Future<void> _configureDependencies() async {
     ..registerSingleton<ApiClient>(apiClient)
     ..registerSingleton<AuthService>(authService)
     ..registerSingleton<JobService>(jobService)
+    ..registerSingleton<ProfileService>(profileService)
     ..registerSingleton<ChatService>(chatService)
     ..registerSingleton<ChatCacheService>(chatCacheService)
     ..registerSingleton<SocketService>(socketService)

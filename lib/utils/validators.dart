@@ -64,4 +64,16 @@ class Validators {
     }
     return null;
   }
+
+  static String? validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null;
+    }
+    final cleaned = value.replaceAll(RegExp(r'[^0-9+]'), '');
+    final phoneRegex = RegExp(r'^[+]?[0-9]{7,15}$');
+    if (!phoneRegex.hasMatch(cleaned)) {
+      return 'Enter a valid phone number.';
+    }
+    return null;
+  }
 }

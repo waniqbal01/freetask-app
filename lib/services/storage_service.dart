@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/user.dart';
@@ -14,6 +15,7 @@ class StorageService {
   static const _refreshTokenKey = 'auth_refresh_token';
   static const _tokenExpiryKey = 'auth_token_expiry';
   static const _roleKey = 'auth_role';
+  static const _themeModeKey = 'app_theme_mode';
 
   Future<void> saveToken(String token) async {
     await _prefs.setString(_tokenKey, token);
@@ -95,6 +97,20 @@ class StorageService {
       _prefs.remove(_refreshTokenKey),
       _prefs.remove(_tokenExpiryKey),
       _prefs.remove(_roleKey),
+      _prefs.remove(_themeModeKey),
     ]);
+  }
+
+  Future<void> saveThemeMode(ThemeMode mode) async {
+    await _prefs.setString(_themeModeKey, mode.name);
+  }
+
+  ThemeMode? getThemeMode() {
+    final value = _prefs.getString(_themeModeKey);
+    if (value == null) return null;
+    return ThemeMode.values.firstWhere(
+      (mode) => mode.name == value,
+      orElse: () => ThemeMode.system,
+    );
   }
 }

@@ -5,6 +5,9 @@ class User {
     required this.email,
     required this.role,
     this.avatarUrl,
+    this.bio,
+    this.location,
+    this.phoneNumber,
     required this.verified,
   });
 
@@ -13,15 +16,37 @@ class User {
   final String email;
   final String role;
   final String? avatarUrl;
+  final String? bio;
+  final String? location;
+  final String? phoneNumber;
   final bool verified;
 
   factory User.fromJson(Map<String, dynamic> json) {
+    String? _readString(dynamic value) {
+      if (value is String) {
+        return value;
+      }
+      if (value is num || value is bool) {
+        return value.toString();
+      }
+      return null;
+    }
+
     return User(
       id: json['id']?.toString() ?? '',
       name: json['name'] as String? ?? '',
       email: json['email'] as String? ?? '',
       role: json['role'] as String? ?? 'client',
-      avatarUrl: json['avatarUrl'] as String?,
+      avatarUrl: _readString(
+            json['avatarUrl'] ?? json['avatar_url'] ?? json['avatar'],
+          )?.trim(),
+      bio: _readString(json['bio'] ?? json['about'])?.trim(),
+      location: _readString(
+        json['location'] ?? json['address'] ?? json['city'],
+      )?.trim(),
+      phoneNumber: _readString(
+        json['phoneNumber'] ?? json['phone'] ?? json['contactNumber'],
+      )?.trim(),
       verified: json['verified'] as bool? ?? false,
     );
   }
@@ -33,6 +58,9 @@ class User {
       'email': email,
       'role': role,
       'avatarUrl': avatarUrl,
+      'bio': bio,
+      'location': location,
+      'phoneNumber': phoneNumber,
       'verified': verified,
     };
   }
@@ -43,6 +71,9 @@ class User {
     String? email,
     String? role,
     String? avatarUrl,
+    String? bio,
+    String? location,
+    String? phoneNumber,
     bool? verified,
   }) {
     return User(
@@ -51,6 +82,9 @@ class User {
       email: email ?? this.email,
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      bio: bio ?? this.bio,
+      location: location ?? this.location,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
       verified: verified ?? this.verified,
     );
   }
