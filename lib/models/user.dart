@@ -1,5 +1,7 @@
-class User {
-  const User({
+import '../utils/role_permissions.dart';
+
+class UserModel {
+  const UserModel({
     required this.id,
     required this.name,
     required this.email,
@@ -8,7 +10,7 @@ class User {
     this.bio,
     this.location,
     this.phoneNumber,
-    required this.verified,
+    this.verified = false,
   });
 
   final String id;
@@ -21,7 +23,7 @@ class User {
   final String? phoneNumber;
   final bool verified;
 
-  factory User.fromJson(Map<String, dynamic> json) {
+  factory UserModel.fromJson(Map<String, dynamic> json) {
     String? _readString(dynamic value) {
       if (value is String) {
         return value;
@@ -32,14 +34,14 @@ class User {
       return null;
     }
 
-    return User(
+    return UserModel(
       id: json['id']?.toString() ?? '',
       name: json['name'] as String? ?? '',
       email: json['email'] as String? ?? '',
-      role: json['role'] as String? ?? 'client',
+      role: json['role'] as String? ?? UserRoles.client,
       avatarUrl: _readString(
-            json['avatarUrl'] ?? json['avatar_url'] ?? json['avatar'],
-          )?.trim(),
+        json['avatarUrl'] ?? json['avatar_url'] ?? json['avatar'],
+      )?.trim(),
       bio: _readString(json['bio'] ?? json['about'])?.trim(),
       location: _readString(
         json['location'] ?? json['address'] ?? json['city'],
@@ -65,6 +67,63 @@ class User {
     };
   }
 
+  UserModel copyWith({
+    String? id,
+    String? name,
+    String? email,
+    String? role,
+    String? avatarUrl,
+    String? bio,
+    String? location,
+    String? phoneNumber,
+    bool? verified,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      role: role ?? this.role,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      bio: bio ?? this.bio,
+      location: location ?? this.location,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      verified: verified ?? this.verified,
+    );
+  }
+}
+
+class User extends UserModel {
+  const User({
+    required super.id,
+    required super.name,
+    required super.email,
+    required super.role,
+    super.avatarUrl,
+    super.bio,
+    super.location,
+    super.phoneNumber,
+    super.verified,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User.fromModel(UserModel.fromJson(json));
+  }
+
+  factory User.fromModel(UserModel model) {
+    return User(
+      id: model.id,
+      name: model.name,
+      email: model.email,
+      role: model.role,
+      avatarUrl: model.avatarUrl,
+      bio: model.bio,
+      location: model.location,
+      phoneNumber: model.phoneNumber,
+      verified: model.verified,
+    );
+  }
+
+  @override
   User copyWith({
     String? id,
     String? name,
@@ -76,16 +135,17 @@ class User {
     String? phoneNumber,
     bool? verified,
   }) {
-    return User(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      email: email ?? this.email,
-      role: role ?? this.role,
-      avatarUrl: avatarUrl ?? this.avatarUrl,
-      bio: bio ?? this.bio,
-      location: location ?? this.location,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
-      verified: verified ?? this.verified,
+    final model = super.copyWith(
+      id: id,
+      name: name,
+      email: email,
+      role: role,
+      avatarUrl: avatarUrl,
+      bio: bio,
+      location: location,
+      phoneNumber: phoneNumber,
+      verified: verified,
     );
+    return User.fromModel(model);
   }
 }

@@ -26,6 +26,7 @@ import 'services/socket_service.dart';
 import 'services/storage_service.dart';
 import 'services/telemetry_service.dart';
 import 'utils/role_permissions.dart';
+import 'screens/bootstrap_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -90,8 +91,8 @@ class FreetaskApp extends StatelessWidget {
             theme: AppTheme.lightTheme(),
             darkTheme: AppTheme.darkTheme(),
             themeMode: themeMode,
+            home: const BootstrapScreen(),
             onGenerateRoute: AppRoutes.onGenerateRoute,
-            initialRoute: AppRoutes.splash,
           );
         },
       ),

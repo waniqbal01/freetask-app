@@ -1,13 +1,13 @@
 class Env {
   const Env._();
 
-  static const apiBase = String.fromEnvironment(
+  static const String apiBase = String.fromEnvironment(
     'API_BASE',
-    defaultValue: 'https://freetask-backend.onrender.com/api',
+    defaultValue: 'https://backend/api',
   );
 
-  static const socketBase = String.fromEnvironment(
+  static const String socketBase = String.fromEnvironment(
     'SOCKET_BASE',
-    defaultValue: 'https://freetask-backend.onrender.com',
+    defaultValue: 'https://backend',
   );
 }

@@ -26,6 +26,10 @@ void main() {
     when(() => storageService.getUser()).thenReturn(null);
   });
 
+  test('dummy test passes', () {
+    expect(1 + 1, equals(2));
+  });
+
   test('initial state is loading', () {
     final bloc = AuthBloc(authService, storageService);
     expect(bloc.state, const AuthLoading());

@@ -64,13 +64,9 @@ class SocketService {
   final _connectionController = StreamController<bool>.broadcast();
 
   Stream<Message> get messages => _messageController.stream;
-
   Stream<TypingEvent> get typing => _typingController.stream;
-
   Stream<UserPresenceEvent> get presence => _presenceController.stream;
-
   Stream<MessageStatusUpdate> get messageStatuses => _statusController.stream;
-
   Stream<bool> get connection => _connectionController.stream;
 
   void connect({required String token, required String userId}) {
@@ -86,11 +82,11 @@ class SocketService {
     final socket = io.io(uri, options)
       ..onConnect((_) {
         _connectionController.add(true);
-        socket.emit('join', 'user:$userId');
+        joinRoom('user:$userId');
       })
       ..onReconnect((_) {
         _connectionController.add(true);
-        socket.emit('join', 'user:$userId');
+        joinRoom('user:$userId');
       })
       ..onDisconnect((_) {
         _connectionController.add(false);
@@ -146,23 +142,39 @@ class SocketService {
           }
         }
       })
-      ..onError((error) {
-        // ignore errors but keep stream safe
+      ..onError((_) {
+        // keep stream subscribers alive on socket errors
       });
 
     _socket = socket;
   }
 
+  void on(String event, void Function(dynamic data) handler) {
+    _socket?.on(event, handler);
+  }
+
+  void emit(String event, dynamic data) {
+    _socket?.emit(event, data);
+  }
+
+  void joinRoom(String room) {
+    emit('join', room);
+  }
+
+  void leaveRoom(String room) {
+    emit('leave', room);
+  }
+
   void joinChatRoom(String chatId) {
-    _socket?.emit('join', 'chat:$chatId');
+    joinRoom('chat:$chatId');
   }
 
   void leaveChatRoom(String chatId) {
-    _socket?.emit('leave', 'chat:$chatId');
+    leaveRoom('chat:$chatId');
   }
 
   void sendTyping({required String chatId, required bool isTyping}) {
-    _socket?.emit('chat:typing', {
+    emit('chat:typing', {
       'chatId': chatId,
       'isTyping': isTyping,
     });
@@ -173,7 +185,7 @@ class SocketService {
     required List<String> messageIds,
   }) {
     if (messageIds.isEmpty) return;
-    _socket?.emit('message:read', {
+    emit('message:read', {
       'chatId': chatId,
       'messageIds': messageIds,
     });
