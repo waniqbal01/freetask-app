@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 
 import '../config/env.dart';
+import '../utils/role_permissions.dart';
+import 'role_guard.dart';
 import 'storage_service.dart';
 
 class ApiClient {
-  ApiClient(this._dio, this._storage) {
+  ApiClient(this._dio, this._storage, this._roleGuard) {
     _dio
       ..options = BaseOptions(
         baseUrl: Env.apiBase,
@@ -22,8 +24,60 @@ class ApiClient {
               return handler.next(options);
             }
             final token = _storage.token;
-            if (token != null && token.isNotEmpty) {
+            final requiresAuth =
+                (options.extra['requiresAuth'] as bool?) ?? true;
+            if (requiresAuth) {
+              if (token == null || token.isEmpty) {
+                return handler.reject(
+                  DioException(
+                    requestOptions: options,
+                    type: DioExceptionType.badResponse,
+                    response: Response<dynamic>(
+                      requestOptions: options,
+                      statusCode: 401,
+                      data: {'message': 'Authentication required.'},
+                    ),
+                  ),
+                );
+              }
               options.headers['Authorization'] = 'Bearer $token';
+            } else if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+
+            final role = _roleGuard.currentRole;
+            if (role != null && role.isNotEmpty) {
+              options.headers['X-User-Role'] = role;
+            }
+
+            final allowedRoles =
+                (options.extra['allowedRoles'] as List<dynamic>?)
+                    ?.whereType<String>()
+                    .toSet();
+            if (allowedRoles != null && allowedRoles.isNotEmpty) {
+              try {
+                _roleGuard.ensureRoleIn(
+                  allowedRoles,
+                  actionDescription:
+                      'You do not have permission to access this resource.',
+                );
+              } on RoleUnauthorizedException catch (error) {
+                return handler.reject(
+                  DioException(
+                    requestOptions: options,
+                    type: DioExceptionType.badResponse,
+                    error: error,
+                    response: Response<dynamic>(
+                      requestOptions: options,
+                      statusCode: 403,
+                      data: {
+                        'message': error.message,
+                        'requiredRoles': allowedRoles.toList(),
+                      },
+                    ),
+                  ),
+                );
+              }
             }
             return handler.next(options);
           },
@@ -68,6 +122,7 @@ class ApiClient {
 
   final Dio _dio;
   final StorageService _storage;
+  final RoleGuard _roleGuard;
   Future<String> Function()? _refreshTokenCallback;
   Completer<void>? _refreshCompleter;
 
@@ -76,6 +131,34 @@ class ApiClient {
   }
 
   Dio get client => _dio;
+
+  Options guard({
+    RolePermission? permission,
+    bool? requiresAuth,
+    Set<String>? allowedRoles,
+  }) {
+    final extra = <String, dynamic>{};
+    if (permission != null) {
+      final config = RolePermissions.config(permission);
+      extra['requiredPermission'] = permission.name;
+      extra['allowedRoles'] = config.allowedRoles.toList();
+      extra['requiresAuth'] = config.requiresAuth;
+    }
+    if (requiresAuth != null) {
+      extra['requiresAuth'] = requiresAuth;
+    }
+    if (allowedRoles != null) {
+      final combined = <String>{
+        ...((extra['allowedRoles'] as List<dynamic>?)
+                ?.whereType<String>()
+                .toSet() ??
+            const <String>{}),
+        ...allowedRoles,
+      };
+      extra['allowedRoles'] = combined.toList();
+    }
+    return Options(extra: extra);
+  }
 
   Future<void> _refreshToken() async {
     if (_refreshTokenCallback == null) return;

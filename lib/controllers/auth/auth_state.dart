@@ -7,6 +7,8 @@ enum AuthFlow { general, login, signup }
 abstract class AuthState extends Equatable {
   const AuthState();
 
+  String? get role => null;
+
   @override
   List<Object?> get props => [];
 }
@@ -28,6 +30,9 @@ class AuthAuthenticated extends AuthState {
   const AuthAuthenticated(this.user);
 
   final User user;
+
+  @override
+  String? get role => user.role;
 
   @override
   List<Object?> get props => [user];

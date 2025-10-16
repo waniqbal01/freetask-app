@@ -1,21 +1,27 @@
 import 'package:dio/dio.dart';
 
 import '../models/job.dart';
+import '../utils/role_permissions.dart';
 import 'api_client.dart';
+import 'role_guard.dart';
 
 class JobService {
-  JobService(this._apiClient);
+  JobService(this._apiClient, this._roleGuard);
 
   final ApiClient _apiClient;
+  final RoleGuard _roleGuard;
 
   Future<List<Job>> fetchJobs({JobStatus? status, bool mine = false}) async {
     try {
+      final permission = mine ? RolePermission.viewOwnJobs : RolePermission.viewJobs;
+      _roleGuard.ensurePermission(permission);
       final response = await _apiClient.client.get<List<dynamic>>(
         '/jobs',
         queryParameters: {
           if (status != null) 'status': _statusToParam(status),
           if (mine) 'mine': true,
         },
+        options: _apiClient.guard(permission: permission),
       );
       final data = response.data ?? const [];
       return data
@@ -24,18 +30,24 @@ class JobService {
           .toList();
     } on DioException catch (error) {
       throw JobException(_mapError(error));
+    } on RoleUnauthorizedException catch (error) {
+      throw JobException(error.message);
     }
   }
 
   Future<Job> fetchJobDetail(String id) async {
     try {
+      _roleGuard.ensurePermission(RolePermission.viewJobs);
       final response = await _apiClient.client.get<Map<String, dynamic>>(
         '/jobs/$id',
+        options: _apiClient.guard(permission: RolePermission.viewJobs),
       );
       final data = response.data ?? <String, dynamic>{};
       return Job.fromJson(data);
     } on DioException catch (error) {
       throw JobException(_mapError(error));
+    } on RoleUnauthorizedException catch (error) {
+      throw JobException(error.message);
     }
   }
 
@@ -48,6 +60,7 @@ class JobService {
     List<String> attachments = const [],
   }) async {
     try {
+      _roleGuard.ensurePermission(RolePermission.createJob);
       final response = await _apiClient.client.post<Map<String, dynamic>>(
         '/jobs',
         data: {
@@ -58,35 +71,62 @@ class JobService {
           'location': location,
           'attachments': attachments,
         },
+        options: _apiClient.guard(permission: RolePermission.createJob),
       );
       final data = response.data ?? <String, dynamic>{};
       return Job.fromJson(data);
     } on DioException catch (error) {
       throw JobException(_mapError(error));
+    } on RoleUnauthorizedException catch (error) {
+      throw JobException(error.message);
     }
   }
 
   Future<Job> acceptJob(String id) async {
     try {
+      _roleGuard.ensurePermission(RolePermission.acceptJob);
       final response = await _apiClient.client.post<Map<String, dynamic>>(
         '/jobs/$id/accept',
+        options: _apiClient.guard(permission: RolePermission.acceptJob),
       );
       final data = response.data ?? <String, dynamic>{};
       return Job.fromJson(data);
     } on DioException catch (error) {
       throw JobException(_mapError(error));
+    } on RoleUnauthorizedException catch (error) {
+      throw JobException(error.message);
     }
   }
 
   Future<Job> completeJob(String id) async {
     try {
+      _roleGuard.ensurePermission(RolePermission.completeJob);
       final response = await _apiClient.client.post<Map<String, dynamic>>(
         '/jobs/$id/complete',
+        options: _apiClient.guard(permission: RolePermission.completeJob),
       );
       final data = response.data ?? <String, dynamic>{};
       return Job.fromJson(data);
     } on DioException catch (error) {
       throw JobException(_mapError(error));
+    } on RoleUnauthorizedException catch (error) {
+      throw JobException(error.message);
+    }
+  }
+
+  Future<Job> payForJob(String id) async {
+    try {
+      _roleGuard.ensurePermission(RolePermission.payJob);
+      final response = await _apiClient.client.post<Map<String, dynamic>>(
+        '/jobs/$id/pay',
+        options: _apiClient.guard(permission: RolePermission.payJob),
+      );
+      final data = response.data ?? <String, dynamic>{};
+      return Job.fromJson(data);
+    } on DioException catch (error) {
+      throw JobException(_mapError(error));
+    } on RoleUnauthorizedException catch (error) {
+      throw JobException(error.message);
     }
   }
 

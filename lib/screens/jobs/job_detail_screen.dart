@@ -8,6 +8,7 @@ import '../../controllers/job/job_bloc.dart';
 import '../../controllers/job/job_event.dart';
 import '../../controllers/job/job_state.dart';
 import '../../models/job.dart';
+import '../../utils/role_permissions.dart';
 import '../../widgets/confirm_dialog.dart';
 
 class JobDetailScreen extends StatefulWidget {
@@ -47,6 +48,18 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     );
     if (confirmed == true) {
       context.read<JobBloc>().add(CompleteJobRequested(job.id));
+    }
+  }
+
+  Future<void> _handlePay(Job job) async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Pay now',
+      message: 'Proceed with payment for this job?',
+      confirmLabel: 'Pay now',
+    );
+    if (confirmed == true) {
+      context.read<JobBloc>().add(PayJobRequested(job.id));
     }
   }
 
@@ -106,10 +119,13 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
           final isPending = job.status == JobStatus.pending;
           final isInProgress = job.status == JobStatus.inProgress;
-          final canAccept = isPending && role == 'freelancer';
+          final canAccept = isPending && role == UserRoles.freelancer;
           final canComplete = isInProgress &&
-              ((role == 'freelancer' && job.freelancerId == userId) ||
-                  (role == 'client' && job.clientId == userId));
+              ((role == UserRoles.freelancer && job.freelancerId == userId) ||
+                  (role == UserRoles.client && job.clientId == userId));
+          final canPay = job.status == JobStatus.completed &&
+              role == UserRoles.client &&
+              job.clientId == userId;
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -215,6 +231,16 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
                             : () => _handleComplete(job),
                         icon: const Icon(Icons.check_circle_outline),
                         label: const Text('Mark complete'),
+                      ),
+                    ),
+                  if (canPay)
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed:
+                            state.isSubmitting ? null : () => _handlePay(job),
+                        icon: const Icon(Icons.payments_outlined),
+                        label: const Text('Pay now'),
                       ),
                     ),
                 ],
