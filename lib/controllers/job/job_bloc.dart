@@ -82,6 +82,10 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         search: feed.searchQuery,
         mine: event.type != JobListType.available,
         includeHistory: event.type == JobListType.completed,
+        minBudget: feed.minBudget,
+        maxBudget: feed.maxBudget,
+        location: feed.locationFilter,
+        useCache: !isRefresh,
       );
 
       final categories = _mergeCategories(result.jobs);
@@ -162,6 +166,10 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         search: feed.searchQuery,
         mine: event.type != JobListType.available,
         includeHistory: event.type == JobListType.completed,
+        minBudget: feed.minBudget,
+        maxBudget: feed.maxBudget,
+        location: feed.locationFilter,
+        useCache: false,
       );
 
       final mergedJobs = <Job>[...feed.jobs];
@@ -259,11 +267,16 @@ class JobBloc extends Bloc<JobEvent, JobState> {
             statusFilter: event.status,
             categoryFilter:
                 shouldClearCategory ? null : normalizedCategory,
+            minBudget: event.minBudget,
+            maxBudget: event.maxBudget,
+            locationFilter: event.location,
             page: 0,
             hasMore: true,
             initialized: feed.initialized,
             clearStatusFilter: shouldClearStatus,
             clearCategoryFilter: shouldClearCategory,
+            clearBudgetFilter: event.clearBudget,
+            clearLocationFilter: event.clearLocation,
           ),
         },
       ),

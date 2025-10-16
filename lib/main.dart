@@ -1,3 +1,4 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,6 +9,8 @@ import 'config/routes.dart';
 import 'config/theme.dart';
 import 'controllers/auth/auth_bloc.dart';
 import 'controllers/chat/chat_list_bloc.dart';
+import 'controllers/connectivity/connectivity_cubit.dart';
+import 'controllers/dashboard/dashboard_metrics_cubit.dart';
 import 'controllers/job/job_bloc.dart';
 import 'controllers/nav/role_nav_cubit.dart';
 import 'controllers/theme/theme_cubit.dart';
@@ -21,6 +24,7 @@ import 'services/profile_service.dart';
 import 'services/role_guard.dart';
 import 'services/socket_service.dart';
 import 'services/storage_service.dart';
+import 'services/telemetry_service.dart';
 import 'utils/role_permissions.dart';
 
 Future<void> main() async {
@@ -69,6 +73,15 @@ class FreetaskApp extends StatelessWidget {
         BlocProvider<ChatListBloc>(
           create: (_) => ChatListBloc(getIt<ChatService>()),
         ),
+        BlocProvider<ConnectivityCubit>(
+          create: (_) => ConnectivityCubit(getIt<Connectivity>()),
+        ),
+        BlocProvider<DashboardMetricsCubit>(
+          create: (context) => DashboardMetricsCubit(
+            context.read<JobBloc>(),
+            getIt<StorageService>(),
+          ),
+        ),
       ],
       child: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (context, themeMode) {
@@ -95,12 +108,14 @@ Future<void> _configureDependencies() async {
   final apiClient = ApiClient(dio, storage, roleGuard);
   final authService = AuthService(apiClient, storage);
   apiClient.registerRefreshTokenCallback(authService.refreshToken);
-  final jobService = JobService(apiClient, roleGuard);
+  final jobService = JobService(apiClient, roleGuard, storage);
   final profileService = ProfileService(apiClient, storage);
-  final chatService = ChatService(apiClient);
+  final chatCacheService = ChatCacheService(prefs);
+  final chatService = ChatService(apiClient, chatCacheService);
   final socketService = SocketService();
   final notificationService = NotificationService(apiClient);
-  final chatCacheService = ChatCacheService(prefs);
+  final telemetryService = TelemetryService();
+  final connectivity = Connectivity();
 
   getIt
     ..registerSingleton<SharedPreferences>(prefs)
@@ -114,5 +129,7 @@ Future<void> _configureDependencies() async {
     ..registerSingleton<ChatCacheService>(chatCacheService)
     ..registerSingleton<SocketService>(socketService)
     ..registerSingleton<NotificationService>(notificationService)
-    ..registerSingleton<RoleGuard>(roleGuard);
+    ..registerSingleton<RoleGuard>(roleGuard)
+    ..registerSingleton<TelemetryService>(telemetryService)
+    ..registerSingleton<Connectivity>(connectivity);
 }

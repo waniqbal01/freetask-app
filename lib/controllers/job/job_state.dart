@@ -16,6 +16,9 @@ class JobFeedState extends Equatable {
     this.searchQuery = '',
     this.statusFilter,
     this.categoryFilter,
+    this.minBudget,
+    this.maxBudget,
+    this.locationFilter,
     this.initialized = false,
   });
 
@@ -30,6 +33,9 @@ class JobFeedState extends Equatable {
   final String searchQuery;
   final JobStatus? statusFilter;
   final String? categoryFilter;
+  final double? minBudget;
+  final double? maxBudget;
+  final String? locationFilter;
   final bool initialized;
 
   bool get isEmpty => jobs.isEmpty;
@@ -46,10 +52,15 @@ class JobFeedState extends Equatable {
     String? searchQuery,
     JobStatus? statusFilter,
     String? categoryFilter,
+    double? minBudget,
+    double? maxBudget,
+    String? locationFilter,
     bool? initialized,
     bool clearError = false,
     bool clearStatusFilter = false,
     bool clearCategoryFilter = false,
+    bool clearBudgetFilter = false,
+    bool clearLocationFilter = false,
   }) {
     return JobFeedState(
       jobs: jobs ?? this.jobs,
@@ -65,6 +76,11 @@ class JobFeedState extends Equatable {
           clearStatusFilter ? null : (statusFilter ?? this.statusFilter),
       categoryFilter:
           clearCategoryFilter ? null : (categoryFilter ?? this.categoryFilter),
+      minBudget: clearBudgetFilter ? null : (minBudget ?? this.minBudget),
+      maxBudget: clearBudgetFilter ? null : (maxBudget ?? this.maxBudget),
+      locationFilter: clearLocationFilter
+          ? null
+          : (locationFilter ?? this.locationFilter),
       initialized: initialized ?? this.initialized,
     );
   }
@@ -78,7 +94,12 @@ class JobFeedState extends Equatable {
         job.title.toLowerCase().contains(query) ||
         job.description.toLowerCase().contains(query) ||
         job.category.toLowerCase().contains(query);
-    return matchesStatus && matchesCategory && matchesSearch;
+    final matchesBudget = (minBudget == null || job.price >= minBudget!) &&
+        (maxBudget == null || job.price <= maxBudget!);
+    final matchesLocation = locationFilter == null ||
+        locationFilter!.isEmpty ||
+        job.location.toLowerCase().contains(locationFilter!.toLowerCase());
+    return matchesStatus && matchesCategory && matchesSearch && matchesBudget && matchesLocation;
   }
 
   @override
@@ -94,6 +115,9 @@ class JobFeedState extends Equatable {
         searchQuery,
         statusFilter,
         categoryFilter,
+        minBudget,
+        maxBudget,
+        locationFilter,
         initialized,
       ];
 }

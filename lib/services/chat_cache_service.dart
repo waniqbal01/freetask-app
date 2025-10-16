@@ -10,6 +10,7 @@ class ChatCacheService {
 
   static const _lastMessagePrefix = 'chat:last_message:';
   static const _pendingQueuePrefix = 'chat:pending_queue:';
+  static const _pendingIndexKey = 'chat:pending_index';
 
   final SharedPreferences _prefs;
 
@@ -38,6 +39,7 @@ class ChatCacheService {
     final key = '$_pendingQueuePrefix$chatId';
     final list = queue.map((item) => item.toJson()).toList();
     await _prefs.setString(key, jsonEncode(list));
+    await _updatePendingIndex(chatId, queue.isNotEmpty);
   }
 
   List<PendingMessage> getPendingMessages(String chatId) {
@@ -61,5 +63,34 @@ class ChatCacheService {
   Future<void> clearPendingMessages(String chatId) async {
     final key = '$_pendingQueuePrefix$chatId';
     await _prefs.remove(key);
+    await _updatePendingIndex(chatId, false);
+  }
+
+  List<String> getPendingChatIds() {
+    final raw = _prefs.getString(_pendingIndexKey);
+    if (raw == null) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return decoded.map((item) => item.toString()).toList();
+      }
+    } catch (_) {
+      return const [];
+    }
+    return const [];
+  }
+
+  Future<void> _updatePendingIndex(String chatId, bool hasMessages) async {
+    final ids = {...getPendingChatIds()};
+    if (hasMessages) {
+      ids.add(chatId);
+    } else {
+      ids.remove(chatId);
+    }
+    if (ids.isEmpty) {
+      await _prefs.remove(_pendingIndexKey);
+    } else {
+      await _prefs.setString(_pendingIndexKey, jsonEncode(ids.toList()));
+    }
   }
 }

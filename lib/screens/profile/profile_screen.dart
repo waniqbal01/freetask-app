@@ -528,12 +528,14 @@ class _ProfileViewState extends State<_ProfileView>
                 Stack(
                   alignment: Alignment.center,
                   children: [
-                    AnimatedContainer(
-                      duration: _animationDuration,
-                      curve: Curves.easeOut,
-                      width: 128,
-                      height: 128,
-                      decoration: BoxDecoration(
+                    Hero(
+                      tag: 'profile_avatar_hero',
+                      child: AnimatedContainer(
+                        duration: _animationDuration,
+                        curve: Curves.easeOut,
+                        width: 128,
+                        height: 128,
+                        decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: theme.colorScheme.primaryContainer,
                         image: (user?.avatarUrl?.isNotEmpty ?? false)
@@ -561,6 +563,7 @@ class _ProfileViewState extends State<_ProfileView>
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
+                      ),
                     ),
                     if (state.isUploadingAvatar)
                       Container(

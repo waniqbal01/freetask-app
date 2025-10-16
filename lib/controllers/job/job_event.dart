@@ -55,14 +55,33 @@ class JobFilterChanged extends JobEvent {
     required this.type,
     this.status,
     this.category,
+    this.minBudget,
+    this.maxBudget,
+    this.location,
+    this.clearBudget = false,
+    this.clearLocation = false,
   });
 
   final JobListType type;
   final JobStatus? status;
   final String? category;
+  final double? minBudget;
+  final double? maxBudget;
+  final String? location;
+  final bool clearBudget;
+  final bool clearLocation;
 
   @override
-  List<Object?> get props => [type, status, category];
+  List<Object?> get props => [
+        type,
+        status,
+        category,
+        minBudget,
+        maxBudget,
+        location,
+        clearBudget,
+        clearLocation,
+      ];
 }
 
 class LoadJobDetail extends JobEvent {

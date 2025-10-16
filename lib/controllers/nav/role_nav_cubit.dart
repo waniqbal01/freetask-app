@@ -70,36 +70,27 @@ class RoleNavTab extends Equatable {
   List<Object?> get props => [label, icon, selectedIcon, target];
 }
 
-enum RoleNavTarget {
-  availableJobs,
-  myJobs,
-  createJob,
-  chat,
-  profile,
-  overview,
-  users,
-  jobs,
-}
+enum RoleNavTarget { home, chat, jobs, profile }
 
 List<RoleNavTab> _tabsFor(String role) {
   const clientTabs = [
     RoleNavTab(
       label: 'Home',
-      icon: Icons.work_outline,
-      selectedIcon: Icons.work,
-      target: RoleNavTarget.myJobs,
-    ),
-    RoleNavTab(
-      label: 'Create',
-      icon: Icons.add_circle_outline,
-      selectedIcon: Icons.add_circle,
-      target: RoleNavTarget.createJob,
+      icon: Icons.dashboard_outlined,
+      selectedIcon: Icons.dashboard,
+      target: RoleNavTarget.home,
     ),
     RoleNavTab(
       label: 'Chat',
       icon: Icons.chat_bubble_outline,
       selectedIcon: Icons.chat_bubble,
       target: RoleNavTarget.chat,
+    ),
+    RoleNavTab(
+      label: 'Jobs',
+      icon: Icons.work_outline,
+      selectedIcon: Icons.work,
+      target: RoleNavTarget.jobs,
     ),
     RoleNavTab(
       label: 'Profile',
@@ -114,19 +105,19 @@ List<RoleNavTab> _tabsFor(String role) {
       label: 'Home',
       icon: Icons.explore_outlined,
       selectedIcon: Icons.explore,
-      target: RoleNavTarget.availableJobs,
-    ),
-    RoleNavTab(
-      label: 'My Jobs',
-      icon: Icons.work_outline,
-      selectedIcon: Icons.work,
-      target: RoleNavTarget.myJobs,
+      target: RoleNavTarget.home,
     ),
     RoleNavTab(
       label: 'Chat',
       icon: Icons.chat_bubble_outline,
       selectedIcon: Icons.chat_bubble,
       target: RoleNavTarget.chat,
+    ),
+    RoleNavTab(
+      label: 'Jobs',
+      icon: Icons.work_outline,
+      selectedIcon: Icons.work,
+      target: RoleNavTarget.jobs,
     ),
     RoleNavTab(
       label: 'Profile',
@@ -138,16 +129,16 @@ List<RoleNavTab> _tabsFor(String role) {
 
   const adminTabs = [
     RoleNavTab(
-      label: 'Overview',
-      icon: Icons.dashboard_outlined,
-      selectedIcon: Icons.dashboard,
-      target: RoleNavTarget.overview,
+      label: 'Home',
+      icon: Icons.dashboard_customize_outlined,
+      selectedIcon: Icons.dashboard_customize,
+      target: RoleNavTarget.home,
     ),
     RoleNavTab(
-      label: 'Users',
-      icon: Icons.group_outlined,
-      selectedIcon: Icons.group,
-      target: RoleNavTarget.users,
+      label: 'Chat',
+      icon: Icons.chat_bubble_outline,
+      selectedIcon: Icons.chat_bubble,
+      target: RoleNavTarget.chat,
     ),
     RoleNavTab(
       label: 'Jobs',

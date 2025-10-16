@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 
@@ -6,6 +7,7 @@ import '../models/job.dart';
 import '../utils/role_permissions.dart';
 import 'api_client.dart';
 import 'role_guard.dart';
+import 'storage_service.dart';
 
 class JobPaginationResult {
   const JobPaginationResult({
@@ -24,10 +26,13 @@ class JobPaginationResult {
 }
 
 class JobService {
-  JobService(this._apiClient, this._roleGuard);
+  JobService(this._apiClient, this._roleGuard, this._storage);
 
   final ApiClient _apiClient;
   final RoleGuard _roleGuard;
+  final StorageService _storage;
+
+  Duration cacheTtl = const Duration(minutes: 5);
 
   Future<JobPaginationResult> fetchJobs({
     int page = 1,
@@ -37,12 +42,42 @@ class JobService {
     String? search,
     bool mine = false,
     bool includeHistory = false,
+    double? minBudget,
+    double? maxBudget,
+    String? location,
+    bool useCache = true,
   }) async {
     try {
       final permission = mine
           ? RolePermission.viewOwnJobs
           : RolePermission.viewJobs;
       _roleGuard.ensurePermission(permission);
+
+      final cacheKey = _composeCacheKey(
+        page: page,
+        pageSize: pageSize,
+        status: status,
+        category: category,
+        search: search,
+        mine: mine,
+        includeHistory: includeHistory,
+        minBudget: minBudget,
+        maxBudget: maxBudget,
+        location: location,
+      );
+
+      if (page == 1 && useCache) {
+        final cache = _storage.getCachedJobFeed(cacheKey);
+        if (cache != null && cache.isFresh(cacheTtl)) {
+          final jobs = cache.jobs.map(Job.fromJson).toList(growable: false);
+          return JobPaginationResult(
+            jobs: jobs,
+            page: cache.page,
+            pageSize: cache.pageSize,
+            total: cache.total,
+          );
+        }
+      }
       final response = await _apiClient.client.get<dynamic>(
         '/jobs',
         queryParameters: {
@@ -53,15 +88,31 @@ class JobService {
           if (search != null && search.isNotEmpty) 'search': search,
           if (mine) 'mine': true,
           if (includeHistory) 'history': true,
+          if (minBudget != null) 'minBudget': minBudget,
+          if (maxBudget != null) 'maxBudget': maxBudget,
+          if (location != null && location.isNotEmpty) 'location': location,
         },
         options: _apiClient.guard(permission: permission),
       );
 
-      return _parsePaginationResult(
+      final result = _parsePaginationResult(
         response.data,
         fallbackPage: page,
         fallbackPageSize: pageSize,
       );
+
+      if (page == 1) {
+        await _storage.cacheJobFeed(
+          cacheKey,
+          result.jobs.map((job) => job.toJson()).toList(growable: false),
+          DateTime.now(),
+          page: result.page,
+          pageSize: result.pageSize,
+          total: result.total,
+        );
+      }
+
+      return result;
     } on DioException catch (error) {
       throw JobException(_mapError(error));
     } on RoleUnauthorizedException catch (error) {
@@ -270,7 +321,9 @@ class JobService {
   String _mapError(DioException error) {
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout ||
-        error.type == DioExceptionType.sendTimeout) {
+        error.type == DioExceptionType.sendTimeout ||
+        error.type == DioExceptionType.connectionError ||
+        error.error is SocketException) {
       return 'Connection timed out. Please try again.';
     }
     final response = error.response;
@@ -298,6 +351,37 @@ class JobService {
       }
     }
     return 'Something went wrong. Please try again later.';
+  }
+
+  String _composeCacheKey({
+    required int page,
+    required int pageSize,
+    JobStatus? status,
+    String? category,
+    String? search,
+    required bool mine,
+    required bool includeHistory,
+    double? minBudget,
+    double? maxBudget,
+    String? location,
+  }) {
+    final buffer = StringBuffer('page=$page|size=$pageSize');
+    if (status != null) buffer.write('|status=${status.apiValue}');
+    if (category != null && category.isNotEmpty) {
+      buffer.write('|cat=${category.toLowerCase()}');
+    }
+    if (search != null && search.isNotEmpty) {
+      buffer.write('|search=${search.toLowerCase()}');
+    }
+    if (location != null && location.isNotEmpty) {
+      buffer.write('|loc=${location.toLowerCase()}');
+    }
+    if (minBudget != null) buffer.write('|min=$minBudget');
+    if (maxBudget != null) buffer.write('|max=$maxBudget');
+    buffer
+      ..write('|mine=$mine')
+      ..write('|history=$includeHistory');
+    return buffer.toString();
   }
 }
 
