@@ -7,8 +7,8 @@ class AuthEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class AppLaunched extends AuthEvent {
-  const AppLaunched();
+class AuthCheckRequested extends AuthEvent {
+  const AuthCheckRequested();
 }
 
 class LoginSubmitted extends AuthEvent {

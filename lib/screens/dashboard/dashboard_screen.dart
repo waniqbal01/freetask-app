@@ -10,11 +10,13 @@ import '../../config/routes.dart';
 import '../../controllers/auth/auth_bloc.dart';
 import '../../controllers/auth/auth_state.dart';
 import '../../controllers/chat/chat_list_bloc.dart';
+import '../../controllers/chat/chat_list_event.dart';
 import '../../controllers/connectivity/connectivity_cubit.dart';
 import '../../controllers/dashboard/dashboard_metrics_cubit.dart';
 import '../../controllers/job/job_bloc.dart';
 import '../../controllers/job/job_event.dart';
 import '../../controllers/job/job_state.dart';
+import '../../models/job_list_type.dart';
 import '../../controllers/nav/role_nav_cubit.dart';
 import '../../models/job.dart';
 import '../../models/message.dart';
@@ -138,7 +140,7 @@ class _DashboardShellState extends State<DashboardShell> {
       _messageSubscription?.cancel();
       _messageSubscription = _socketService.messages.listen((message) {
         if (!mounted || message.senderId == state.user.id) return;
-        context.read<ChatListBloc>().add(RefreshChatThreads());
+        context.read<ChatListBloc>().add(const LoadChatThreads());
         if (ModalRoute.of(context)?.isCurrent ?? false) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('New message received.')),

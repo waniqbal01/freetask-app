@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../models/job.dart';
+import '../../models/job_list_type.dart';
 import '../../services/storage_service.dart';
 import '../../utils/role_permissions.dart';
 import '../job/job_bloc.dart';

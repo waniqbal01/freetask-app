@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../models/job.dart';
+import '../../models/job_list_type.dart';
 import '../../services/job_service.dart';
 import '../../services/storage_service.dart';
 import '../../utils/logger.dart';

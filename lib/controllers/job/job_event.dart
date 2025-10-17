@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import '../../models/job.dart';
+import '../../models/job_list_type.dart';
 
 abstract class JobEvent extends Equatable {
   const JobEvent();
@@ -170,5 +171,3 @@ class JobRealtimeUpdated extends JobEvent {
 class ClearJobMessage extends JobEvent {
   const ClearJobMessage();
 }
-
-enum JobListType { available, mine, completed, all }

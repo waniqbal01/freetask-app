@@ -42,7 +42,7 @@ void main() {
       when(() => storageService.token).thenReturn(null);
       return AuthBloc(authService, storageService);
     },
-    act: (bloc) => bloc.add(const AppLaunched()),
+    act: (bloc) => bloc.add(const AuthCheckRequested()),
     expect: () => [const AuthUnauthenticated()],
   );
 

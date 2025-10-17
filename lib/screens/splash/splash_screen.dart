@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../config/routes.dart';
 import '../../controllers/auth/auth_bloc.dart';
+import '../../controllers/auth/auth_event.dart';
 import '../../controllers/auth/auth_state.dart';
 import '../../controllers/nav/role_nav_cubit.dart';
 import '../../utils/role_permissions.dart';
@@ -22,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Future.microtask(
-      () => context.read<AuthBloc>().add(AppLaunched()),
+      () => context.read<AuthBloc>().add(const AuthCheckRequested()),
     );
   }
 
