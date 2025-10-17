@@ -171,4 +171,4 @@ class ClearJobMessage extends JobEvent {
   const ClearJobMessage();
 }
 
-enum JobListType { available, mine, completed }
+enum JobListType { open, inProgress, completed, all }

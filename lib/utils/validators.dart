@@ -1,18 +1,34 @@
 class Validators {
   const Validators._();
 
-  static String? validateEmail(String? value) {
+  static const email = _EmailValidator();
+  static const password = _PasswordValidator();
+  static const confirmPassword = _ConfirmPasswordFactory();
+  static const name = _NameValidator();
+  static const requiredField = _RequiredValidator();
+  static const number = _NumberValidator();
+  static const phone = _PhoneValidator();
+}
+
+class _EmailValidator {
+  const _EmailValidator();
+
+  String? call(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Email is required.';
     }
-    final emailRegex = RegExp('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
     if (!emailRegex.hasMatch(value.trim())) {
       return 'Please enter a valid email address.';
     }
     return null;
   }
+}
 
-  static String? validatePassword(String? value) {
+class _PasswordValidator {
+  const _PasswordValidator();
+
+  String? call(String? value) {
     if (value == null || value.isEmpty) {
       return 'Password is required.';
     }
@@ -21,18 +37,36 @@ class Validators {
     }
     return null;
   }
+}
 
-  static String? validateConfirmPassword(String? value, String? password) {
+class _ConfirmPasswordFactory {
+  const _ConfirmPasswordFactory();
+
+  _ConfirmPasswordValidator call(String? Function() passwordProvider) {
+    return _ConfirmPasswordValidator(passwordProvider);
+  }
+}
+
+class _ConfirmPasswordValidator {
+  const _ConfirmPasswordValidator(this._passwordProvider);
+
+  final String? Function() _passwordProvider;
+
+  String? call(String? value) {
     if (value == null || value.isEmpty) {
       return 'Please confirm your password.';
     }
-    if (value != password) {
+    if (value != _passwordProvider()) {
       return 'Passwords do not match.';
     }
     return null;
   }
+}
 
-  static String? validateName(String? value) {
+class _NameValidator {
+  const _NameValidator();
+
+  String? call(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Name is required.';
     }
@@ -41,15 +75,23 @@ class Validators {
     }
     return null;
   }
+}
 
-  static String? validateRequired(String? value) {
+class _RequiredValidator {
+  const _RequiredValidator();
+
+  String? call(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'This field is required.';
     }
     return null;
   }
+}
 
-  static String? validateNumber(String? value) {
+class _NumberValidator {
+  const _NumberValidator();
+
+  String? call(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'This field is required.';
     }
@@ -59,8 +101,12 @@ class Validators {
     }
     return null;
   }
+}
 
-  static String? validatePhone(String? value) {
+class _PhoneValidator {
+  const _PhoneValidator();
+
+  String? call(String? value) {
     if (value == null || value.trim().isEmpty) {
       return null;
     }

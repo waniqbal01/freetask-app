@@ -110,7 +110,7 @@ class _ProfileViewState extends State<_ProfileView>
                 height: 4,
                 width: 36,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.outline.withOpacity(0.4),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -284,7 +284,7 @@ class _ProfileViewState extends State<_ProfileView>
                         prefixIcon: Icon(Icons.lock_outline),
                       ),
                       obscureText: true,
-                      validator: Validators.validateRequired,
+                      validator: Validators.requiredField,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -294,7 +294,7 @@ class _ProfileViewState extends State<_ProfileView>
                         prefixIcon: Icon(Icons.lock_reset_outlined),
                       ),
                       obscureText: true,
-                      validator: Validators.validatePassword,
+                      validator: Validators.password,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -304,10 +304,8 @@ class _ProfileViewState extends State<_ProfileView>
                         prefixIcon: Icon(Icons.verified_user_outlined),
                       ),
                       obscureText: true,
-                      validator: (value) => Validators.validateConfirmPassword(
-                        value,
-                        newController.text,
-                      ),
+                      validator:
+                          Validators.confirmPassword(() => newController.text),
                     ),
                     const SizedBox(height: 24),
                     AppButton(
@@ -546,7 +544,7 @@ class _ProfileViewState extends State<_ProfileView>
                             : null,
                         boxShadow: [
                           BoxShadow(
-                            color: theme.colorScheme.primary.withOpacity(0.18),
+                            color: theme.colorScheme.primary.withValues(alpha: 0.18),
                             blurRadius: 18,
                             offset: const Offset(0, 8),
                           ),
@@ -570,7 +568,7 @@ class _ProfileViewState extends State<_ProfileView>
                         width: 128,
                         height: 128,
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.45),
+                          color: Colors.black.withValues(alpha: 0.45),
                           shape: BoxShape.circle,
                         ),
                         child: const Center(
@@ -630,7 +628,7 @@ class _ProfileViewState extends State<_ProfileView>
             controller: _nameController,
             state: state,
             textInputAction: TextInputAction.next,
-            validator: Validators.validateName,
+            validator: Validators.name,
             autofillHints: const [AutofillHints.name],
           ),
           const SizedBox(height: 16),
@@ -641,7 +639,7 @@ class _ProfileViewState extends State<_ProfileView>
             state: state,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            validator: Validators.validateEmail,
+            validator: Validators.email,
             autofillHints: const [AutofillHints.email],
           ),
           const SizedBox(height: 16),
@@ -668,7 +666,7 @@ class _ProfileViewState extends State<_ProfileView>
             icon: Icons.location_on_outlined,
             controller: _locationController,
             state: state,
-            validator: Validators.validateRequired,
+            validator: Validators.requiredField,
             textInputAction: TextInputAction.next,
           ),
           const SizedBox(height: 16),
@@ -678,7 +676,7 @@ class _ProfileViewState extends State<_ProfileView>
             controller: _phoneController,
             state: state,
             keyboardType: TextInputType.phone,
-            validator: Validators.validatePhone,
+            validator: Validators.phone,
             autofillHints: const [AutofillHints.telephoneNumber],
           ),
           const SizedBox(height: 28),

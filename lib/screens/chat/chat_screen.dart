@@ -319,7 +319,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                     border: const Border(
                       top: BorderSide(width: 0.2),
                     ),
@@ -389,7 +389,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           decoration: InputDecoration(
                             hintText: 'Type a message…',
                             filled: true,
-                            fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4),
+                            fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(24),
                               borderSide: BorderSide.none,
@@ -481,7 +481,7 @@ class _AttachmentPreview extends StatelessWidget {
           width: 100,
           decoration: BoxDecoration(
             borderRadius: borderRadius,
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
           ),
           clipBehavior: Clip.antiAlias,
           child: draft.isImage
@@ -547,7 +547,7 @@ class _MessageBubble extends StatelessWidget {
     final theme = Theme.of(context);
     final bubbleColor = isMine
         ? theme.colorScheme.primary
-        : theme.colorScheme.surfaceVariant.withOpacity(0.9);
+        : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.9);
     final textColor = isMine ? Colors.white : theme.colorScheme.onSurface;
     final borderRadius = BorderRadius.only(
       topLeft: const Radius.circular(20),
@@ -588,7 +588,7 @@ class _MessageBubble extends StatelessWidget {
               Text(
                 DateFormat('hh:mm a').format(message.createdAt.toLocal()),
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: textColor.withOpacity(0.8),
+                  color: textColor.withValues(alpha: 0.8),
                 ),
               ),
               if (isMine) ...[
@@ -738,9 +738,9 @@ class _AttachmentContent extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: (isMine
-                    ? theme.colorScheme.onPrimary.withOpacity(0.1)
+                    ? theme.colorScheme.onPrimary.withValues(alpha: 0.1)
                     : theme.colorScheme.surface)
-                .withOpacity(0.9),
+                .withValues(alpha: 0.9),
             borderRadius: radius,
           ),
           child: Row(

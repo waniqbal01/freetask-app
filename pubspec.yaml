@@ -31,7 +31,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  bloc_test: ^9.1.5
+  bloc_test: ^9.1.6
   mocktail: ^1.0.3
   flutter_lints: ^3.0.2
 

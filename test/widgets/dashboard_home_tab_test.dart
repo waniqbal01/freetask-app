@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -23,15 +24,15 @@ class _MockMetricsCubit extends MockCubit<DashboardMetricsState>
 
 void main() {
   setUpAll(() {
-    registerFallbackValue(const JobTabChanged(JobListType.mine));
-    registerFallbackValue(const JobListRequested(JobListType.mine));
-    registerFallbackValue(const JobListRequested(JobListType.available));
-    registerFallbackValue(const JobSearchChanged(type: JobListType.mine, query: ''));
-    registerFallbackValue(const JobSearchChanged(type: JobListType.available, query: ''));
-    registerFallbackValue(const JobFilterChanged(type: JobListType.mine));
-    registerFallbackValue(const JobFilterChanged(type: JobListType.available));
-    registerFallbackValue(const JobLoadMoreRequested(JobListType.mine));
-    registerFallbackValue(const JobLoadMoreRequested(JobListType.available));
+    registerFallbackValue(const JobTabChanged(JobListType.inProgress));
+    registerFallbackValue(const JobListRequested(JobListType.inProgress));
+    registerFallbackValue(const JobListRequested(JobListType.open));
+    registerFallbackValue(const JobSearchChanged(type: JobListType.inProgress, query: ''));
+    registerFallbackValue(const JobSearchChanged(type: JobListType.open, query: ''));
+    registerFallbackValue(const JobFilterChanged(type: JobListType.inProgress));
+    registerFallbackValue(const JobFilterChanged(type: JobListType.open));
+    registerFallbackValue(const JobLoadMoreRequested(JobListType.inProgress));
+    registerFallbackValue(const JobLoadMoreRequested(JobListType.open));
     registerFallbackValue(const AcceptJobRequested('job'));
     registerFallbackValue(const CompleteJobRequested('job'));
     registerFallbackValue(const PayJobRequested('job'));
@@ -55,7 +56,7 @@ void main() {
       final metricsCubit = _MockMetricsCubit();
 
       const feed = JobFeedState(initialized: true, jobs: []);
-      final jobState = JobState(feeds: {JobListType.mine: feed});
+      final jobState = JobState(feeds: {JobListType.inProgress: feed});
       when(() => jobBloc.state).thenReturn(jobState);
       whenListen(jobBloc, Stream<JobState>.value(jobState));
 
@@ -87,7 +88,7 @@ void main() {
               authState: AuthAuthenticated(baseUser),
               role: UserRoles.client,
               telemetryService: telemetry,
-              listType: JobListType.mine,
+              listType: JobListType.inProgress,
             ),
           ),
         ),
@@ -122,7 +123,7 @@ void main() {
         createdAt: DateTime.now().subtract(const Duration(hours: 2)),
       );
       final feed = JobFeedState(jobs: [job], initialized: true);
-      final jobState = JobState(feeds: {JobListType.available: feed});
+      final jobState = JobState(feeds: {JobListType.open: feed});
       when(() => jobBloc.state).thenReturn(jobState);
       whenListen(jobBloc, Stream<JobState>.value(jobState));
 
@@ -156,7 +157,7 @@ void main() {
               ),
               role: UserRoles.freelancer,
               telemetryService: telemetry,
-              listType: JobListType.available,
+              listType: JobListType.open,
             ),
           ),
         ),

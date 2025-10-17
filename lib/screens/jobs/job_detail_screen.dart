@@ -344,7 +344,7 @@ class _SectionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant,
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -376,7 +376,7 @@ class _IconLabel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -446,7 +446,7 @@ class _StatusChip extends StatelessWidget {
         radius: 6,
       ),
       label: Text(status.label),
-      backgroundColor: color.withOpacity(0.12),
+      backgroundColor: color.withValues(alpha: 0.12),
       labelStyle: GoogleFonts.poppins(
         fontWeight: FontWeight.w600,
         color: color,

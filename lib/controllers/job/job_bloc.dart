@@ -14,11 +14,13 @@ class JobBloc extends Bloc<JobEvent, JobState> {
       : super(
           JobState(
             feeds: {
-              JobListType.available:
+              JobListType.open:
                   const JobFeedState(statusFilter: JobStatus.pending),
-              JobListType.mine: const JobFeedState(),
+              JobListType.inProgress:
+                  const JobFeedState(statusFilter: JobStatus.inProgress),
               JobListType.completed:
                   const JobFeedState(statusFilter: JobStatus.completed),
+              JobListType.all: const JobFeedState(),
             },
           ),
         ) {
@@ -80,8 +82,10 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         status: feed.statusFilter ?? _defaultStatus(event.type),
         category: feed.categoryFilter,
         search: feed.searchQuery,
-        mine: event.type != JobListType.available,
-        includeHistory: event.type == JobListType.completed,
+        mine: event.type == JobListType.inProgress ||
+            event.type == JobListType.completed,
+        includeHistory:
+            event.type == JobListType.completed || event.type == JobListType.all,
         minBudget: feed.minBudget,
         maxBudget: feed.maxBudget,
         location: feed.locationFilter,
@@ -164,8 +168,10 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         status: feed.statusFilter ?? _defaultStatus(event.type),
         category: feed.categoryFilter,
         search: feed.searchQuery,
-        mine: event.type != JobListType.available,
-        includeHistory: event.type == JobListType.completed,
+        mine: event.type == JobListType.inProgress ||
+            event.type == JobListType.completed,
+        includeHistory:
+            event.type == JobListType.completed || event.type == JobListType.all,
         minBudget: feed.minBudget,
         maxBudget: feed.maxBudget,
         location: feed.locationFilter,
@@ -507,10 +513,11 @@ class JobBloc extends Bloc<JobEvent, JobState> {
   bool _shouldIncludeInList(Job job, JobListType type) {
     final userId = _currentUserId;
     switch (type) {
-      case JobListType.available:
+      case JobListType.open:
         final isUnassigned = job.freelancerId == null || job.freelancerId!.isEmpty;
         return job.status == JobStatus.pending && isUnassigned;
-      case JobListType.mine:
+      case JobListType.inProgress:
+        if (job.status != JobStatus.inProgress) return false;
         if (userId == null) return false;
         return job.clientId == userId || job.freelancerId == userId;
       case JobListType.completed:
@@ -519,6 +526,8 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         if (!isHistoryStatus) return false;
         if (userId == null) return true;
         return job.clientId == userId || job.freelancerId == userId;
+      case JobListType.all:
+        return true;
     }
   }
 
@@ -534,12 +543,14 @@ class JobBloc extends Bloc<JobEvent, JobState> {
 
   JobStatus? _defaultStatus(JobListType type) {
     switch (type) {
-      case JobListType.available:
+      case JobListType.open:
         return JobStatus.pending;
-      case JobListType.mine:
-        return null;
+      case JobListType.inProgress:
+        return JobStatus.inProgress;
       case JobListType.completed:
         return JobStatus.completed;
+      case JobListType.all:
+        return null;
     }
   }
 
