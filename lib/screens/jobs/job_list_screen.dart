@@ -11,6 +11,7 @@ import '../../controllers/job/job_bloc.dart';
 import '../../controllers/job/job_event.dart';
 import '../../controllers/job/job_state.dart';
 import '../../models/job.dart';
+import '../../models/job_list_type.dart';
 import '../../utils/role_permissions.dart';
 import '../../widgets/confirm_dialog.dart';
 

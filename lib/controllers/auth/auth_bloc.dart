@@ -10,7 +10,7 @@ import 'auth_state.dart';
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc(this._authService, this._storage)
       : super(const AuthLoading()) {
-    on<AppLaunched>(_onAppLaunched);
+    on<AuthCheckRequested>(_onAuthCheckRequested);
     on<LoginSubmitted>(_onLoginSubmitted);
     on<SignupSubmitted>(_onSignupSubmitted);
     on<FetchMe>(_onFetchMe);
@@ -20,8 +20,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthService _authService;
   final StorageService _storage;
 
-  Future<void> _onAppLaunched(
-    AppLaunched event,
+  Future<void> _onAuthCheckRequested(
+    AuthCheckRequested event,
     Emitter<AuthState> emit,
   ) async {
     emit(const AuthLoading());

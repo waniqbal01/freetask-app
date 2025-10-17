@@ -10,20 +10,24 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class ConnectivityCubit extends Cubit<ConnectivityState> {
   ConnectivityCubit(this._connectivity)
       : super(const ConnectivityState(isOffline: false)) {
-    _subscription = _connectivity.onConnectivityChanged.listen(_onChanged);
+    _subscription =
+        _connectivity.onConnectivityChanged.listen(_onChanged);
     checkNow();
   }
 
   final Connectivity _connectivity;
-  StreamSubscription<ConnectivityResult>? _subscription;
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
 
   Future<void> checkNow() async {
-    final result = await _connectivity.checkConnectivity();
-    _emitFromResult(result);
+    final List<ConnectivityResult> results =
+        await _connectivity.checkConnectivity();
+    final effective = _effectiveResult(results);
+    _emitFromResult(effective);
   }
 
-  void _onChanged(ConnectivityResult result) {
-    _emitFromResult(result);
+  void _onChanged(List<ConnectivityResult> results) {
+    final effective = _effectiveResult(results);
+    _emitFromResult(effective);
   }
 
   void _emitFromResult(ConnectivityResult result) {
@@ -31,6 +35,28 @@ class ConnectivityCubit extends Cubit<ConnectivityState> {
     if (state.isOffline != isOffline) {
       emit(state.copyWith(isOffline: isOffline));
     }
+  }
+
+  ConnectivityResult _effectiveResult(List<ConnectivityResult> results) {
+    if (results.isEmpty) return ConnectivityResult.none;
+
+    const priorityOrder = <ConnectivityResult>[
+      ConnectivityResult.wifi,
+      ConnectivityResult.mobile,
+      ConnectivityResult.ethernet,
+      ConnectivityResult.vpn,
+      ConnectivityResult.bluetooth,
+      ConnectivityResult.other,
+      ConnectivityResult.none,
+    ];
+
+    for (final type in priorityOrder) {
+      if (results.contains(type)) {
+        return type;
+      }
+    }
+
+    return ConnectivityResult.none;
   }
 
   @override

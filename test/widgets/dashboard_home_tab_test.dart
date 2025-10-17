@@ -12,6 +12,7 @@ import 'package:freetask_app/controllers/job/job_bloc.dart';
 import 'package:freetask_app/controllers/job/job_event.dart';
 import 'package:freetask_app/controllers/job/job_state.dart';
 import 'package:freetask_app/models/job.dart';
+import 'package:freetask_app/models/job_list_type.dart';
 import 'package:freetask_app/models/user.dart';
 import 'package:freetask_app/screens/dashboard/dashboard_screen.dart';
 import 'package:freetask_app/services/telemetry_service.dart';
