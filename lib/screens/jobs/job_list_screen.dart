@@ -17,7 +17,7 @@ import '../../widgets/confirm_dialog.dart';
 class JobListScreen extends StatefulWidget {
   const JobListScreen({
     super.key,
-    this.initialTab = JobListType.open,
+    this.initialTab = JobListType.available,
     this.onCreatePressed,
     this.showCreateButton = false,
   });
@@ -106,21 +106,21 @@ class _JobListScreenState extends State<JobListScreen>
   JobListType _typeForIndex(int index) {
     switch (index) {
       case 1:
-        return JobListType.inProgress;
+        return JobListType.mine;
       case 2:
         return JobListType.completed;
       case 3:
         return JobListType.all;
       default:
-        return JobListType.open;
+        return JobListType.available;
     }
   }
 
   int _indexForType(JobListType type) {
     switch (type) {
-      case JobListType.open:
+      case JobListType.available:
         return 0;
-      case JobListType.inProgress:
+      case JobListType.mine:
         return 1;
       case JobListType.completed:
         return 2;
@@ -306,8 +306,8 @@ class _JobListScreenState extends State<JobListScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _JobsTab(type: JobListType.open),
-                  _JobsTab(type: JobListType.inProgress),
+                  _JobsTab(type: JobListType.available),
+                  _JobsTab(type: JobListType.mine),
                   _JobsTab(type: JobListType.completed),
                   _JobsTab(type: JobListType.all),
                 ],

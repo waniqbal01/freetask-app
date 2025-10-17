@@ -479,7 +479,6 @@ class _ProfileViewState extends State<_ProfileView>
         duration: _animationDuration,
         curve: Curves.easeInOut,
         alignment: Alignment.topCenter,
-        vsync: this,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

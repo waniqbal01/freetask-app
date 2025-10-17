@@ -22,7 +22,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Future.microtask(
-      () => context.read<AuthBloc>().add(const AppLaunched()),
+      () => context.read<AuthBloc>().add(AppLaunched()),
     );
   }
 

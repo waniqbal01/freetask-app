@@ -15,22 +15,19 @@ class ConnectivityCubit extends Cubit<ConnectivityState> {
   }
 
   final Connectivity _connectivity;
-  StreamSubscription<List<ConnectivityResult>>? _subscription;
+  StreamSubscription<ConnectivityResult>? _subscription;
 
   Future<void> checkNow() async {
     final result = await _connectivity.checkConnectivity();
-    _emitFromResults([result]);
+    _emitFromResult(result);
   }
 
-  void _onChanged(List<ConnectivityResult> results) {
-    _emitFromResults(results);
+  void _onChanged(ConnectivityResult result) {
+    _emitFromResult(result);
   }
 
-  void _emitFromResults(Iterable<ConnectivityResult> results) {
-    final hasConnection = results.any((result) {
-      return result != ConnectivityResult.none;
-    });
-    final isOffline = !hasConnection;
+  void _emitFromResult(ConnectivityResult result) {
+    final isOffline = result == ConnectivityResult.none;
     if (state.isOffline != isOffline) {
       emit(state.copyWith(isOffline: isOffline));
     }

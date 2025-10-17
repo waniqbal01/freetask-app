@@ -138,7 +138,7 @@ class _DashboardShellState extends State<DashboardShell> {
       _messageSubscription?.cancel();
       _messageSubscription = _socketService.messages.listen((message) {
         if (!mounted || message.senderId == state.user.id) return;
-        context.read<ChatListBloc>().add(const RefreshChatThreads());
+        context.read<ChatListBloc>().add(RefreshChatThreads());
         if (ModalRoute.of(context)?.isCurrent ?? false) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('New message received.')),
@@ -186,20 +186,20 @@ class _DashboardShellState extends State<DashboardShell> {
 
   JobListType _homeListType(String role) {
     if (role == UserRoles.client) {
-      return JobListType.inProgress;
+      return JobListType.mine;
     }
     if (role == UserRoles.freelancer) {
-      return JobListType.open;
+      return JobListType.available;
     }
     return JobListType.all;
   }
 
   JobListType _jobsTabType(String role) {
     if (role == UserRoles.client) {
-      return JobListType.inProgress;
+      return JobListType.mine;
     }
     if (role == UserRoles.freelancer) {
-      return JobListType.open;
+      return JobListType.available;
     }
     return JobListType.all;
   }
