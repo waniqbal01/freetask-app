@@ -145,7 +145,7 @@ class JobState extends Equatable {
     this.isSubmitting = false,
     this.errorMessage,
     this.successMessage,
-    this.currentList = JobListType.open,
+    this.currentList = JobListType.available,
     this.notification,
     this.categories = const {},
   });

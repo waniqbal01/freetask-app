@@ -14,9 +14,9 @@ class JobBloc extends Bloc<JobEvent, JobState> {
       : super(
           JobState(
             feeds: {
-              JobListType.open:
+              JobListType.available:
                   const JobFeedState(statusFilter: JobStatus.pending),
-              JobListType.inProgress:
+              JobListType.mine:
                   const JobFeedState(statusFilter: JobStatus.inProgress),
               JobListType.completed:
                   const JobFeedState(statusFilter: JobStatus.completed),
@@ -82,7 +82,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         status: feed.statusFilter ?? _defaultStatus(event.type),
         category: feed.categoryFilter,
         search: feed.searchQuery,
-        mine: event.type == JobListType.inProgress ||
+        mine: event.type == JobListType.mine ||
             event.type == JobListType.completed,
         includeHistory:
             event.type == JobListType.completed || event.type == JobListType.all,
@@ -168,7 +168,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         status: feed.statusFilter ?? _defaultStatus(event.type),
         category: feed.categoryFilter,
         search: feed.searchQuery,
-        mine: event.type == JobListType.inProgress ||
+        mine: event.type == JobListType.mine ||
             event.type == JobListType.completed,
         includeHistory:
             event.type == JobListType.completed || event.type == JobListType.all,
@@ -513,10 +513,10 @@ class JobBloc extends Bloc<JobEvent, JobState> {
   bool _shouldIncludeInList(Job job, JobListType type) {
     final userId = _currentUserId;
     switch (type) {
-      case JobListType.open:
+      case JobListType.available:
         final isUnassigned = job.freelancerId == null || job.freelancerId!.isEmpty;
         return job.status == JobStatus.pending && isUnassigned;
-      case JobListType.inProgress:
+      case JobListType.mine:
         if (job.status != JobStatus.inProgress) return false;
         if (userId == null) return false;
         return job.clientId == userId || job.freelancerId == userId;
@@ -543,9 +543,9 @@ class JobBloc extends Bloc<JobEvent, JobState> {
 
   JobStatus? _defaultStatus(JobListType type) {
     switch (type) {
-      case JobListType.open:
+      case JobListType.available:
         return JobStatus.pending;
-      case JobListType.inProgress:
+      case JobListType.mine:
         return JobStatus.inProgress;
       case JobListType.completed:
         return JobStatus.completed;

@@ -118,11 +118,8 @@ class AppRoutes {
           allowedRoles: RolePermissions.allowedRoles(RolePermission.viewChats),
           builder: (context) {
             final authState = context.read<AuthBloc>().state;
-            var currentUserId = '';
-            if (authState.status == AuthStatus.authenticated &&
-                authState is AuthAuthenticated) {
-              currentUserId = authState.user.id;
-            }
+            final currentUserId =
+                authState is AuthAuthenticated ? authState.user.id : '';
             final cacheService = getIt<ChatCacheService>();
             final chatService = getIt<ChatService>();
             final socketService = getIt<SocketService>();
