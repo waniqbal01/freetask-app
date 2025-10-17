@@ -35,7 +35,7 @@ class NotificationService {
       }
 
       FirebaseMessaging.onMessage.listen(_controller.add);
-      FirebaseMessaging.onTokenRefresh.listen(_sendToken);
+      messaging.onTokenRefresh.listen(_sendToken);
     } catch (_) {
       // ignore when firebase messaging is unavailable
     } finally {

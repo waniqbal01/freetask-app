@@ -17,7 +17,7 @@ import '../../widgets/confirm_dialog.dart';
 class JobListScreen extends StatefulWidget {
   const JobListScreen({
     super.key,
-    this.initialTab = JobListType.available,
+    this.initialTab = JobListType.open,
     this.onCreatePressed,
     this.showCreateButton = false,
   });
@@ -41,7 +41,7 @@ class _JobListScreenState extends State<JobListScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.index = _indexForType(widget.initialTab);
     _tabController.addListener(_handleTabChange);
     _searchController.addListener(_onSearchChanged);
@@ -106,22 +106,26 @@ class _JobListScreenState extends State<JobListScreen>
   JobListType _typeForIndex(int index) {
     switch (index) {
       case 1:
-        return JobListType.mine;
+        return JobListType.inProgress;
       case 2:
         return JobListType.completed;
+      case 3:
+        return JobListType.all;
       default:
-        return JobListType.available;
+        return JobListType.open;
     }
   }
 
   int _indexForType(JobListType type) {
     switch (type) {
-      case JobListType.available:
+      case JobListType.open:
         return 0;
-      case JobListType.mine:
+      case JobListType.inProgress:
         return 1;
       case JobListType.completed:
         return 2;
+      case JobListType.all:
+        return 3;
     }
   }
 
@@ -190,7 +194,7 @@ class _JobListScreenState extends State<JobListScreen>
                       prefixIcon: const Icon(Icons.search),
                       hintText: 'Search jobs by title, category or description',
                       filled: true,
-                      fillColor: Theme.of(context).colorScheme.surfaceVariant,
+                      fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
@@ -292,18 +296,20 @@ class _JobListScreenState extends State<JobListScreen>
               controller: _tabController,
               labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
               tabs: const [
-                Tab(text: 'Available'),
-                Tab(text: 'My Jobs'),
-                Tab(text: 'History'),
+                Tab(text: 'Open'),
+                Tab(text: 'In Progress'),
+                Tab(text: 'Completed'),
+                Tab(text: 'All'),
               ],
             ),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _JobsTab(type: JobListType.available),
-                  _JobsTab(type: JobListType.mine),
+                  _JobsTab(type: JobListType.open),
+                  _JobsTab(type: JobListType.inProgress),
                   _JobsTab(type: JobListType.completed),
+                  _JobsTab(type: JobListType.all),
                 ],
               ),
             ),
@@ -357,8 +363,11 @@ class _JobsTabState extends State<_JobsTab> {
       builder: (context, state) {
         final feed = state.feedFor(widget.type);
         final authState = context.watch<AuthBloc>().state;
-        final userId = authState is AuthAuthenticated ? authState.user.id : null;
-        final role = authState is AuthAuthenticated ? authState.user.role : null;
+        final isAuthenticated =
+            authState.status == AuthStatus.authenticated &&
+                authState is AuthAuthenticated;
+        final userId = isAuthenticated ? authState.user.id : null;
+        final role = isAuthenticated ? authState.user.role : null;
 
         if (feed.isLoadingInitial && feed.jobs.isEmpty) {
           return const Center(child: CircularProgressIndicator());
@@ -539,7 +548,7 @@ class _JobCard extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                       color: _statusColor(context),
                     ),
-                    backgroundColor: _statusColor(context).withOpacity(0.12),
+                    backgroundColor: _statusColor(context).withValues(alpha: 0.12),
                   ),
                 ],
               ),
@@ -601,7 +610,7 @@ class _JobCard extends StatelessWidget {
               FilledButton.tonal(
                 onPressed: () => _handlePrimaryAction(context),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF0057B8).withOpacity(0.12),
+                  backgroundColor: const Color(0xFF0057B8).withValues(alpha: 0.12),
                   foregroundColor: const Color(0xFF0057B8),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
@@ -626,7 +635,7 @@ class _InfoChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceVariant,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(

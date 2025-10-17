@@ -19,11 +19,7 @@ class ConnectivityCubit extends Cubit<ConnectivityState> {
 
   Future<void> checkNow() async {
     final result = await _connectivity.checkConnectivity();
-    if (result is ConnectivityResult) {
-      _emitFromResults([result]);
-    } else if (result is Iterable<ConnectivityResult>) {
-      _emitFromResults(result);
-    }
+    _emitFromResults([result]);
   }
 
   void _onChanged(List<ConnectivityResult> results) {

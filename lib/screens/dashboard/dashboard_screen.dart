@@ -186,22 +186,22 @@ class _DashboardShellState extends State<DashboardShell> {
 
   JobListType _homeListType(String role) {
     if (role == UserRoles.client) {
-      return JobListType.mine;
+      return JobListType.inProgress;
     }
     if (role == UserRoles.freelancer) {
-      return JobListType.available;
+      return JobListType.open;
     }
-    return JobListType.available;
+    return JobListType.all;
   }
 
   JobListType _jobsTabType(String role) {
     if (role == UserRoles.client) {
-      return JobListType.mine;
+      return JobListType.inProgress;
     }
     if (role == UserRoles.freelancer) {
-      return JobListType.mine;
+      return JobListType.open;
     }
-    return JobListType.available;
+    return JobListType.all;
   }
 
   @override
@@ -532,11 +532,8 @@ class _DashboardHomeTabState extends State<DashboardHomeTab> {
     _searchController.dispose();
     _locationController.dispose();
     _scrollController
-*** End Patch
-PATCH
-cat <<'EOF' >> lib/screens/dashboard/dashboard_screen.dart
-    ..removeListener(_handleScroll)
-    ..dispose();
+      ..removeListener(_handleScroll)
+      ..dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -904,7 +901,7 @@ class _MetricCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: colorScheme.primary.withOpacity(0.08),
+                color: colorScheme.primary.withValues(alpha: 0.08),
                 blurRadius: 24,
                 offset: const Offset(0, 12),
               ),
@@ -927,7 +924,7 @@ class _MetricCard extends StatelessWidget {
               Text(
                 metric.label,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onPrimaryContainer.withOpacity(0.7),
+                      color: colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
                     ),
               ),
             ],
@@ -1026,9 +1023,9 @@ class _ShimmerBoxState extends State<_ShimmerBox> with SingleTickerProviderState
               begin: Alignment(-1, 0),
               end: Alignment(1, 0),
               colors: [
-                colorScheme.surfaceVariant.withOpacity(0.3),
-                colorScheme.surfaceVariant.withOpacity(0.15),
-                colorScheme.surfaceVariant.withOpacity(0.3),
+                colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                colorScheme.surfaceContainerHighest.withValues(alpha: 0.15),
+                colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
               ],
               stops: [
                 (_controller.value - 0.3).clamp(0.0, 1.0),
@@ -1277,10 +1274,10 @@ class _StatusBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = switch (status) {
-      JobStatus.pending => theme.colorScheme.primary.withOpacity(0.15),
-      JobStatus.inProgress => theme.colorScheme.tertiary.withOpacity(0.18),
-      JobStatus.completed => theme.colorScheme.secondary.withOpacity(0.2),
-      JobStatus.cancelled => theme.colorScheme.error.withOpacity(0.12),
+      JobStatus.pending => theme.colorScheme.primary.withValues(alpha: 0.15),
+      JobStatus.inProgress => theme.colorScheme.tertiary.withValues(alpha: 0.18),
+      JobStatus.completed => theme.colorScheme.secondary.withValues(alpha: 0.2),
+      JobStatus.cancelled => theme.colorScheme.error.withValues(alpha: 0.12),
     };
     final textColor = switch (status) {
       JobStatus.pending => theme.colorScheme.primary,

@@ -91,7 +91,7 @@ class _ChatThreadTile extends StatelessWidget {
     final lastMessage = thread.lastMessage;
     return ListTile(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      tileColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      tileColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       onTap: () {
         Navigator.of(context).pushNamed(
           AppRoutes.chat,

@@ -55,7 +55,7 @@ class AppTheme {
     const borderRadius = BorderRadius.all(Radius.circular(12));
     return InputDecorationTheme(
       filled: true,
-      fillColor: colorScheme.surface.withOpacity(0.04),
+      fillColor: colorScheme.surface.withValues(alpha: 0.04),
       border: OutlineInputBorder(
         borderRadius: borderRadius,
         borderSide: BorderSide(color: colorScheme.outlineVariant),

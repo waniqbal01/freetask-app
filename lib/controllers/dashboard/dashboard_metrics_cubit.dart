@@ -53,13 +53,15 @@ class DashboardMetricsCubit extends Cubit<DashboardMetricsState> {
   List<DashboardMetricData> _buildMetrics(String role, JobState state) {
     final user = _storage.getUser();
     final feeds = state.feeds;
-    final myJobs = feeds[JobListType.mine]?.jobs ?? const [];
-    final availableJobs = feeds[JobListType.available]?.jobs ?? const [];
+    final myJobs = feeds[JobListType.inProgress]?.jobs ?? const [];
+    final availableJobs = feeds[JobListType.open]?.jobs ?? const [];
     final completedJobs = feeds[JobListType.completed]?.jobs ?? const [];
+    final allJobsFeed = feeds[JobListType.all]?.jobs ?? const [];
     final allJobs = {
       ...availableJobs,
       ...myJobs,
       ...completedJobs,
+      ...allJobsFeed,
     }.toList();
 
     if (role == UserRoles.admin ||

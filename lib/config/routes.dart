@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 
-import '../screens/auth/login_screen.dart';
-import '../screens/auth/signup_screen.dart';
-import '../screens/dashboard/dashboard_screen.dart';
-import '../screens/onboarding/onboarding_screen.dart';
-import '../screens/splash/splash_screen.dart';
-import '../screens/jobs/job_detail_screen.dart';
-import '../screens/chat/chat_screen.dart';
-import '../models/chat.dart';
+import '../controllers/auth/auth_bloc.dart';
+import '../controllers/auth/auth_state.dart';
 import '../controllers/chat/chat_bloc.dart';
 import '../controllers/chat/chat_event.dart';
 import '../controllers/chat/chat_state.dart';
+import '../models/chat.dart';
+import '../screens/auth/login_screen.dart';
+import '../screens/auth/signup_screen.dart';
+import '../screens/chat/chat_screen.dart';
+import '../screens/dashboard/dashboard_screen.dart';
+import '../screens/jobs/job_detail_screen.dart';
+import '../screens/onboarding/onboarding_screen.dart';
+import '../screens/splash/splash_screen.dart';
 import '../services/chat_service.dart';
 import '../services/chat_cache_service.dart';
 import '../services/socket_service.dart';
@@ -116,8 +118,11 @@ class AppRoutes {
           allowedRoles: RolePermissions.allowedRoles(RolePermission.viewChats),
           builder: (context) {
             final authState = context.read<AuthBloc>().state;
-            final currentUserId =
-                authState is AuthAuthenticated ? authState.user.id : '';
+            var currentUserId = '';
+            if (authState.status == AuthStatus.authenticated &&
+                authState is AuthAuthenticated) {
+              currentUserId = authState.user.id;
+            }
             final cacheService = getIt<ChatCacheService>();
             final chatService = getIt<ChatService>();
             final socketService = getIt<SocketService>();
