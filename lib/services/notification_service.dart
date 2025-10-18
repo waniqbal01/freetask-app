@@ -1,56 +1,36 @@
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-
 import 'api_client.dart';
 
+/// Lightweight notification bridge that mimics the previous Firebase-backed
+/// implementation. In the pure Dart environment the service simply exposes a
+/// stream that tests can add messages to manually.
 class NotificationService {
   NotificationService(this._apiClient);
 
   final ApiClient _apiClient;
-  final _controller = StreamController<RemoteMessage>.broadcast();
+  final _controller = StreamController<Map<String, dynamic>>.broadcast();
   bool _initialized = false;
 
-  Stream<RemoteMessage> get messages => _controller.stream;
+  Stream<Map<String, dynamic>> get messages => _controller.stream;
 
   Future<void> initialize() async {
-    if (_initialized) return;
-    try {
-      await Firebase.initializeApp();
-    } catch (_) {
-      // ignore errors for cases where firebase is already initialized
-    }
-    try {
-      final messaging = FirebaseMessaging.instance;
-      final permission = await messaging.requestPermission();
-      if (permission.authorizationStatus == AuthorizationStatus.denied) {
-        _initialized = true;
-        return;
-      }
-
-      final token = await messaging.getToken();
-      if (token != null) {
-        await _sendToken(token);
-      }
-
-      FirebaseMessaging.onMessage.listen(_controller.add);
-      FirebaseMessaging.instance.onTokenRefresh.listen(_sendToken);
-    } catch (_) {
-      // ignore when firebase messaging is unavailable
-    } finally {
-      _initialized = true;
-    }
+    _initialized = true;
   }
 
-  Future<void> _sendToken(String token) async {
-    try {
-      await _apiClient.client.post<void>(
-        '/users/me/fcm-token',
-        data: {'token': token},
-      );
-    } catch (_) {
-      // ignore errors silently to avoid disrupting UX
+  bool get isInitialized => _initialized;
+
+  Future<void> registerToken(String token) async {
+    await _apiClient.client.post<void>(
+      '/users/me/fcm-token',
+      data: {'token': token},
+    );
+  }
+
+  /// Allows tests to inject a message into the stream.
+  void pushMessage(Map<String, dynamic> message) {
+    if (!_controller.isClosed) {
+      _controller.add(message);
     }
   }
 

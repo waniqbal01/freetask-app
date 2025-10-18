@@ -1,6 +1,5 @@
+import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../utils/role_permissions.dart';
 
@@ -62,8 +61,8 @@ class RoleNavTab extends Equatable {
   });
 
   final String label;
-  final IconData icon;
-  final IconData selectedIcon;
+  final String icon;
+  final String selectedIcon;
   final RoleNavTarget target;
 
   @override
@@ -76,26 +75,26 @@ List<RoleNavTab> _tabsFor(String role) {
   const clientTabs = [
     RoleNavTab(
       label: 'Home',
-      icon: Icons.dashboard_outlined,
-      selectedIcon: Icons.dashboard,
+      icon: 'dashboard_outlined',
+      selectedIcon: 'dashboard',
       target: RoleNavTarget.home,
     ),
     RoleNavTab(
       label: 'Chat',
-      icon: Icons.chat_bubble_outline,
-      selectedIcon: Icons.chat_bubble,
+      icon: 'chat_bubble_outline',
+      selectedIcon: 'chat_bubble',
       target: RoleNavTarget.chat,
     ),
     RoleNavTab(
       label: 'Jobs',
-      icon: Icons.work_outline,
-      selectedIcon: Icons.work,
+      icon: 'work_outline',
+      selectedIcon: 'work',
       target: RoleNavTarget.jobs,
     ),
     RoleNavTab(
       label: 'Profile',
-      icon: Icons.person_outline,
-      selectedIcon: Icons.person,
+      icon: 'person_outline',
+      selectedIcon: 'person',
       target: RoleNavTarget.profile,
     ),
   ];
@@ -103,26 +102,26 @@ List<RoleNavTab> _tabsFor(String role) {
   const freelancerTabs = [
     RoleNavTab(
       label: 'Home',
-      icon: Icons.explore_outlined,
-      selectedIcon: Icons.explore,
+      icon: 'explore_outlined',
+      selectedIcon: 'explore',
       target: RoleNavTarget.home,
     ),
     RoleNavTab(
       label: 'Chat',
-      icon: Icons.chat_bubble_outline,
-      selectedIcon: Icons.chat_bubble,
+      icon: 'chat_bubble_outline',
+      selectedIcon: 'chat_bubble',
       target: RoleNavTarget.chat,
     ),
     RoleNavTab(
       label: 'Jobs',
-      icon: Icons.work_outline,
-      selectedIcon: Icons.work,
+      icon: 'work_outline',
+      selectedIcon: 'work',
       target: RoleNavTarget.jobs,
     ),
     RoleNavTab(
       label: 'Profile',
-      icon: Icons.person_outline,
-      selectedIcon: Icons.person,
+      icon: 'person_outline',
+      selectedIcon: 'person',
       target: RoleNavTarget.profile,
     ),
   ];
@@ -130,26 +129,26 @@ List<RoleNavTab> _tabsFor(String role) {
   const adminTabs = [
     RoleNavTab(
       label: 'Home',
-      icon: Icons.dashboard_customize_outlined,
-      selectedIcon: Icons.dashboard_customize,
+      icon: 'dashboard_customize_outlined',
+      selectedIcon: 'dashboard_customize',
       target: RoleNavTarget.home,
     ),
     RoleNavTab(
       label: 'Chat',
-      icon: Icons.chat_bubble_outline,
-      selectedIcon: Icons.chat_bubble,
+      icon: 'chat_bubble_outline',
+      selectedIcon: 'chat_bubble',
       target: RoleNavTarget.chat,
     ),
     RoleNavTab(
       label: 'Jobs',
-      icon: Icons.work_outline,
-      selectedIcon: Icons.work,
+      icon: 'work_outline',
+      selectedIcon: 'work',
       target: RoleNavTarget.jobs,
     ),
     RoleNavTab(
       label: 'Profile',
-      icon: Icons.person_outline,
-      selectedIcon: Icons.person,
+      icon: 'person_outline',
+      selectedIcon: 'person',
       target: RoleNavTarget.profile,
     ),
   ];
@@ -162,5 +161,5 @@ List<RoleNavTab> _tabsFor(String role) {
     UserRoles.support: adminTabs,
   };
 
-  return mapping[role] ?? mapping[UserRoles.defaultRole]!;
+  return mapping[role] ?? clientTabs;
 }

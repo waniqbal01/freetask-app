@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:equatable/equatable.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:bloc/bloc.dart';
 
 import '../../models/user.dart';
 import '../../services/profile_service.dart';

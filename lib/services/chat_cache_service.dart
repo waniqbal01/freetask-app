@@ -1,28 +1,27 @@
 import 'dart:convert';
 
-import 'package:shared_preferences/shared_preferences.dart';
-
+import 'key_value_store.dart';
 import '../models/message.dart';
 import '../models/pending_message.dart';
 
 class ChatCacheService {
-  ChatCacheService(this._prefs);
+  ChatCacheService(this._store);
 
   static const _lastMessagePrefix = 'chat:last_message:';
   static const _pendingQueuePrefix = 'chat:pending_queue:';
   static const _pendingIndexKey = 'chat:pending_index';
 
-  final SharedPreferences _prefs;
+  final KeyValueStore _store;
 
   Future<void> cacheLastMessage(String chatId, Message message) async {
     final key = '$_lastMessagePrefix$chatId';
     final data = message.toJson();
-    await _prefs.setString(key, jsonEncode(data));
+    await _store.setString(key, jsonEncode(data));
   }
 
   Message? getCachedLastMessage(String chatId) {
     final key = '$_lastMessagePrefix$chatId';
-    final data = _prefs.getString(key);
+    final data = _store.getString(key);
     if (data == null) return null;
     try {
       final decoded = jsonDecode(data);
@@ -38,13 +37,13 @@ class ChatCacheService {
   Future<void> savePendingMessages(String chatId, List<PendingMessage> queue) async {
     final key = '$_pendingQueuePrefix$chatId';
     final list = queue.map((item) => item.toJson()).toList();
-    await _prefs.setString(key, jsonEncode(list));
+    await _store.setString(key, jsonEncode(list));
     await _updatePendingIndex(chatId, queue.isNotEmpty);
   }
 
   List<PendingMessage> getPendingMessages(String chatId) {
     final key = '$_pendingQueuePrefix$chatId';
-    final data = _prefs.getString(key);
+    final data = _store.getString(key);
     if (data == null) return const [];
     try {
       final decoded = jsonDecode(data);
@@ -62,12 +61,12 @@ class ChatCacheService {
 
   Future<void> clearPendingMessages(String chatId) async {
     final key = '$_pendingQueuePrefix$chatId';
-    await _prefs.remove(key);
+    await _store.remove(key);
     await _updatePendingIndex(chatId, false);
   }
 
   List<String> getPendingChatIds() {
-    final raw = _prefs.getString(_pendingIndexKey);
+    final raw = _store.getString(_pendingIndexKey);
     if (raw == null) return const [];
     try {
       final decoded = jsonDecode(raw);
@@ -88,9 +87,9 @@ class ChatCacheService {
       ids.remove(chatId);
     }
     if (ids.isEmpty) {
-      await _prefs.remove(_pendingIndexKey);
+      await _store.remove(_pendingIndexKey);
     } else {
-      await _prefs.setString(_pendingIndexKey, jsonEncode(ids.toList()));
+      await _store.setString(_pendingIndexKey, jsonEncode(ids.toList()));
     }
   }
 }

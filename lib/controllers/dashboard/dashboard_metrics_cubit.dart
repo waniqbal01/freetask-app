@@ -1,8 +1,7 @@
 import 'dart:async';
 
+import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../models/job.dart';
 import '../../models/job_list_type.dart';
@@ -11,10 +10,10 @@ import '../../utils/role_permissions.dart';
 import '../job/job_bloc.dart';
 import '../job/job_state.dart';
 
-/// Aggregates dashboard metrics derived from the job feeds so that the home
-/// screen can stay declarative. The cubit listens to [JobBloc] updates and
-/// recalculates metrics whenever jobs change, ensuring the UI reflects the
-/// latest information without additional API requests.
+/// Aggregates dashboard metrics derived from the job feeds so that consumers can
+/// stay declarative. The cubit listens to [JobBloc] updates and recalculates
+/// metrics whenever jobs change, ensuring the UI reflects the latest
+/// information without additional API requests.
 class DashboardMetricsCubit extends Cubit<DashboardMetricsState> {
   DashboardMetricsCubit(this._jobBloc, this._storage)
       : super(const DashboardMetricsState.loading()) {
@@ -89,22 +88,22 @@ class DashboardMetricsCubit extends Cubit<DashboardMetricsState> {
         DashboardMetricData(
           label: 'Users',
           value: users.length.toString(),
-          icon: Icons.people_alt_outlined,
+          icon: 'people_alt_outlined',
         ),
         DashboardMetricData(
           label: 'Jobs',
           value: allJobs.length.toString(),
-          icon: Icons.work_outline,
+          icon: 'work_outline',
         ),
         DashboardMetricData(
           label: 'Revenue',
           value: _formatCurrency(revenue),
-          icon: Icons.payments_outlined,
+          icon: 'payments_outlined',
         ),
         DashboardMetricData(
           label: 'Active Freelancers',
           value: activeFreelancers.toString(),
-          icon: Icons.support_agent_outlined,
+          icon: 'support_agent_outlined',
         ),
       ];
     }
@@ -127,17 +126,17 @@ class DashboardMetricsCubit extends Cubit<DashboardMetricsState> {
         DashboardMetricData(
           label: 'Active Jobs',
           value: activeJobs.toString(),
-          icon: Icons.play_circle_outline,
+          icon: 'play_circle_outline',
         ),
         DashboardMetricData(
           label: 'Completed',
           value: completed.toString(),
-          icon: Icons.verified_outlined,
+          icon: 'verified_outlined',
         ),
         DashboardMetricData(
           label: 'Total Spent',
           value: _formatCurrency(totalSpent),
-          icon: Icons.account_balance_wallet_outlined,
+          icon: 'account_balance_wallet_outlined',
         ),
       ];
     }
@@ -155,27 +154,26 @@ class DashboardMetricsCubit extends Cubit<DashboardMetricsState> {
       DashboardMetricData(
         label: 'Available',
         value: available.toString(),
-        icon: Icons.explore_outlined,
+        icon: 'explore_outlined',
       ),
       DashboardMetricData(
         label: 'Accepted',
         value: accepted.toString(),
-        icon: Icons.handshake_outlined,
+        icon: 'handshake_outlined',
       ),
       DashboardMetricData(
         label: 'Earnings',
         value: _formatCurrency(earnings),
-        icon: Icons.attach_money,
+        icon: 'attach_money',
       ),
     ];
   }
 
   String _formatCurrency(double amount) {
-    if (amount == 0) return '0';
-    if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(1)}k';
-    }
-    return amount.toStringAsFixed(0);
+    return amount.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (match) => ',',
+    );
   }
 
   @override
@@ -189,8 +187,8 @@ class DashboardMetricsState extends Equatable {
   const DashboardMetricsState({
     required this.metrics,
     required this.loading,
-    this.role,
-    this.updatedAt,
+    required this.role,
+    required this.updatedAt,
   });
 
   const DashboardMetricsState.loading()
@@ -231,7 +229,7 @@ class DashboardMetricData extends Equatable {
 
   final String label;
   final String value;
-  final IconData icon;
+  final String icon;
 
   @override
   List<Object?> get props => [label, value, icon];
