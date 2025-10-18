@@ -5,8 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../controllers/auth/auth_bloc.dart';
 import '../controllers/auth/auth_event.dart';
 import '../controllers/profile/profile_bloc.dart';
-import '../controllers/profile/profile_event.dart';
-import '../controllers/profile/profile_state.dart';
 import '../models/user.dart';
 import '../widgets/custom_button.dart';
 import 'login_screen.dart';

@@ -11,7 +11,7 @@ import 'package:freetask_app/services/key_value_store.dart';
 import 'package:freetask_app/services/role_guard.dart';
 import 'package:freetask_app/services/storage_service.dart';
 
-class _SequenceAdapter extends HttpClientAdapter {
+class _SequenceAdapter implements HttpClientAdapter {
   _SequenceAdapter(List<ResponseBody> responses)
       : _responses = Queue<ResponseBody>.of(responses);
 

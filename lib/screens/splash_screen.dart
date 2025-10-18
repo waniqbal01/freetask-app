@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../controllers/auth/auth_bloc.dart';
+import '../controllers/auth/auth_event.dart';
 import '../controllers/auth/auth_state.dart';
 import '../controllers/nav/role_nav_cubit.dart';
 import 'dashboard_screen.dart';
