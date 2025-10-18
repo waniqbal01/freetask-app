@@ -1,14 +1,13 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
+import '../models/app_theme_mode.dart';
 import '../models/user.dart';
+import 'key_value_store.dart';
 
 class StorageService {
-  StorageService(this._prefs);
+  StorageService(this._store);
 
-  final SharedPreferences _prefs;
+  final KeyValueStore _store;
 
   static const _tokenKey = 'auth_token';
   static const _userKey = 'auth_user';
@@ -19,35 +18,35 @@ class StorageService {
   static const _jobFeedPrefix = 'cache:job_feed:';
 
   Future<void> saveToken(String token) async {
-    await _prefs.setString(_tokenKey, token);
+    await _store.setString(_tokenKey, token);
   }
 
-  String? get token => _prefs.getString(_tokenKey);
+  String? get token => _store.getString(_tokenKey);
 
   Future<void> clearToken() async {
-    await _prefs.remove(_tokenKey);
+    await _store.remove(_tokenKey);
   }
 
   Future<void> saveRefreshToken(String refreshToken) async {
-    await _prefs.setString(_refreshTokenKey, refreshToken);
+    await _store.setString(_refreshTokenKey, refreshToken);
   }
 
-  String? get refreshToken => _prefs.getString(_refreshTokenKey);
+  String? get refreshToken => _store.getString(_refreshTokenKey);
 
   Future<void> clearRefreshToken() async {
-    await _prefs.remove(_refreshTokenKey);
+    await _store.remove(_refreshTokenKey);
   }
 
   Future<void> saveTokenExpiry(DateTime? expiry) async {
     if (expiry == null) {
-      await _prefs.remove(_tokenExpiryKey);
+      await _store.remove(_tokenExpiryKey);
       return;
     }
-    await _prefs.setString(_tokenExpiryKey, expiry.toIso8601String());
+    await _store.setString(_tokenExpiryKey, expiry.toIso8601String());
   }
 
   DateTime? get tokenExpiry {
-    final value = _prefs.getString(_tokenExpiryKey);
+    final value = _store.getString(_tokenExpiryKey);
     if (value == null) return null;
     try {
       return DateTime.parse(value).toLocal();
@@ -57,16 +56,16 @@ class StorageService {
   }
 
   Future<void> clearTokenExpiry() async {
-    await _prefs.remove(_tokenExpiryKey);
+    await _store.remove(_tokenExpiryKey);
   }
 
   Future<void> saveUser(User user) async {
-    await _prefs.setString(_userKey, jsonEncode(user.toJson()));
+    await _store.setString(_userKey, jsonEncode(user.toJson()));
     await saveRole(user.role);
   }
 
   User? getUser() {
-    final data = _prefs.getString(_userKey);
+    final data = _store.getString(_userKey);
     if (data == null) return null;
     try {
       final Map<String, dynamic> json = jsonDecode(data) as Map<String, dynamic>;
@@ -77,41 +76,41 @@ class StorageService {
   }
 
   Future<void> clearUser() async {
-    await _prefs.remove(_userKey);
+    await _store.remove(_userKey);
     await clearRole();
   }
 
   Future<void> saveRole(String role) async {
-    await _prefs.setString(_roleKey, role);
+    await _store.setString(_roleKey, role);
   }
 
-  String? get role => _prefs.getString(_roleKey);
+  String? get role => _store.getString(_roleKey);
 
   Future<void> clearRole() async {
-    await _prefs.remove(_roleKey);
+    await _store.remove(_roleKey);
   }
 
   Future<void> clearAll() async {
     await Future.wait<void>([
-      _prefs.remove(_tokenKey),
-      _prefs.remove(_userKey),
-      _prefs.remove(_refreshTokenKey),
-      _prefs.remove(_tokenExpiryKey),
-      _prefs.remove(_roleKey),
-      _prefs.remove(_themeModeKey),
+      _store.remove(_tokenKey),
+      _store.remove(_userKey),
+      _store.remove(_refreshTokenKey),
+      _store.remove(_tokenExpiryKey),
+      _store.remove(_roleKey),
+      _store.remove(_themeModeKey),
     ]);
   }
 
-  Future<void> saveThemeMode(ThemeMode mode) async {
-    await _prefs.setString(_themeModeKey, mode.name);
+  Future<void> saveThemeMode(AppThemeMode mode) async {
+    await _store.setString(_themeModeKey, mode.name);
   }
 
-  ThemeMode? getThemeMode() {
-    final value = _prefs.getString(_themeModeKey);
+  AppThemeMode? getThemeMode() {
+    final value = _store.getString(_themeModeKey);
     if (value == null) return null;
-    return ThemeMode.values.firstWhere(
+    return AppThemeMode.values.firstWhere(
       (mode) => mode.name == value,
-      orElse: () => ThemeMode.system,
+      orElse: () => AppThemeMode.system,
     );
   }
 
@@ -131,12 +130,12 @@ class StorageService {
       'pageSize': pageSize,
       'total': total,
     });
-    await _prefs.setString(key, payload);
+    await _store.setString(key, payload);
   }
 
   JobFeedCache? getCachedJobFeed(String cacheKey) {
     final key = _buildJobFeedKey(cacheKey);
-    final raw = _prefs.getString(key);
+    final raw = _store.getString(key);
     if (raw == null) return null;
     try {
       final decoded = jsonDecode(raw);
@@ -170,7 +169,7 @@ class StorageService {
 
   Future<void> clearCachedJobFeed(String cacheKey) async {
     final key = _buildJobFeedKey(cacheKey);
-    await _prefs.remove(key);
+    await _store.remove(key);
   }
 
   String _buildJobFeedKey(String cacheKey) => '$_jobFeedPrefix$cacheKey';
