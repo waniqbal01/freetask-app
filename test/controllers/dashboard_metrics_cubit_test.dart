@@ -10,6 +10,7 @@ import 'package:freetask_app/models/job.dart';
 import 'package:freetask_app/models/job_list_type.dart';
 import 'package:freetask_app/models/user.dart';
 import 'package:freetask_app/services/storage_service.dart';
+import 'package:freetask_app/utils/role_permissions.dart';
 
 class _MockJobBloc extends MockBloc<JobEvent, JobState> implements JobBloc {}
 

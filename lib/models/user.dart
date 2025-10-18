@@ -24,7 +24,7 @@ class UserModel {
   final bool verified;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    String? _readString(dynamic value) {
+    String? readString(dynamic value) {
       if (value is String) {
         return value;
       }
@@ -39,14 +39,14 @@ class UserModel {
       name: json['name'] as String? ?? '',
       email: json['email'] as String? ?? '',
       role: json['role'] as String? ?? UserRoles.client,
-      avatarUrl: _readString(
+      avatarUrl: readString(
         json['avatarUrl'] ?? json['avatar_url'] ?? json['avatar'],
       )?.trim(),
-      bio: _readString(json['bio'] ?? json['about'])?.trim(),
-      location: _readString(
+      bio: readString(json['bio'] ?? json['about'])?.trim(),
+      location: readString(
         json['location'] ?? json['address'] ?? json['city'],
       )?.trim(),
-      phoneNumber: _readString(
+      phoneNumber: readString(
         json['phoneNumber'] ?? json['phone'] ?? json['contactNumber'],
       )?.trim(),
       verified: json['verified'] as bool? ?? false,
