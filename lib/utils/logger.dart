@@ -1,7 +1,7 @@
-const bool _isDebugMode = !bool.fromEnvironment('dart.vm.product');
+import 'package:flutter/foundation.dart';
 
 void appLog(String message, {Object? error, StackTrace? stackTrace}) {
-  if (!_isDebugMode) return;
+  if (!kDebugMode) return;
   // ignore: avoid_print
   print('[Freetask] $message');
   if (error != null) {

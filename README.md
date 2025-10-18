@@ -26,24 +26,93 @@ All new features should include corresponding tests.
 
 ## Flutter integration
 
-Use the `AppBootstrap.initialize()` helper to wire the services with real
-platform implementations such as `SharedPreferences` and Dio:
+Use the `AppBootstrap.init()` helper to wire the services with real platform
+implementations such as `SharedPreferences` and Dio:
 
 ```dart
 import 'package:freetask_app/bootstrap.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final container = await AppBootstrap.initialize();
+  final bootstrap = await AppBootstrap.init();
 
-  final authService = container.authService;
-  final apiClient = container.apiClient;
-  // register your blocs/controllers here
+  runApp(
+    MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: bootstrap.apiClient),
+        RepositoryProvider.value(value: bootstrap.authService),
+        RepositoryProvider.value(value: bootstrap.storageService),
+      ],
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(create: (_) => AuthBloc(bootstrap.authService, bootstrap.storageService)),
+          BlocProvider(create: (_) => JobBloc(bootstrap.jobService, bootstrap.storageService)),
+          BlocProvider(
+            create: (context) =>
+                DashboardMetricsCubit(context.read<JobBloc>(), bootstrap.storageService),
+          ),
+          BlocProvider(create: (_) => ChatListBloc(bootstrap.chatService)),
+          BlocProvider(create: (_) => ProfileBloc(bootstrap.profileService, bootstrap.storageService)),
+        ],
+        child: const FreetaskApp(),
+      ),
+    ),
+  );
 }
 ```
 
 The bootstrap automatically connects the `ApiClient` and `AuthService` so that a
 401 response triggers a token refresh and retries the original request.
+
+### Screen and widget structure
+
+The Flutter client is organised into a minimal set of reusable building blocks:
+
+| Layer | Files |
+| --- | --- |
+| Screens | `lib/screens/splash_screen.dart`, `login_screen.dart`, `dashboard_screen.dart`, `jobs_screen.dart`, `chat_screen.dart`, `profile_screen.dart` |
+| Widgets | `lib/widgets/custom_button.dart`, `input_field.dart`, `job_card.dart`, `chat_bubble.dart`, `app_bottom_nav.dart` |
+
+Each screen focuses on a single responsibility (authentication, navigation,
+jobs, chat, or profile) and composes the shared widgets to maintain a consistent
+simple–minimalist UI.
+
+### BLoC wiring cheatsheet
+
+The app uses `flutter_bloc` throughout. Some common wiring examples:
+
+```dart
+// Splash → AuthBloc
+BlocListener<AuthBloc, AuthState>(
+  listener: (context, state) {
+    if (state is AuthAuthenticated) {
+      Navigator.of(context).pushReplacementNamed(DashboardScreen.routeName);
+    }
+  },
+  child: const SplashScreen(),
+);
+
+// Dashboard metrics depend on JobBloc updates
+BlocBuilder<DashboardMetricsCubit, DashboardMetricsState>(
+  builder: (context, state) {
+    if (state.loading) return const CircularProgressIndicator();
+    return MetricsGrid(metrics: state.metrics);
+  },
+);
+
+// Chat threads list with pull-to-refresh
+BlocBuilder<ChatListBloc, ChatListState>(
+  builder: (context, state) => RefreshIndicator(
+    onRefresh: () async => context.read<ChatListBloc>().add(const RefreshChatThreads()),
+    child: ChatThreadList(threads: state.threads),
+  ),
+);
+
+// Profile detail reacts to ProfileBloc
+BlocBuilder<ProfileBloc, ProfileState>(
+  builder: (context, state) => ProfileView(user: state.user),
+);
+```
 
 ### Environment configuration
 
@@ -64,3 +133,30 @@ flutter build apk \
 
 Replace the URLs with the appropriate environment endpoints. The default values
 are local development friendly (`http://localhost:8080`).
+
+### Guarding API calls
+
+Every critical network request should go through `apiClient.guard` so role-based
+permissions are enforced:
+
+```dart
+final apiClient = bootstrap.apiClient;
+final options = apiClient.guard(permission: RolePermission.createJob); // ensures 'jobs:write'
+await apiClient.client.post('/jobs', data: payload, options: options);
+```
+
+If additional permissions are required, register them in
+`RolePermissions.register` before issuing guarded calls.
+
+### UI guidelines
+
+- **Palette:** light surfaces (`#F9F9F9` background, white cards) with the
+  accent blue `#3A7BD5` for primary actions.
+- **Typography:** `ThemeData.light()` customised with `Poppins` (fallback
+  `Inter`) drives headlines, body copy, and buttons for consistent rhythm.
+- **Spacing:** outer layout padding uses 16px, with inner element gaps of 8px
+  and component border radii between 12–16px.
+- **Shadows:** employ soft drop shadows (`blurRadius` 12–16, low opacity) to
+  retain the minimalist aesthetic.
+- **Reusable components:** `CustomButton`, `InputField`, `JobCard`,
+  `ChatBubble`, and `AppBottomNav` keep interactions consistent across screens.

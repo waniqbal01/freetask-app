@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 
 import '../models/user.dart';
 import '../utils/logger.dart';
+import '../utils/role_permissions.dart';
 import 'api_client.dart';
 import 'storage_service.dart';
 
@@ -17,6 +18,7 @@ class ProfileService {
     try {
       final response = await _apiClient.client.get<Map<String, dynamic>>(
         '/users/me',
+        options: _apiClient.guard(permission: RolePermission.viewDashboard),
       );
       final data = response.data ?? <String, dynamic>{};
       final user = User.fromJson(data);
@@ -47,6 +49,7 @@ class ProfileService {
       final response = await _apiClient.client.put<Map<String, dynamic>>(
         '/users/update',
         data: payload,
+        options: _apiClient.guard(permission: RolePermission.viewDashboard),
       );
       final data = response.data ?? <String, dynamic>{};
       final user = User.fromJson(data);
@@ -70,7 +73,9 @@ class ProfileService {
       final response = await _apiClient.client.post<Map<String, dynamic>>(
         '/users/upload-avatar',
         data: formData,
-        options: Options(contentType: 'multipart/form-data'),
+        options: _apiClient
+            .guard(permission: RolePermission.viewDashboard)
+            .copyWith(contentType: 'multipart/form-data'),
       );
       final data = response.data ?? <String, dynamic>{};
       final url = data['avatarUrl'] ?? data['avatar_url'] ?? data['url'];

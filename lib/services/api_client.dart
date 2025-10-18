@@ -67,22 +67,29 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (error, handler) async {
-          if (error.response?.statusCode != 401 ||
-              error.requestOptions.extra['skipAuth'] == true ||
-              _refreshCallback == null) {
+          final isSkipAuth = error.requestOptions.extra['skipAuth'] == true;
+          if (error.response?.statusCode != 401 || isSkipAuth) {
+            if (error.response?.statusCode == 401 && !isSkipAuth) {
+              await _handleUnauthorized();
+            }
+            return handler.next(error);
+          }
+
+          if (_refreshCallback == null) {
+            await _handleUnauthorized();
             return handler.next(error);
           }
 
           try {
             await _refreshToken();
           } catch (_) {
-            await _storage.clearAll();
+            await _handleUnauthorized();
             return handler.next(error);
           }
 
           final refreshedToken = _storage.token;
           if (refreshedToken == null || refreshedToken.isEmpty) {
-            await _storage.clearAll();
+            await _handleUnauthorized();
             return handler.next(error);
           }
 
@@ -107,8 +114,11 @@ class ApiClient {
   final RoleGuard _roleGuard;
   Future<String> Function()? _refreshCallback;
   Completer<void>? _refreshCompleter;
+  final _unauthorizedController = StreamController<void>.broadcast();
 
   Dio get client => _dio;
+
+  Stream<void> get logoutStream => _unauthorizedController.stream;
 
   void setRefreshCallback(Future<String> Function() callback) {
     _refreshCallback = callback;
@@ -159,5 +169,16 @@ class ApiClient {
     } finally {
       _refreshCompleter = null;
     }
+  }
+
+  Future<void> _handleUnauthorized() async {
+    await _storage.clearAll();
+    if (!_unauthorizedController.isClosed) {
+      _unauthorizedController.add(null);
+    }
+  }
+
+  Future<void> close() async {
+    await _unauthorizedController.close();
   }
 }

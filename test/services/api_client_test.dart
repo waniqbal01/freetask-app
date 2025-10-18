@@ -112,6 +112,40 @@ void main() {
       expect(storage.token, isNull);
       expect(storage.refreshToken, isNull);
     });
+
+    test('emits logout event when refresh token fails once', () async {
+      await storage.saveToken('expired-token');
+      await storage.saveRefreshToken('refresh-token');
+
+      final adapter = _SequenceAdapter(<ResponseBody>[
+        ResponseBody.fromString(
+          jsonEncode({'message': 'unauthorized'}),
+          401,
+          headers: <String, List<String>>{
+            Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+          },
+        ),
+      ]);
+      dio.httpClientAdapter = adapter;
+
+      final api = ApiClient(dio, storage, roleGuard);
+      final logoutEvents = <void>[];
+      api.logoutStream.listen(logoutEvents.add);
+      api.setRefreshCallback(() async {
+        throw AuthException('Session expired');
+      });
+
+      await expectLater(
+        () => api.client.get<Map<String, dynamic>>('/protected'),
+        throwsA(isA<DioException>()),
+      );
+
+      expect(storage.token, isNull);
+      expect(storage.refreshToken, isNull);
+      expect(adapter.requests, hasLength(1));
+      await Future<void>.delayed(Duration.zero);
+      expect(logoutEvents, isNotEmpty);
+    });
   });
 
   group('RoleGuard.ensureRoleIn', () {

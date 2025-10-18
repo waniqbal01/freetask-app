@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
 import '../models/pending_message.dart';
+import '../utils/role_permissions.dart';
 import 'api_client.dart';
 import 'chat_cache_service.dart';
 
@@ -16,7 +17,10 @@ class ChatService {
 
   Future<List<ChatThread>> fetchThreads() async {
     try {
-      final response = await _apiClient.client.get<List<dynamic>>('/chat');
+      final response = await _apiClient.client.get<List<dynamic>>(
+        '/chat',
+        options: _apiClient.guard(permission: RolePermission.viewChats),
+      );
       final data = response.data ?? const [];
       return data
           .whereType<Map<String, dynamic>>()
@@ -31,6 +35,7 @@ class ChatService {
     try {
       final response = await _apiClient.client.get<List<dynamic>>(
         '/chat/$chatId/messages',
+        options: _apiClient.guard(permission: RolePermission.viewChats),
       );
       final data = response.data ?? const [];
       return data
@@ -70,6 +75,7 @@ class ChatService {
       await _apiClient.client.post<void>(
         '/chat/$chatId/read',
         data: {'messageIds': messageIds},
+        options: _apiClient.guard(permission: RolePermission.viewChats),
       );
     } on DioException catch (error) {
       throw ChatException(_mapError(error));
@@ -132,7 +138,9 @@ class ChatService {
     final response = await _apiClient.client.post<Map<String, dynamic>>(
       '/chat/$chatId/messages',
       data: formData,
-      options: Options(contentType: 'multipart/form-data'),
+      options: _apiClient
+          .guard(permission: RolePermission.viewChats)
+          .copyWith(contentType: 'multipart/form-data'),
     );
     final data = response.data ?? <String, dynamic>{};
     return Message.fromJson(data);
