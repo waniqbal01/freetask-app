@@ -24,7 +24,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AuthCheckRequested event,
     Emitter<AuthState> emit,
   ) async {
-    emit(const AuthLoading());
+    if (state is! AuthLoading) {
+      emit(const AuthLoading());
+    }
     final token = _storage.token;
     if (token == null || token.isEmpty) {
       emit(const AuthUnauthenticated());
@@ -88,7 +90,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     LoginSubmitted event,
     Emitter<AuthState> emit,
   ) async {
-    emit(const AuthLoading(flow: AuthFlow.login));
+    emit(const AuthLoading());
     try {
       final authResponse = await _authService.login(
         email: event.email,
@@ -110,7 +112,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     SignupSubmitted event,
     Emitter<AuthState> emit,
   ) async {
-    emit(const AuthLoading(flow: AuthFlow.signup));
+    emit(const AuthLoading());
     try {
       final authResponse = await _authService.signup(
         name: event.name,
