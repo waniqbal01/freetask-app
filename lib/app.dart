@@ -14,7 +14,6 @@ import 'controllers/job/job_bloc.dart';
 import 'controllers/job/job_event.dart';
 import 'controllers/nav/role_nav_cubit.dart';
 import 'controllers/profile/profile_bloc.dart';
-import 'controllers/profile/profile_state.dart';
 import 'models/job_list_type.dart';
 import 'screens/chat_screen.dart';
 import 'screens/dashboard_screen.dart';
@@ -133,8 +132,6 @@ class _FreetaskAppState extends State<FreetaskApp> {
     return base.copyWith(
       colorScheme: colorScheme,
       scaffoldBackgroundColor: const Color(0xFFF9F9F9),
-      fontFamily: 'Poppins',
-      fontFamilyFallback: const ['Inter'],
       textTheme: textTheme,
       appBarTheme: base.appBarTheme.copyWith(
         elevation: 0,
