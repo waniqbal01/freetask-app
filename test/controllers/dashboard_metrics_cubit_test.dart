@@ -52,7 +52,7 @@ void main() {
       build: () {
         final state = JobState(
           feeds: {
-            JobListType.all: const JobFeedState(
+            JobListType.all: JobFeedState(
               jobs: [
                 Job(
                   id: '1',
