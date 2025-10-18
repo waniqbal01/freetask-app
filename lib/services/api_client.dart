@@ -110,8 +110,13 @@ class ApiClient {
 
   Dio get client => _dio;
 
-  void registerRefreshTokenCallback(Future<String> Function() callback) {
+  void setRefreshCallback(Future<String> Function() callback) {
     _refreshCallback = callback;
+  }
+
+  @Deprecated('Use setRefreshCallback instead')
+  void registerRefreshTokenCallback(Future<String> Function() callback) {
+    setRefreshCallback(callback);
   }
 
   Options guard({

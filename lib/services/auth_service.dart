@@ -145,28 +145,71 @@ class AuthService {
       return 'Request timed out. Please check your connection and try again.';
     }
 
+    const fallbackMessage =
+        'Unable to complete your request right now. Please try again later.';
+
     final response = error.response;
     if (response != null) {
-      final data = response.data;
-      if (data is Map<String, dynamic>) {
-        if (data['message'] is String) {
-          return data['message'] as String;
-        }
-        if (data['error'] is String) {
-          return data['error'] as String;
-        }
+      final extracted = _extractErrorMessage(response.data);
+      if (extracted != null && extracted.trim().isNotEmpty) {
+        return extracted.trim();
       }
+
       switch (response.statusCode) {
         case 401:
           return 'Invalid credentials, please try again.';
         case 422:
           return 'Provided data is invalid. Please review your inputs.';
         default:
-          return 'Unexpected server error (${response.statusCode}).';
+          if ((response.statusMessage ?? '').isNotEmpty) {
+            return '${response.statusMessage}. Please try again later.';
+          }
+          return fallbackMessage;
       }
     }
 
-    return 'Something went wrong. Please try again later.';
+    return fallbackMessage;
+  }
+
+  String? _extractErrorMessage(dynamic data) {
+    if (data == null) return null;
+    if (data is String) {
+      return data;
+    }
+    if (data is Map<String, dynamic>) {
+      for (final key in const ['message', 'error', 'detail', 'description']) {
+        final value = data[key];
+        if (value is String && value.trim().isNotEmpty) {
+          return value;
+        }
+      }
+      final errors = data['errors'];
+      if (errors is Map) {
+        final parts = <String>[];
+        for (final value in errors.values) {
+          if (value is String) {
+            parts.add(value);
+          } else if (value is Iterable) {
+            parts.addAll(value.whereType<String>());
+          }
+        }
+        if (parts.isNotEmpty) {
+          return parts.join('\n');
+        }
+      } else if (errors is Iterable) {
+        final parts = errors.whereType<String>().toList();
+        if (parts.isNotEmpty) {
+          return parts.join('\n');
+        }
+      }
+    }
+    if (data is Iterable) {
+      final parts = data.whereType<String>().toList();
+      if (parts.isNotEmpty) {
+        return parts.join('\n');
+      }
+    }
+    return null;
   }
 }
 

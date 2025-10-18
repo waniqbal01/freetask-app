@@ -3,11 +3,11 @@ class Env {
 
   static const String apiBase = String.fromEnvironment(
     'API_BASE',
-    defaultValue: 'https://backend/api',
+    defaultValue: 'http://localhost:8080/api',
   );
 
   static const String socketBase = String.fromEnvironment(
     'SOCKET_BASE',
-    defaultValue: 'https://backend',
+    defaultValue: 'http://localhost:8080',
   );
 }
