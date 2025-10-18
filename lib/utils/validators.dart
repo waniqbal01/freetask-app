@@ -8,6 +8,25 @@ class Validators {
   static const requiredField = _RequiredValidator();
   static const number = _NumberValidator();
   static const phone = _PhoneValidator();
+
+  static String? validateEmail(String? value) => email(value);
+
+  static String? validatePassword(String? value) => password(value);
+
+  static String? Function(String? value) validateConfirmPassword(
+    String? Function() passwordProvider,
+  ) {
+    final validator = confirmPassword(passwordProvider);
+    return validator.call;
+  }
+
+  static String? validateName(String? value) => name(value);
+
+  static String? validateRequired(String? value) => requiredField(value);
+
+  static String? validateNumber(String? value) => number(value);
+
+  static String? validatePhone(String? value) => phone(value);
 }
 
 class _EmailValidator {
