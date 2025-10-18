@@ -2,7 +2,6 @@ import 'package:equatable/equatable.dart';
 
 import '../../models/job.dart';
 import '../../models/job_list_type.dart';
-import 'job_event.dart';
 
 class JobFeedState extends Equatable {
   const JobFeedState({
