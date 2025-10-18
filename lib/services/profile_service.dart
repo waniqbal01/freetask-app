@@ -130,5 +130,5 @@ class ProfileException implements Exception {
   final String message;
 
   @override
-  String toString() => 'ProfileException: ' + message;
+  String toString() => 'ProfileException: $message';
 }
