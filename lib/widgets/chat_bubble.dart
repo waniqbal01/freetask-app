@@ -17,7 +17,7 @@ class ChatBubble extends StatelessWidget {
     final theme = Theme.of(context);
     final bubbleColor = isMine
         ? theme.colorScheme.primary
-        : theme.colorScheme.surfaceVariant;
+        : theme.colorScheme.surfaceContainerHighest;
     final textColor = isMine ? Colors.white : Colors.black87;
 
     return Align(
@@ -36,7 +36,7 @@ class ChatBubble extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -57,7 +57,7 @@ class ChatBubble extends StatelessWidget {
             Text(
               _formatTime(message.createdAt),
               style: theme.textTheme.bodySmall?.copyWith(
-                color: textColor.withOpacity(0.7),
+                color: textColor.withValues(alpha: 0.7),
                 fontSize: 11,
               ),
             ),

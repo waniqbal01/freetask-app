@@ -1,4 +1,3 @@
-import 'package:characters/characters.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -124,7 +123,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               leading: CircleAvatar(
                                 radius: 24,
                                 backgroundColor:
-                                    theme.colorScheme.primary.withOpacity(0.12),
+                                    theme.colorScheme.primary.withValues(alpha: 0.12),
                                 child: Text(
                                   initials,
                                   style: theme.textTheme.titleMedium?.copyWith(
@@ -307,7 +306,7 @@ class _ChatRoomViewState extends State<_ChatRoomView> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),

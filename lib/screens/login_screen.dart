@@ -98,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen>
         final authBloc = context.read<AuthBloc>();
         final isLoading = state is AuthLoading;
         return Scaffold(
-          backgroundColor: theme.colorScheme.background,
+          backgroundColor: theme.scaffoldBackgroundColor,
           body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -126,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen>
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 16,
                           offset: const Offset(0, 10),
                         ),
