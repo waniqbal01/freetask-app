@@ -20,13 +20,13 @@ class JobCard extends StatelessWidget {
     final color = Theme.of(context).colorScheme.primary;
     switch (job.status) {
       case JobStatus.pending:
-        return color.withOpacity(0.12);
+        return color.withValues(alpha: 0.12);
       case JobStatus.inProgress:
-        return Colors.orange.withOpacity(0.12);
+        return Colors.orange.withValues(alpha: 0.12);
       case JobStatus.completed:
-        return Colors.green.withOpacity(0.12);
+        return Colors.green.withValues(alpha: 0.12);
       case JobStatus.cancelled:
-        return Colors.red.withOpacity(0.12);
+        return Colors.red.withValues(alpha: 0.12);
     }
   }
 
@@ -55,7 +55,7 @@ class JobCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),

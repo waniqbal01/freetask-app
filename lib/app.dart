@@ -117,12 +117,13 @@ class _FreetaskAppState extends State<FreetaskApp> {
 
   ThemeData _buildTheme() {
     final base = ThemeData.light(useMaterial3: true);
+    const scaffoldBackground = Color(0xFFF9F9F9);
     final colorScheme = base.colorScheme.copyWith(
       primary: const Color(0xFF3A7BD5),
       secondary: const Color(0xFF3A7BD5),
       tertiary: const Color(0xFF3A7BD5),
       surface: Colors.white,
-      background: const Color(0xFFF9F9F9),
+      surfaceContainerLowest: scaffoldBackground,
     );
     final textTheme = GoogleFonts.poppinsTextTheme(base.textTheme).apply(
       bodyColor: Colors.black87,
@@ -131,16 +132,16 @@ class _FreetaskAppState extends State<FreetaskApp> {
 
     return base.copyWith(
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: const Color(0xFFF9F9F9),
+      scaffoldBackgroundColor: scaffoldBackground,
       textTheme: textTheme,
       appBarTheme: base.appBarTheme.copyWith(
         elevation: 0,
-        backgroundColor: colorScheme.background,
+        backgroundColor: scaffoldBackground,
         foregroundColor: Colors.black87,
       ),
       snackBarTheme: base.snackBarTheme.copyWith(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.black.withOpacity(0.9),
+        backgroundColor: Colors.black.withValues(alpha: 0.9),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),

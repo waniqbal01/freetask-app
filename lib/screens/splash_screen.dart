@@ -55,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen>
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) => _handleState(state),
       child: Scaffold(
-        backgroundColor: theme.colorScheme.background,
+        backgroundColor: theme.colorScheme.surface,
         body: Center(
           child: AnimatedOpacity(
             opacity: _opacity,
@@ -67,7 +67,7 @@ class _SplashScreenState extends State<SplashScreen>
                   width: 96,
                   height: 96,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   alignment: Alignment.center,
