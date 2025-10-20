@@ -91,67 +91,79 @@ class SocketService {
       ..onDisconnect((_) {
         _connectionController.add(false);
       })
-      ..on('message:new', (data) {
-        if (data is Map<String, dynamic>) {
-          _messageController.add(Message.fromJson(data));
-        }
-      })
-      ..on('chat:typing', (data) {
-        if (data is Map<String, dynamic>) {
-          final chatId = data['chatId']?.toString();
-          final typingUserId = data['userId']?.toString();
-          final isTyping = data['isTyping'] == true || data['isTyping'] == 'true';
-          if (chatId != null && typingUserId != null) {
-            _typingController.add(
-              TypingEvent(chatId: chatId, userId: typingUserId, isTyping: isTyping),
-            );
-          }
-        }
-      })
-      ..on('user:status', (data) {
-        if (data is Map<String, dynamic>) {
-          final userIdValue = data['userId']?.toString();
-          final isOnline = data['isOnline'] == true || data['isOnline'] == 'true';
-          if (userIdValue != null) {
-            _presenceController.add(
-              UserPresenceEvent(userId: userIdValue, isOnline: isOnline),
-            );
-          }
-        }
-      })
-      ..on('message:status', (data) {
-        if (data is Map<String, dynamic>) {
-          final chatId = data['chatId']?.toString();
-          final messageId = data['messageId']?.toString();
-          final statusValue = data['status']?.toString();
-          if (chatId != null && messageId != null) {
-            final deliveredAtRaw = data['deliveredAt']?.toString();
-            final readAtRaw = data['readAt']?.toString();
-            _statusController.add(
-              MessageStatusUpdate(
-                chatId: chatId,
-                messageId: messageId,
-                status: MessageDeliveryStatusX.fromValue(statusValue),
-                deliveredAt: deliveredAtRaw == null
-                    ? null
-                    : DateTime.tryParse(deliveredAtRaw),
-                readAt:
-                    readAtRaw == null ? null : DateTime.tryParse(readAtRaw),
-              ),
-            );
-          }
-        }
-      })
       ..onError((_) {
         // keep stream subscribers alive on socket errors
       });
 
     _socket = socket;
+
+    _onTyped<Map<String, dynamic>>('message:new', (data) {
+      _messageController.add(Message.fromJson(data));
+    });
+
+    _onTyped<Map<String, dynamic>>('chat:typing', (data) {
+      final chatId = data['chatId']?.toString();
+      final typingUserId = data['userId']?.toString();
+      final isTyping = data['isTyping'] == true || data['isTyping'] == 'true';
+      if (chatId != null && typingUserId != null) {
+        _typingController.add(
+          TypingEvent(chatId: chatId, userId: typingUserId, isTyping: isTyping),
+        );
+      }
+    });
+
+    _onTyped<Map<String, dynamic>>('user:status', (data) {
+      final userIdValue = data['userId']?.toString();
+      final isOnline = data['isOnline'] == true || data['isOnline'] == 'true';
+      if (userIdValue != null) {
+        _presenceController.add(
+          UserPresenceEvent(userId: userIdValue, isOnline: isOnline),
+        );
+      }
+    });
+
+    _onTyped<Map<String, dynamic>>('message:status', (data) {
+      final chatId = data['chatId']?.toString();
+      final messageId = data['messageId']?.toString();
+      final statusValue = data['status']?.toString();
+      if (chatId != null && messageId != null) {
+        final deliveredAtRaw = data['deliveredAt']?.toString();
+        final readAtRaw = data['readAt']?.toString();
+        _statusController.add(
+          MessageStatusUpdate(
+            chatId: chatId,
+            messageId: messageId,
+            status: MessageDeliveryStatusX.fromValue(statusValue),
+            deliveredAt:
+                deliveredAtRaw == null ? null : DateTime.tryParse(deliveredAtRaw),
+            readAt: readAtRaw == null ? null : DateTime.tryParse(readAtRaw),
+          ),
+        );
+      }
+    });
   }
 
-  void on<T>(String event, void Function(T data) handler) {
+  void _onTyped<T>(String event, void Function(T data) handler) {
     _socket?.on(event, (dynamic data) {
-      handler(data as T);
+      if (data is T) {
+        handler(data);
+        return;
+      }
+
+      if (data == null && null is T) {
+        handler(data as T);
+        return;
+      }
+
+      if (T == Map<String, dynamic> && data is Map) {
+        handler(Map<String, dynamic>.from(data as Map) as T);
+        return;
+      }
+
+      if (T == List<dynamic> && data is List) {
+        handler(List<dynamic>.from(data) as T);
+        return;
+      }
     });
   }
 
