@@ -149,8 +149,10 @@ class SocketService {
     _socket = socket;
   }
 
-  void on<T>(String event, void Function(dynamic data) handler) {
-    _socket?.on(event, handler);
+  void on<T>(String event, void Function(T data) handler) {
+    _socket?.on(event, (dynamic data) {
+      handler(data as T);
+    });
   }
 
   void emit(String event, dynamic data) {

@@ -81,7 +81,7 @@ class _NotificationsViewState extends State<NotificationsView>
                 leading: CircleAvatar(
                   backgroundColor: notification.isRead
                       ? theme.colorScheme.surfaceContainerHighest
-                      : theme.colorScheme.primary.withOpacity(0.12),
+                      : theme.colorScheme.primary.withValues(alpha: 0.12),
                   child: Icon(
                     _iconFor(notification.category),
                     color: notification.isRead
