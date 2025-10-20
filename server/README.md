@@ -11,6 +11,7 @@ It is designed for local development and integration testing alongside the Flutt
 - Real-time chat via WebSocket handshake (including `typing` event broadcast)
 - Escrow and release flows with idempotency keys and Billplz/Stripe webhook ingestion
 - Per-request requestId propagation + audit logging (userId, action, entity, requestId)
+- Sentry instrumentation with release/environment/requestId tagging and graceful shutdown flushing
 - Pagination across list endpoints with projection responses to minimise payload size
 - In-memory rate limiting on login/OTP flows and 10MB chat attachment guard with virus-scan stub
 - Health (`/healthz`) and readiness (`/readyz`) endpoints plus graceful shutdown hooks

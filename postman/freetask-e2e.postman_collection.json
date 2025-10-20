@@ -1,0 +1,563 @@
+{
+  "info": {
+    "_postman_id": "f50dd2eb-f8a5-4c44-9c98-ef6f77ffce12",
+    "name": "Freetask E2E Flows",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Happy-path and negative-path coverage for the Freetask API (OTP auth, jobs, chat, payments)."
+  },
+  "item": [
+    {
+      "name": "Happy Path",
+      "item": [
+        {
+          "name": "Auth - Request OTP (Client)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {", 
+                  "  pm.response.to.have.status(200);", 
+                  "});",
+                  "pm.test('Response contains requestId header', function () {",
+                  "  pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true;",
+                  "});",
+                  "const otp = pm.response.json().data.otp;",
+                  "pm.environment.set('clientOtp', otp);",
+                  "pm.test('OTP received for client', function () {",
+                  "  pm.expect(otp).to.match(/^[0-9]{6}$/);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{clientEmail}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Auth - Verify OTP (Client)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('RequestId header present', function () { pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true; });",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('clientAccessToken', json.data.accessToken);",
+                  "pm.environment.set('clientRefreshToken', json.data.refreshToken);",
+                  "pm.test('Client tokens issued', function () {",
+                  "  pm.expect(json.data.accessToken).to.be.a('string');",
+                  "  pm.expect(json.data.refreshToken).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"otp\": \"{{clientOtp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "verify-otp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Jobs - Create Job (Client)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('RequestId header present', function () { pm.expect(pm.response.headers.has('X-Request-Id')).to.be.true; });",
+                  "const job = pm.response.json().data;",
+                  "pm.environment.set('jobId', job.id);",
+                  "pm.test('Job ID stored for follow-up steps', function () { pm.expect(job.id).to.be.a('string'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Landing page redesign {{$timestamp}}\",\n  \"description\": \"Marketing landing page refresh\",\n  \"category\": \"Design\",\n  \"budget\": 1200\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "jobs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Auth - Request OTP (Freelancer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const otp = pm.response.json().data.otp;",
+                  "pm.environment.set('freelancerOtp', otp);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{freelancerEmail}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Auth - Verify OTP (Freelancer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('freelancerAccessToken', json.data.accessToken);",
+                  "pm.environment.set('freelancerRefreshToken', json.data.refreshToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{freelancerEmail}}\",\n  \"otp\": \"{{freelancerOtp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "verify-otp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Jobs - Apply (Freelancer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Bid linked to job', function () {",
+                  "  pm.expect(pm.response.json().data.jobId).to.eql(pm.environment.get('jobId'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{freelancerAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"{{jobId}}\",\n  \"amount\": 1000,\n  \"coverLetter\": \"I can deliver within 7 days.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bids",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bids"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Chat - Send Message (Freelancer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Chat payload contains message', function () { pm.expect(pm.response.json().data.message).to.include('Kick-off'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{freelancerAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Kick-off call availability?\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/chat/{{jobId}}/messages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "chat",
+                "{{jobId}}",
+                "messages"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Payments - Escrow (Client)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Job moved to escrow state', function () {",
+                  "  const payload = pm.response.json().data;",
+                  "  pm.expect(payload.payment_state).to.eql('ESCROWED');",
+                  "  pm.expect(payload.jobId).to.eql(pm.environment.get('jobId'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"{{jobId}}\",\n  \"amount\": {{escrowAmount}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/escrow",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "escrow"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Payments - Release (Client)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set('releaseKey', pm.variables.replaceIn('{{$guid}}'));"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Payment released', function () {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.expect(data.payment_state).to.eql('RELEASED');",
+                  "  pm.expect(data.status).to.eql('COMPLETED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" },
+              { "key": "Idempotency-Key", "value": "{{releaseKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"{{jobId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/release",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "payments",
+                "release"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Negative Path",
+      "item": [
+        {
+          "name": "Jobs - Create Forbidden Chat Job (Client)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "const job = pm.response.json().data;",
+                  "pm.environment.set('forbiddenJobId', job.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Internal only job {{$timestamp}}\",\n  \"description\": \"Used to validate forbidden chat\",\n  \"category\": \"QA\",\n  \"budget\": 500\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs"]
+            }
+          }
+        },
+        {
+          "name": "Auth - Refresh Token Invalid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', function () { pm.response.to.have.status(401); });",
+                  "pm.test('Error payload present', function () { pm.expect(pm.response.json().error.message).to.eql('Invalid refresh token'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{clientRefreshToken}}-tampered\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Chat - Forbidden Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });",
+                  "pm.test('Forbidden reason returned', function () { pm.expect(pm.response.json().error.message).to.eql('Chat access denied'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{freelancerAccessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Should be blocked\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/chat/{{forbiddenJobId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["chat", "{{forbiddenJobId}}", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Payments - Double Release",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set('doubleReleaseKey', pm.variables.replaceIn('{{$guid}}'));"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 409', function () { pm.response.to.have.status(409); });",
+                  "pm.test('Conflict message returned', function () { pm.expect(pm.response.json().error.message).to.eql('Payment not in escrowed state'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" },
+              { "key": "Idempotency-Key", "value": "{{doubleReleaseKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"{{jobId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/release",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "release"]
+            }
+          }
+        },
+        {
+          "name": "Payments - Release Not Found",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.environment.set('missingReleaseKey', pm.variables.replaceIn('{{$guid}}'));"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 404', function () { pm.response.to.have.status(404); });",
+                  "pm.test('Not found message returned', function () { pm.expect(pm.response.json().error.message).to.eql('Job not found'); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{clientAccessToken}}" },
+              { "key": "Idempotency-Key", "value": "{{missingReleaseKey}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"job-does-not-exist\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/release",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "release"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
