@@ -6,6 +6,8 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../config/env.dart';
 import '../models/message.dart';
 
+typedef SocketEventHandler<T> = void Function(T data);
+
 class TypingEvent extends Equatable {
   const TypingEvent({
     required this.chatId,
@@ -143,7 +145,7 @@ class SocketService {
     });
   }
 
-  void _onTyped<T>(String event, void Function(T data) handler) {
+  void _onTyped<T>(String event, SocketEventHandler<T> handler) {
     _socket?.on(event, (dynamic data) {
       if (data is T) {
         handler(data);

@@ -36,6 +36,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<ChatConnectionChanged>(_onChatConnectionChanged);
     on<ReadReceiptRequested>(_onReadReceiptRequested);
     on<PendingQueueLoaded>(_onPendingQueueLoaded);
+
+    _connectionSubscription =
+        _socketService.connection.listen(_handleConnectionChanged);
   }
 
   final ChatService _chatService;
@@ -48,7 +51,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   StreamSubscription<TypingEvent>? _typingSubscription;
   StreamSubscription<UserPresenceEvent>? _presenceSubscription;
   StreamSubscription<MessageStatusUpdate>? _statusSubscription;
-  StreamSubscription<bool>? _connectionSubscription;
+  late final StreamSubscription<bool> _connectionSubscription;
   Timer? _typingTimer;
   bool _isTyping = false;
 
@@ -105,11 +108,6 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       }
     });
 
-    _connectionSubscription ??=
-        _socketService.connection.listen((connected) {
-      add(ChatConnectionChanged(connected));
-    });
-
     if (pending.isNotEmpty) {
       add(PendingQueueLoaded(pending));
     }
@@ -158,6 +156,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     if (pending.isNotEmpty) {
       add(const RetryPendingMessages());
     }
+  }
+
+  void _handleConnectionChanged(bool connected) {
+    add(ChatConnectionChanged(connected));
   }
 
   Future<void> _onSendMessageRequested(
@@ -536,16 +538,16 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   }
 
   @override
-  Future<void> close() {
+  Future<void> close() async {
     _typingTimer?.cancel();
-    _messageSubscription?.cancel();
-    _typingSubscription?.cancel();
-    _presenceSubscription?.cancel();
-    _statusSubscription?.cancel();
-    _connectionSubscription?.cancel();
+    await _messageSubscription?.cancel();
+    await _typingSubscription?.cancel();
+    await _presenceSubscription?.cancel();
+    await _statusSubscription?.cancel();
+    await _connectionSubscription.cancel();
     if (state.chatId != null) {
       _socketService.leaveChatRoom(state.chatId!);
     }
-    return super.close();
+    await super.close();
   }
 }
