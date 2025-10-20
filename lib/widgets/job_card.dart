@@ -83,7 +83,8 @@ class JobCard extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: job.status.progress,
                   minHeight: 6,
-                  backgroundColor: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
+                  backgroundColor:
+                      theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                   valueColor: AlwaysStoppedAnimation<Color>(statusColor),
                 ),
               ),

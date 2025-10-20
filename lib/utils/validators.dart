@@ -1,32 +1,32 @@
 class Validators {
   const Validators._();
 
-  static const email = _EmailValidator();
-  static const password = _PasswordValidator();
-  static const confirmPassword = _ConfirmPasswordFactory();
-  static const name = _NameValidator();
-  static const requiredField = _RequiredValidator();
-  static const number = _NumberValidator();
-  static const phone = _PhoneValidator();
+  static const _EmailValidator _email = _EmailValidator();
+  static const _PasswordValidator _password = _PasswordValidator();
+  static const _ConfirmPasswordFactory _confirmPassword = _ConfirmPasswordFactory();
+  static const _NameValidator _name = _NameValidator();
+  static const _RequiredValidator _requiredField = _RequiredValidator();
+  static const _NumberValidator _number = _NumberValidator();
+  static const _PhoneValidator _phone = _PhoneValidator();
 
-  static String? validateEmail(String? value) => email(value);
+  static String? validateEmail(String? value) => _email(value);
 
-  static String? validatePassword(String? value) => password(value);
+  static String? validatePassword(String? value) => _password(value);
 
   static String? Function(String? value) validateConfirmPassword(
     String? Function() passwordProvider,
   ) {
-    final validator = confirmPassword(passwordProvider);
+    final validator = _confirmPassword(passwordProvider);
     return validator.call;
   }
 
-  static String? validateName(String? value) => name(value);
+  static String? validateName(String? value) => _name(value);
 
-  static String? validateRequired(String? value) => requiredField(value);
+  static String? validateRequired(String? value) => _requiredField(value);
 
-  static String? validateNumber(String? value) => number(value);
+  static String? validateNumber(String? value) => _number(value);
 
-  static String? validatePhone(String? value) => phone(value);
+  static String? validatePhone(String? value) => _phone(value);
 }
 
 class _EmailValidator {
