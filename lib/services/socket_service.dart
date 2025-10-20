@@ -97,11 +97,11 @@ class SocketService {
 
     _socket = socket;
 
-    on<Map<String, dynamic>>('message:new', (data) {
+    _onTyped<Map<String, dynamic>>('message:new', (data) {
       _messageController.add(Message.fromJson(data));
     });
 
-    on<Map<String, dynamic>>('chat:typing', (data) {
+    _onTyped<Map<String, dynamic>>('chat:typing', (data) {
       final chatId = data['chatId']?.toString();
       final typingUserId = data['userId']?.toString();
       final isTyping = data['isTyping'] == true || data['isTyping'] == 'true';
@@ -112,7 +112,7 @@ class SocketService {
       }
     });
 
-    on<Map<String, dynamic>>('user:status', (data) {
+    _onTyped<Map<String, dynamic>>('user:status', (data) {
       final userIdValue = data['userId']?.toString();
       final isOnline = data['isOnline'] == true || data['isOnline'] == 'true';
       if (userIdValue != null) {
@@ -122,7 +122,7 @@ class SocketService {
       }
     });
 
-    on<Map<String, dynamic>>('message:status', (data) {
+    _onTyped<Map<String, dynamic>>('message:status', (data) {
       final chatId = data['chatId']?.toString();
       final messageId = data['messageId']?.toString();
       final statusValue = data['status']?.toString();
@@ -143,7 +143,7 @@ class SocketService {
     });
   }
 
-  void on<T>(String event, void Function(T data) handler) {
+  void _onTyped<T>(String event, void Function(T data) handler) {
     _socket?.on(event, (dynamic data) {
       if (data is T) {
         handler(data);
