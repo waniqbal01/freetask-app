@@ -5,10 +5,17 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "node index.js",
+    "postman:test": "newman run ../postman/freetask-e2e.postman_collection.json -e ../postman/environments/local.postman_environment.json --reporters cli,html --reporter-html-export ../postman/reports/newman-report.html"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "@sentry/node": "^7.111.0"
+  },
+  "devDependencies": {
+    "newman": "^6.1.1"
+  }
 }

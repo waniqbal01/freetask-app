@@ -1,11 +1,21 @@
 const http = require('http');
 const crypto = require('crypto');
 const { URL } = require('url');
+const Sentry = require('@sentry/node');
 
 const PORT = process.env.PORT || 4000;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 const ACCESS_TOKEN_TTL = 15 * 60; // 15 minutes
 const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60; // 7 days
+const APP_ENV = process.env.APP_ENV || process.env.NODE_ENV || 'development';
+const APP_RELEASE = process.env.APP_RELEASE || 'freetask-server@1.0.0';
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN || '',
+  environment: APP_ENV,
+  release: APP_RELEASE,
+  tracesSampleRate: 1.0,
+});
 
 const RESPONSE_FIELDS = ['id', 'title', 'status', 'category', 'budget', 'payment_state', 'createdAt'];
 
@@ -80,6 +90,18 @@ function sendJson(res, status, body, requestId) {
 }
 
 function sendError(res, status, message, requestId, details) {
+  if (status >= 500) {
+    Sentry.withScope((scope) => {
+      scope.setLevel('error');
+      scope.setTag('requestId', requestId);
+      scope.setTag('environment', APP_ENV);
+      scope.setTag('release', APP_RELEASE);
+      if (details) {
+        scope.setContext('errorDetails', details);
+      }
+      Sentry.captureMessage(message);
+    });
+  }
   sendJson(
     res,
     status,
@@ -203,6 +225,16 @@ function logAudit({ userId, action, entity, requestId, metadata }) {
     requestId,
     metadata: metadata || null,
   });
+  Sentry.addBreadcrumb({
+    category: 'audit',
+    level: 'info',
+    message: `${entity}:${action}`,
+    data: {
+      userId,
+      requestId,
+      ...(metadata || {}),
+    },
+  });
 }
 
 function paginate(array, page = 1, pageSize = 10) {
@@ -224,6 +256,9 @@ function requireAuth(req, res, requestId) {
     return null;
   }
   req.user = user;
+  Sentry.configureScope((scope) => {
+    scope.setUser({ id: user.id, email: user.email, role: user.roles[0] });
+  });
   return user;
 }
 
@@ -1048,31 +1083,43 @@ function createServer() {
     res.setHeader('X-Request-Id', requestId);
     res.setHeader('Cache-Control', req.method === 'GET' ? 'no-store' : 'no-cache');
     res.setHeader('X-Retryable', req.method === 'GET' ? 'true' : 'false');
-    try {
-      const url = new URL(req.url, `http://${req.headers.host}`);
-      const query = url.searchParams;
-      let matched = false;
-      for (const route of requestHandlers) {
-        if (route.method !== req.method) continue;
-        const match = url.pathname.match(route.regex);
-        if (match) {
-          matched = true;
-          const params = {};
-          route.keys.forEach((key, index) => {
-            params[key] = match[index + 1];
-          });
-          await route.handler(req, res, params, query, requestId);
-          break;
+    await Sentry.withScope(async (scope) => {
+      scope.setTag('requestId', requestId);
+      scope.setTag('environment', APP_ENV);
+      scope.setTag('release', APP_RELEASE);
+      scope.setExtra('requestId', requestId);
+      scope.setContext('request', {
+        method: req.method,
+        url: req.url,
+        headers: req.headers,
+      });
+      try {
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const query = url.searchParams;
+        let matched = false;
+        for (const route of requestHandlers) {
+          if (route.method !== req.method) continue;
+          const match = url.pathname.match(route.regex);
+          if (match) {
+            matched = true;
+            const params = {};
+            route.keys.forEach((key, index) => {
+              params[key] = match[index + 1];
+            });
+            await route.handler(req, res, params, query, requestId);
+            break;
+          }
         }
-      }
-      if (!matched) {
-        if (!res.headersSent) {
-          sendError(res, 404, 'Not found', requestId);
+        if (!matched) {
+          if (!res.headersSent) {
+            sendError(res, 404, 'Not found', requestId);
+          }
         }
+      } catch (err) {
+        Sentry.captureException(err);
+        sendError(res, 500, 'Unexpected error', requestId);
       }
-    } catch (err) {
-      sendError(res, 500, 'Unexpected error', requestId);
-    }
+    });
   });
 
   setupWebsocket(server);
@@ -1083,11 +1130,15 @@ function createServer() {
 
   const gracefulShutdown = () => {
     console.log('Received shutdown signal, closing server...');
-    server.close(() => {
+    server.close(async () => {
       console.log('HTTP server closed');
+      await Sentry.flush(2000);
       process.exit(0);
     });
-    setTimeout(() => process.exit(1), 10_000).unref();
+    setTimeout(async () => {
+      await Sentry.flush(500);
+      process.exit(1);
+    }, 10_000).unref();
   };
 
   process.on('SIGTERM', gracefulShutdown);

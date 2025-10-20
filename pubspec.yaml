@@ -21,6 +21,9 @@ dependencies:
   shared_preferences: any
   flutter_bloc: ^8.1.4
   google_fonts: ^6.2.1
+  sentry_flutter: ^7.18.0
+  firebase_core: ^2.31.0
+  firebase_crashlytics: ^3.4.7
 
 dev_dependencies:
   bloc_test: ^9.1.6

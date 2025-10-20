@@ -6,6 +6,7 @@ import '../config/env.dart';
 import '../utils/role_permissions.dart';
 import 'role_guard.dart';
 import 'storage_service.dart';
+import 'monitoring_service.dart';
 
 class ApiClient {
   ApiClient(Dio dio, this._storage, this._roleGuard)
@@ -66,7 +67,20 @@ class ApiClient {
 
           return handler.next(options);
         },
+        onResponse: (response, handler) {
+          final requestId = response.headers.value('x-request-id');
+          MonitoringService.instance.updateRequestContext(requestId);
+          return handler.next(response);
+        },
         onError: (error, handler) async {
+          final requestId = error.response?.headers.value('x-request-id');
+          MonitoringService.instance.updateRequestContext(requestId);
+          if ((error.response?.statusCode ?? 0) >= 500) {
+            await MonitoringService.instance.recordError(
+              error,
+              error.stackTrace ?? StackTrace.current,
+            );
+          }
           final isSkipAuth = error.requestOptions.extra['skipAuth'] == true;
           if (error.response?.statusCode != 401 || isSkipAuth) {
             if (error.response?.statusCode == 401 && !isSkipAuth) {
