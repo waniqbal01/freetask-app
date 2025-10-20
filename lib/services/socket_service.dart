@@ -6,8 +6,6 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../config/env.dart';
 import '../models/message.dart';
 
-typedef SocketEventHandler<T> = void Function(T data);
-
 class TypingEvent extends Equatable {
   const TypingEvent({
     required this.chatId,
@@ -99,14 +97,22 @@ class SocketService {
 
     _socket = socket;
 
-    _onTyped<Map<String, dynamic>>('message:new', (data) {
-      _messageController.add(Message.fromJson(data));
+    _socket?.on('message:new', (dynamic data) {
+      final payload = _ensureMap(data);
+      if (payload != null) {
+        _messageController.add(Message.fromJson(payload));
+      }
     });
 
-    _onTyped<Map<String, dynamic>>('chat:typing', (data) {
-      final chatId = data['chatId']?.toString();
-      final typingUserId = data['userId']?.toString();
-      final isTyping = data['isTyping'] == true || data['isTyping'] == 'true';
+    _socket?.on('chat:typing', (dynamic data) {
+      final payload = _ensureMap(data);
+      if (payload == null) {
+        return;
+      }
+      final chatId = payload['chatId']?.toString();
+      final typingUserId = payload['userId']?.toString();
+      final isTyping =
+          payload['isTyping'] == true || payload['isTyping'] == 'true';
       if (chatId != null && typingUserId != null) {
         _typingController.add(
           TypingEvent(chatId: chatId, userId: typingUserId, isTyping: isTyping),
@@ -114,9 +120,14 @@ class SocketService {
       }
     });
 
-    _onTyped<Map<String, dynamic>>('user:status', (data) {
-      final userIdValue = data['userId']?.toString();
-      final isOnline = data['isOnline'] == true || data['isOnline'] == 'true';
+    _socket?.on('user:status', (dynamic data) {
+      final payload = _ensureMap(data);
+      if (payload == null) {
+        return;
+      }
+      final userIdValue = payload['userId']?.toString();
+      final isOnline =
+          payload['isOnline'] == true || payload['isOnline'] == 'true';
       if (userIdValue != null) {
         _presenceController.add(
           UserPresenceEvent(userId: userIdValue, isOnline: isOnline),
@@ -124,13 +135,17 @@ class SocketService {
       }
     });
 
-    _onTyped<Map<String, dynamic>>('message:status', (data) {
-      final chatId = data['chatId']?.toString();
-      final messageId = data['messageId']?.toString();
-      final statusValue = data['status']?.toString();
+    _socket?.on('message:status', (dynamic data) {
+      final payload = _ensureMap(data);
+      if (payload == null) {
+        return;
+      }
+      final chatId = payload['chatId']?.toString();
+      final messageId = payload['messageId']?.toString();
+      final statusValue = payload['status']?.toString();
       if (chatId != null && messageId != null) {
-        final deliveredAtRaw = data['deliveredAt']?.toString();
-        final readAtRaw = data['readAt']?.toString();
+        final deliveredAtRaw = payload['deliveredAt']?.toString();
+        final readAtRaw = payload['readAt']?.toString();
         _statusController.add(
           MessageStatusUpdate(
             chatId: chatId,
@@ -145,28 +160,17 @@ class SocketService {
     });
   }
 
-  void _onTyped<T>(String event, SocketEventHandler<T> handler) {
-    _socket?.on(event, (dynamic data) {
-      if (data is T) {
-        handler(data);
-        return;
-      }
-
-      if (data == null && null is T) {
-        handler(data as T);
-        return;
-      }
-
-      if (T == Map<String, dynamic> && data is Map) {
-        handler(Map<String, dynamic>.from(data as Map) as T);
-        return;
-      }
-
-      if (T == List<dynamic> && data is List) {
-        handler(List<dynamic>.from(data) as T);
-        return;
-      }
-    });
+  Map<String, dynamic>? _ensureMap(dynamic data) {
+    if (data == null) {
+      return null;
+    }
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    if (data is Map) {
+      return Map<String, dynamic>.from(data as Map<dynamic, dynamic>);
+    }
+    return null;
   }
 
   void emit(String event, dynamic data) {
