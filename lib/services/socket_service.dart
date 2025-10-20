@@ -149,7 +149,7 @@ class SocketService {
     _socket = socket;
   }
 
-  void on(String event, void Function(dynamic data) handler) {
+  void on<T>(String event, void Function(dynamic data) handler) {
     _socket?.on(event, handler);
   }
 

@@ -166,7 +166,7 @@ class _FreetaskAppState extends State<FreetaskApp> {
 }
 
 class _AppView extends StatelessWidget {
-  const _AppView({
+  _AppView({
     required this.navigatorKey,
     required this.scaffoldMessengerKey,
     required this.theme,

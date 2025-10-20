@@ -6,6 +6,7 @@ import '../../controllers/bid/bid_state.dart';
 import '../../controllers/job/job_bloc.dart';
 import '../../controllers/job/job_event.dart';
 import '../../controllers/job/job_state.dart';
+import '../../models/bid.dart';
 import '../../models/job.dart';
 import '../../services/bid_service.dart';
 import '../../widgets/job_card.dart';
@@ -118,7 +119,6 @@ class _JobDetailViewState extends State<JobDetailView> {
   }
 
   Future<void> _showReviewDialog(Job job) async {
-    final theme = Theme.of(context);
     final controller = TextEditingController();
     double rating = 5;
     await showDialog<void>(
@@ -215,7 +215,8 @@ class _JobStatusSection extends StatelessWidget {
             LinearProgressIndicator(
               value: job.status.progress,
               minHeight: 6,
-              backgroundColor: theme.colorScheme.surfaceVariant.withValues(alpha: 0.2),
+              backgroundColor:
+                  theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
               valueColor: AlwaysStoppedAnimation<Color>(statusColor),
             ),
             const SizedBox(height: 12),

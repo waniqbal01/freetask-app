@@ -27,8 +27,10 @@ class _WalletViewState extends State<WalletView> {
     });
   }
 
-  bool get _canRelease => _storage.role == 'client' ||
-      _storage.getUser()?.role.toLowerCase() == 'client';
+  bool get _canRelease {
+    final role = _storage.role ?? _storage.getUser()?.role;
+    return role?.toLowerCase() == 'client';
+  }
 
   @override
   Widget build(BuildContext context) {

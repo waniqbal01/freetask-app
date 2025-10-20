@@ -80,7 +80,7 @@ class _NotificationsViewState extends State<NotificationsView>
                 onTap: () => context.read<NotificationsCubit>().markAsRead(notification),
                 leading: CircleAvatar(
                   backgroundColor: notification.isRead
-                      ? theme.colorScheme.surfaceVariant
+                      ? theme.colorScheme.surfaceContainerHighest
                       : theme.colorScheme.primary.withValues(alpha: 0.12),
                   child: Icon(
                     _iconFor(notification.category),
