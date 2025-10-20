@@ -106,29 +106,29 @@ class _DashboardShellState extends State<DashboardShell> {
               );
             }
           },
-        child: Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          body: SafeArea(
-            child: BlocBuilder<RoleNavCubit, RoleNavState>(
-              builder: (context, navState) {
-                final pages = navState.tabs
-                    .map((tab) => _PageWrapper(target: tab.target))
-                    .toList(growable: false);
-                return IndexedStack(
-                  index: navState.index,
-                  children: pages,
-                );
-              },
+          child: Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            body: SafeArea(
+              child: BlocBuilder<RoleNavCubit, RoleNavState>(
+                builder: (context, navState) {
+                  final pages = navState.tabs
+                      .map((tab) => _PageWrapper(target: tab.target))
+                      .toList(growable: false);
+                  return IndexedStack(
+                    index: navState.index,
+                    children: pages,
+                  );
+                },
+              ),
+            ),
+            floatingActionButton: _activeTarget == RoleNavTarget.jobs
+                ? const _PostJobButton()
+                : null,
+            bottomNavigationBar: AppBottomNav(
+              onSelected: _onTargetSelected,
             ),
           ),
-          floatingActionButton: _activeTarget == RoleNavTarget.jobs
-              ? const _PostJobButton()
-              : null,
-          bottomNavigationBar: AppBottomNav(
-            onSelected: _onTargetSelected,
-          ),
         ),
-      ),
       ),
     );
   }
