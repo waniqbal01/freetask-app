@@ -7,9 +7,7 @@ enum WalletViewStatus { initial, loading, loaded, error }
 
 typedef PaymentId = String;
 
-typedef _PaymentMap = Map<PaymentId, Payment>;
-
-typedef _ReleaseErrors = Map<PaymentId, String>;
+typedef ReleaseErrors = Map<PaymentId, String>;
 
 class WalletState extends Equatable {
   const WalletState({
@@ -26,7 +24,7 @@ class WalletState extends Equatable {
   final WalletSummary? summary;
   final List<Payment> payments;
   final String? errorMessage;
-  final _ReleaseErrors releaseErrors;
+  final ReleaseErrors releaseErrors;
   final Set<PaymentId> releasing;
   final String? successMessage;
 
@@ -38,7 +36,7 @@ class WalletState extends Equatable {
     WalletSummary? summary,
     List<Payment>? payments,
     String? errorMessage,
-    _ReleaseErrors? releaseErrors,
+    ReleaseErrors? releaseErrors,
     Set<PaymentId>? releasing,
     String? successMessage,
     bool clearError = false,
@@ -65,24 +63,24 @@ class WalletState extends Equatable {
   }
 
   WalletState withReleaseResult(Payment payment, {String? error}) {
-    final paymentsMap = _PaymentMap.fromEntries(
-      payments.map((payment) => MapEntry(payment.id, payment)),
+    final paymentsMap = Map<PaymentId, Payment>.fromEntries(
+      payments.map((existingPayment) => MapEntry(existingPayment.id, existingPayment)),
     );
     paymentsMap[payment.id] = payment;
-    final summary = this.summary;
-    var updatedSummary = summary;
-    if (summary != null) {
-      var pending = summary.pending;
-      var released = summary.released;
+    final currentSummary = summary;
+    var updatedSummary = currentSummary;
+    if (currentSummary != null) {
+      var pending = currentSummary.pending;
+      var released = currentSummary.released;
       if (payment.isReleased) {
         pending = (pending - payment.amount).clamp(0, double.infinity);
         released = released + payment.amount;
       }
       updatedSummary = WalletSummary(
-        balance: summary.balance,
+        balance: currentSummary.balance,
         pending: pending,
         released: released,
-        withdrawn: summary.withdrawn,
+        withdrawn: currentSummary.withdrawn,
       );
     }
     return copyWith(
@@ -93,7 +91,7 @@ class WalletState extends Equatable {
       },
       releasing: {...releasing}..remove(payment.id),
       summary: updatedSummary,
-      successMessage: error == null ? 'Payment released successfully.' : this.successMessage,
+      successMessage: error == null ? 'Payment released successfully.' : successMessage,
       clearSuccess: error != null,
     );
   }
