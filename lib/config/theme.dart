@@ -29,7 +29,7 @@ class FreetaskTheme {
       ),
       snackBarTheme: base.snackBarTheme.copyWith(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.black.withOpacity(0.9),
+        backgroundColor: Colors.black.withValues(alpha: 0.9),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),

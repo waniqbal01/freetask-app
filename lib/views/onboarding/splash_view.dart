@@ -67,7 +67,7 @@ class _SplashViewState extends State<SplashView>
                   width: 96,
                   height: 96,
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   alignment: Alignment.center,
