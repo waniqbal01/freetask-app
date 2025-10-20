@@ -38,6 +38,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
     on<PayJobRequested>(_onPayJobRequested);
     on<JobRealtimeUpdated>(_onRealtimeUpdated);
     on<ClearJobMessage>(_onClearJobMessage);
+    on<SubmitJobReviewRequested>(_onSubmitJobReviewRequested);
   }
 
   final JobService _jobService;
@@ -476,6 +477,9 @@ class JobBloc extends Bloc<JobEvent, JobState> {
       feeds[type] = updated;
     }
 
+    final shouldPromptReview = _shouldPromptReviewFor(job);
+    final clearExistingPrompt =
+        !shouldPromptReview && state.reviewPromptJob?.id == job.id;
     emit(
       state.copyWith(
         feeds: feeds,
@@ -484,6 +488,9 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         successMessage: successMessage,
         notification: notification,
         categories: _mergeCategories([job]),
+        reviewPromptJob:
+            shouldPromptReview ? job : state.reviewPromptJob,
+        clearReviewPrompt: clearExistingPrompt,
       ),
     );
   }
@@ -557,5 +564,52 @@ class JobBloc extends Bloc<JobEvent, JobState> {
 
   void _onClearJobMessage(ClearJobMessage event, Emitter<JobState> emit) {
     emit(state.copyWith(clearMessage: true, clearError: true, clearNotification: true));
+  }
+
+  Future<void> _onSubmitJobReviewRequested(
+    SubmitJobReviewRequested event,
+    Emitter<JobState> emit,
+  ) async {
+    emit(state.copyWith(isSubmitting: true, clearError: true, clearMessage: true));
+    try {
+      final review = await _jobService.submitReview(
+        jobId: event.jobId,
+        rating: event.rating,
+        comment: event.comment,
+      );
+      emit(
+        state.copyWith(
+          isSubmitting: false,
+          successMessage: 'Thanks for leaving a review!',
+          submittedReview: review,
+          clearReviewPrompt: true,
+        ),
+      );
+    } on JobException catch (error, stackTrace) {
+      appLog('Failed to submit review', error: error, stackTrace: stackTrace);
+      emit(
+        state.copyWith(
+          isSubmitting: false,
+          errorMessage: error.message,
+        ),
+      );
+    } catch (error, stackTrace) {
+      appLog('Unexpected review error', error: error, stackTrace: stackTrace);
+      emit(
+        state.copyWith(
+          isSubmitting: false,
+          errorMessage: 'Unable to submit review right now.',
+        ),
+      );
+    }
+  }
+
+  bool _shouldPromptReviewFor(Job job) {
+    if (!job.isCompleted) return false;
+    final userId = _currentUserId;
+    if (userId == null || userId.isEmpty) return false;
+    if (state.submittedReview?.jobId == job.id) return false;
+    final isParticipant = job.clientId == userId || job.freelancerId == userId;
+    return isParticipant;
   }
 }

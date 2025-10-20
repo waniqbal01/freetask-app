@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 
 enum JobStatus {
   pending,
@@ -24,13 +25,39 @@ extension JobStatusX on JobStatus {
   String get label {
     switch (this) {
       case JobStatus.pending:
-        return 'Pending';
+        return '🟢 Open';
       case JobStatus.inProgress:
-        return 'In Progress';
+        return '🟡 In Progress';
       case JobStatus.completed:
-        return 'Completed';
+        return '🔵 Completed';
       case JobStatus.cancelled:
-        return 'Cancelled';
+        return '🔴 Cancelled';
+    }
+  }
+
+  double get progress {
+    switch (this) {
+      case JobStatus.pending:
+        return 0.1;
+      case JobStatus.inProgress:
+        return 0.6;
+      case JobStatus.completed:
+        return 1;
+      case JobStatus.cancelled:
+        return 0;
+    }
+  }
+
+  Color statusColor(ThemeData theme) {
+    switch (this) {
+      case JobStatus.pending:
+        return theme.colorScheme.primary;
+      case JobStatus.inProgress:
+        return Colors.orange;
+      case JobStatus.completed:
+        return Colors.blue;
+      case JobStatus.cancelled:
+        return Colors.red;
     }
   }
 }

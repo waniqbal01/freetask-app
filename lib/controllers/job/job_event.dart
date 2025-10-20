@@ -159,6 +159,21 @@ class PayJobRequested extends JobEvent {
   List<Object?> get props => [jobId];
 }
 
+class SubmitJobReviewRequested extends JobEvent {
+  const SubmitJobReviewRequested({
+    required this.jobId,
+    required this.rating,
+    this.comment,
+  });
+
+  final String jobId;
+  final double rating;
+  final String? comment;
+
+  @override
+  List<Object?> get props => [jobId, rating, comment];
+}
+
 class JobRealtimeUpdated extends JobEvent {
   const JobRealtimeUpdated(this.job);
 

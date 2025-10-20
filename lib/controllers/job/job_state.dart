@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../models/job.dart';
 import '../../models/job_list_type.dart';
+import '../../models/review.dart';
 
 class JobFeedState extends Equatable {
   const JobFeedState({
@@ -148,6 +149,8 @@ class JobState extends Equatable {
     this.currentList = JobListType.available,
     this.notification,
     this.categories = const {},
+    this.reviewPromptJob,
+    this.submittedReview,
   });
 
   final Map<JobListType, JobFeedState> feeds;
@@ -159,6 +162,8 @@ class JobState extends Equatable {
   final JobListType currentList;
   final JobAlert? notification;
   final Set<String> categories;
+  final Job? reviewPromptJob;
+  final Review? submittedReview;
 
   JobFeedState feedFor(JobListType type) => feeds[type] ?? const JobFeedState();
 
@@ -172,10 +177,14 @@ class JobState extends Equatable {
     JobListType? currentList,
     JobAlert? notification,
     Set<String>? categories,
+    Job? reviewPromptJob,
+    Review? submittedReview,
     bool clearSelectedJob = false,
     bool clearError = false,
     bool clearMessage = false,
     bool clearNotification = false,
+    bool clearReviewPrompt = false,
+    bool clearSubmittedReview = false,
   }) {
     return JobState(
       feeds: feeds ?? this.feeds,
@@ -191,6 +200,11 @@ class JobState extends Equatable {
       notification:
           clearNotification ? null : (notification ?? this.notification),
       categories: categories ?? this.categories,
+      reviewPromptJob:
+          clearReviewPrompt ? null : (reviewPromptJob ?? this.reviewPromptJob),
+      submittedReview: clearSubmittedReview
+          ? null
+          : (submittedReview ?? this.submittedReview),
     );
   }
 
@@ -205,5 +219,7 @@ class JobState extends Equatable {
         currentList,
         notification,
         categories,
+        reviewPromptJob,
+        submittedReview,
       ];
 }

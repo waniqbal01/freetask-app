@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../controllers/auth/auth_bloc.dart';
-import '../controllers/auth/auth_event.dart';
-import '../controllers/profile/profile_bloc.dart';
-import '../models/user.dart';
-import '../widgets/custom_button.dart';
-import 'login_screen.dart';
+import '../../config/routes.dart';
+import '../../controllers/auth/auth_bloc.dart';
+import '../../controllers/auth/auth_event.dart';
+import '../../controllers/profile/profile_bloc.dart';
+import '../../models/user.dart';
+import '../../widgets/custom_button.dart';
+import '../onboarding/login_view.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+class ProfileView extends StatefulWidget {
+  const ProfileView({super.key});
 
-  static const routeName = '/profile';
+  static const routeName = AppRoutes.profile;
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<ProfileView> createState() => _ProfileViewState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileViewState extends State<ProfileView> {
   @override
   void initState() {
     super.initState();
@@ -32,7 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       const SnackBar(content: Text('Logged out successfully.')),
     );
     Navigator.of(context).pushNamedAndRemoveUntil(
-      LoginScreen.routeName,
+      LoginView.routeName,
       (route) => false,
     );
   }
@@ -77,12 +78,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          user?.role.toUpperCase() ?? '',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey.shade600,
-                            letterSpacing: 1.2,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              user?.role.toUpperCase() ?? '',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: Colors.grey.shade600,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            if (user != null) ...[
+                              const SizedBox(width: 8),
+                              const Icon(Icons.star, color: Colors.amber, size: 18),
+                              const SizedBox(width: 4),
+                              Text(
+                                user.averageRating.toStringAsFixed(1),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                ' (${user.reviewCount})',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),

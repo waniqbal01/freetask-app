@@ -1,29 +1,32 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../controllers/chat/chat_bloc.dart';
-import '../controllers/chat/chat_event.dart';
-import '../controllers/chat/chat_list_bloc.dart';
-import '../controllers/chat/chat_list_event.dart';
-import '../controllers/chat/chat_list_state.dart';
-import '../controllers/chat/chat_state.dart';
-import '../models/chat.dart';
-import '../services/chat_cache_service.dart';
-import '../services/chat_service.dart';
-import '../services/socket_service.dart';
-import '../services/storage_service.dart';
-import '../widgets/chat_bubble.dart';
+import '../../config/routes.dart';
+import '../../controllers/chat/chat_bloc.dart';
+import '../../controllers/chat/chat_event.dart';
+import '../../controllers/chat/chat_list_bloc.dart';
+import '../../controllers/chat/chat_list_event.dart';
+import '../../controllers/chat/chat_list_state.dart';
+import '../../controllers/chat/chat_state.dart';
+import '../../models/chat.dart';
+import '../../services/chat_cache_service.dart';
+import '../../services/chat_service.dart';
+import '../../services/socket_service.dart';
+import '../../services/storage_service.dart';
+import '../../widgets/chat_bubble.dart';
 
-class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+class ChatView extends StatefulWidget {
+  const ChatView({super.key});
 
-  static const routeName = '/chat';
+  static const routeName = AppRoutes.chat;
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<ChatView> createState() => _ChatViewState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatViewState extends State<ChatView> {
   @override
   void initState() {
     super.initState();
@@ -216,6 +219,7 @@ class _ChatRoomView extends StatefulWidget {
 class _ChatRoomViewState extends State<_ChatRoomView> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  final List<File> _attachments = [];
 
   @override
   void dispose() {
@@ -226,9 +230,78 @@ class _ChatRoomViewState extends State<_ChatRoomView> {
 
   void _sendMessage() {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
-    context.read<ChatBloc>().add(SendMessageRequested(text: text));
+    if (text.isEmpty && _attachments.isEmpty) return;
+    context.read<ChatBloc>().add(
+          SendMessageRequested(
+            text: text,
+            attachments: List<File>.from(_attachments),
+          ),
+        );
     _messageController.clear();
+    _attachments.clear();
+    context.read<ChatBloc>().add(const TypingStatusRequested(false));
+    setState(() {});
+  }
+
+  void _removeAttachment(File file) {
+    setState(() {
+      _attachments.remove(file);
+    });
+  }
+
+  Future<void> _pickAttachment() async {
+    final controller = TextEditingController();
+    final path = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Attach file'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: 'Enter file path',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+              child: const Text('Attach'),
+            ),
+          ],
+        );
+      },
+    );
+    if (path == null || path.isEmpty) return;
+    final file = File(path);
+    if (!file.existsSync()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('File not found.')), 
+      );
+      return;
+    }
+    final size = file.lengthSync();
+    const maxSize = 10 * 1024 * 1024;
+    if (size > maxSize) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Attachments must be 10MB or smaller.')),
+      );
+      return;
+    }
+    setState(() {
+      _attachments.add(file);
+    });
+  }
+
+  bool _isPartnerOnline(ChatState state) {
+    final others = state.participantIds.where((id) => id != widget.currentUserId);
+    for (final id in others) {
+      if (state.isUserOnline(id)) return true;
+    }
+    return false;
   }
 
   @override
@@ -255,10 +328,67 @@ class _ChatRoomViewState extends State<_ChatRoomView> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Chat ${widget.thread.id.substring(0, widget.thread.id.length > 8 ? 8 : widget.thread.id.length)}'),
+          title: BlocBuilder<ChatBloc, ChatState>(
+            builder: (context, state) {
+              final online = _isPartnerOnline(state);
+              final typing = state.isSomeoneTyping;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Chat ${widget.thread.id.substring(0, widget.thread.id.length > 8 ? 8 : widget.thread.id.length)}'),
+                  const SizedBox(height: 2),
+                  Text(
+                    typing
+                        ? 'Typing…'
+                        : online
+                            ? 'Online'
+                            : 'Offline',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: typing
+                              ? Colors.orange
+                              : online
+                                  ? Colors.green
+                                  : Colors.grey,
+                        ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
         body: Column(
           children: [
+            BlocBuilder<ChatBloc, ChatState>(
+              builder: (context, state) {
+                if (!state.isSomeoneTyping) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Typing…',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelMedium
+                              ?.copyWith(color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
             Expanded(
               child: BlocBuilder<ChatBloc, ChatState>(
                 builder: (context, state) {
@@ -295,6 +425,26 @@ class _ChatRoomViewState extends State<_ChatRoomView> {
                 },
               ),
             ),
+            if (_attachments.isNotEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _attachments
+                      .map(
+                        (file) => Chip(
+                          label: Text(file.uri.pathSegments.isNotEmpty
+                              ? file.uri.pathSegments.last
+                              : file.path),
+                          deleteIcon: const Icon(Icons.close),
+                          onDeleted: () => _removeAttachment(file),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Row(
@@ -321,10 +471,19 @@ class _ChatRoomViewState extends State<_ChatRoomView> {
                           hintText: 'Type a message',
                           border: InputBorder.none,
                         ),
+                        onChanged: (value) => context
+                            .read<ChatBloc>()
+                            .add(TypingStatusRequested(value.isNotEmpty)),
+                        onEditingComplete: _sendMessage,
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
+                  IconButton(
+                    onPressed: _pickAttachment,
+                    icon: const Icon(Icons.attach_file),
+                  ),
+                  const SizedBox(width: 4),
                   ElevatedButton(
                     onPressed: _sendMessage,
                     style: ElevatedButton.styleFrom(

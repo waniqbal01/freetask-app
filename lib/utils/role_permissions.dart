@@ -31,6 +31,11 @@ enum RolePermission {
   cancelJob,
   payJob,
   viewChats,
+  viewBids,
+  manageBids,
+  viewWallet,
+  releasePayment,
+  viewNotifications,
 }
 
 class RolePermissionConfig {
@@ -121,6 +126,40 @@ class RolePermissions {
     RolePermission.viewChats: RolePermissionConfig(
       allowedRoles: RolePermission.viewJobs.allowedRoles,
       description: 'access chats',
+    ),
+    RolePermission.viewBids: RolePermissionConfig(
+      allowedRoles: {
+        UserRoles.client,
+        UserRoles.freelancer,
+      },
+      description: 'view bids',
+    ),
+    RolePermission.manageBids: RolePermissionConfig(
+      allowedRoles: {
+        UserRoles.client,
+        UserRoles.admin,
+        UserRoles.manager,
+      },
+      description: 'manage bids',
+    ),
+    RolePermission.viewWallet: RolePermissionConfig(
+      allowedRoles: {
+        UserRoles.client,
+        UserRoles.freelancer,
+        UserRoles.admin,
+        UserRoles.manager,
+      },
+      description: 'view wallet balances',
+    ),
+    RolePermission.releasePayment: RolePermissionConfig(
+      allowedRoles: {
+        UserRoles.client,
+      },
+      description: 'release escrow payments',
+    ),
+    RolePermission.viewNotifications: RolePermissionConfig(
+      allowedRoles: RolePermission.viewJobs.allowedRoles,
+      description: 'view notifications',
     ),
   };
 

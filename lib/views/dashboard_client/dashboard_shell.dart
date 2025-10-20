@@ -1,39 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../controllers/auth/auth_bloc.dart';
-import '../controllers/auth/auth_state.dart';
-import '../controllers/chat/chat_list_bloc.dart';
-import '../controllers/chat/chat_list_event.dart';
-import '../controllers/dashboard/dashboard_metrics_cubit.dart' as metrics;
-import '../controllers/job/job_bloc.dart';
-import '../controllers/job/job_event.dart';
-import '../controllers/job/job_state.dart';
-import '../controllers/nav/role_nav_cubit.dart';
-import '../controllers/profile/profile_bloc.dart';
-import '../models/job_list_type.dart';
-import '../services/storage_service.dart';
-import '../utils/role_permissions.dart';
-import '../widgets/app_bottom_nav.dart';
-import 'chat_screen.dart';
-import 'jobs_screen.dart';
-import 'profile_screen.dart';
+import '../../config/routes.dart';
+import '../../controllers/auth/auth_bloc.dart';
+import '../../controllers/auth/auth_state.dart';
+import '../../controllers/chat/chat_list_bloc.dart';
+import '../../controllers/chat/chat_list_event.dart';
+import '../../controllers/dashboard/dashboard_metrics_cubit.dart' as metrics;
+import '../../controllers/job/job_bloc.dart';
+import '../../controllers/job/job_event.dart';
+import '../../controllers/job/job_state.dart';
+import '../../controllers/nav/role_nav_cubit.dart';
+import '../../controllers/profile/profile_bloc.dart';
+import '../../models/job_list_type.dart';
+import '../../services/storage_service.dart';
+import '../../utils/role_permissions.dart';
+import '../../widgets/app_bottom_nav.dart';
+import '../chat/chat_view.dart';
+import '../profile/profile_view.dart';
+import 'jobs_tab_view.dart';
 
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({
+class DashboardShell extends StatefulWidget {
+  const DashboardShell({
     super.key,
     this.initialTarget = RoleNavTarget.home,
   });
 
-  static const routeName = '/dashboard';
+  static const routeName = AppRoutes.dashboard;
 
   final RoleNavTarget initialTarget;
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<DashboardShell> createState() => _DashboardShellState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardShellState extends State<DashboardShell> {
   RoleNavTarget? _activeTarget;
 
   @override
@@ -144,11 +145,11 @@ class _PageWrapper extends StatelessWidget {
       case RoleNavTarget.home:
         return const _DashboardOverview();
       case RoleNavTarget.jobs:
-        return const JobsScreen();
+        return const JobsTabView();
       case RoleNavTarget.chat:
-        return const ChatScreen();
+        return const ChatView();
       case RoleNavTarget.profile:
-        return const ProfileScreen();
+        return const ProfileView();
     }
   }
 }

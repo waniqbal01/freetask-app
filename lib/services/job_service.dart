@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 
 import '../models/job.dart';
+import '../models/review.dart';
 import '../utils/role_permissions.dart';
 import 'api_client.dart';
 import 'role_guard.dart';
@@ -201,6 +202,30 @@ class JobService {
       endpoint: '/jobs/$id/pay',
       permission: RolePermission.payJob,
     );
+  }
+
+  Future<Review> submitReview({
+    required String jobId,
+    required double rating,
+    String? comment,
+  }) async {
+    try {
+      _roleGuard.ensurePermission(RolePermission.completeJob);
+      final response = await _apiClient.client.post<Map<String, dynamic>>(
+        '/jobs/$jobId/reviews',
+        data: {
+          'rating': rating,
+          if (comment != null && comment.isNotEmpty) 'comment': comment,
+        },
+        options: _apiClient.guard(permission: RolePermission.completeJob),
+      );
+      final data = response.data ?? <String, dynamic>{};
+      return Review.fromJson(data);
+    } on DioException catch (error) {
+      throw JobException(_mapError(error));
+    } on RoleUnauthorizedException catch (error) {
+      throw JobException(error.message);
+    }
   }
 
   Future<Job> _transition({

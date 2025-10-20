@@ -53,6 +53,13 @@ class ChatService {
     List<File> attachments = const [],
   }) async {
     try {
+      for (final attachment in attachments) {
+        if (!attachment.existsSync()) continue;
+        final size = attachment.lengthSync();
+        if (size > 10 * 1024 * 1024) {
+          throw ChatException('Attachments must be 10MB or smaller.');
+        }
+      }
       return await _performSend(
         chatId: chatId,
         text: text,

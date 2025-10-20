@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'bootstrap.dart';
+import 'config/routes.dart';
+import 'config/theme.dart';
 import 'controllers/auth/auth_bloc.dart';
 import 'controllers/auth/auth_event.dart';
 import 'controllers/auth/auth_state.dart';
@@ -13,23 +14,22 @@ import 'controllers/dashboard/dashboard_metrics_cubit.dart';
 import 'controllers/job/job_bloc.dart';
 import 'controllers/job/job_event.dart';
 import 'controllers/nav/role_nav_cubit.dart';
+import 'controllers/notifications/notifications_cubit.dart';
 import 'controllers/profile/profile_bloc.dart';
+import 'controllers/wallet/wallet_cubit.dart';
 import 'models/job_list_type.dart';
-import 'screens/chat_screen.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/jobs_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/splash_screen.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
+import 'services/bid_service.dart';
 import 'services/chat_cache_service.dart';
 import 'services/chat_service.dart';
 import 'services/job_service.dart';
+import 'services/notification_service.dart';
 import 'services/profile_service.dart';
 import 'services/role_guard.dart';
 import 'services/socket_service.dart';
 import 'services/storage_service.dart';
+import 'services/wallet_service.dart';
 import 'utils/role_permissions.dart';
 
 class FreetaskApp extends StatefulWidget {
@@ -78,7 +78,7 @@ class _FreetaskAppState extends State<FreetaskApp> {
         ),
       );
       _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-        LoginScreen.routeName,
+        AppRoutes.login,
         (route) => false,
       );
     });
@@ -115,72 +115,6 @@ class _FreetaskAppState extends State<FreetaskApp> {
     super.dispose();
   }
 
-  ThemeData _buildTheme() {
-    final base = ThemeData.light(useMaterial3: true);
-    const scaffoldBackground = Color(0xFFF9F9F9);
-    final colorScheme = base.colorScheme.copyWith(
-      primary: const Color(0xFF3A7BD5),
-      secondary: const Color(0xFF3A7BD5),
-      tertiary: const Color(0xFF3A7BD5),
-      surface: Colors.white,
-      surfaceContainerLowest: scaffoldBackground,
-    );
-    final textTheme = GoogleFonts.poppinsTextTheme(base.textTheme).apply(
-      bodyColor: Colors.black87,
-      displayColor: Colors.black87,
-    );
-
-    return base.copyWith(
-      colorScheme: colorScheme,
-      scaffoldBackgroundColor: scaffoldBackground,
-      textTheme: textTheme,
-      appBarTheme: base.appBarTheme.copyWith(
-        elevation: 0,
-        backgroundColor: scaffoldBackground,
-        foregroundColor: Colors.black87,
-      ),
-      snackBarTheme: base.snackBarTheme.copyWith(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.black.withValues(alpha: 0.9),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-      inputDecorationTheme: base.inputDecorationTheme.copyWith(
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF3A7BD5)),
-        ),
-      ),
-      cardTheme: base.cardTheme.copyWith(
-        color: Colors.white,
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-      floatingActionButtonTheme: base.floatingActionButtonTheme.copyWith(
-        backgroundColor: const Color(0xFF3A7BD5),
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return MultiRepositoryProvider(
@@ -200,6 +134,11 @@ class _FreetaskAppState extends State<FreetaskApp> {
         RepositoryProvider<SocketService>.value(
           value: widget.bootstrap.socketService,
         ),
+        RepositoryProvider<BidService>.value(value: widget.bootstrap.bidService),
+        RepositoryProvider<WalletService>.value(value: widget.bootstrap.walletService),
+        RepositoryProvider<NotificationService>.value(
+          value: widget.bootstrap.notificationService,
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -209,11 +148,17 @@ class _FreetaskAppState extends State<FreetaskApp> {
           BlocProvider<RoleNavCubit>.value(value: _roleNavCubit),
           BlocProvider<ChatListBloc>.value(value: _chatListBloc),
           BlocProvider<ProfileBloc>.value(value: _profileBloc),
+          BlocProvider<WalletCubit>(
+            create: (context) => WalletCubit(widget.bootstrap.walletService),
+          ),
+          BlocProvider<NotificationsCubit>(
+            create: (context) => NotificationsCubit(widget.bootstrap.notificationService),
+          ),
         ],
         child: _AppView(
           navigatorKey: _navigatorKey,
           scaffoldMessengerKey: _scaffoldMessengerKey,
-          theme: _buildTheme(),
+          theme: FreetaskTheme.build(),
         ),
       ),
     );
@@ -230,48 +175,10 @@ class _AppView extends StatelessWidget {
   final GlobalKey<NavigatorState> navigatorKey;
   final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
   final ThemeData theme;
+  final AppRouter _router = AppRouter();
 
   Route<dynamic> _onGenerateRoute(RouteSettings settings) {
-    switch (settings.name) {
-      case SplashScreen.routeName:
-        return MaterialPageRoute<void>(
-          builder: (_) => const SplashScreen(),
-          settings: settings,
-        );
-      case LoginScreen.routeName:
-        return MaterialPageRoute<void>(
-          builder: (_) => const LoginScreen(),
-          settings: settings,
-        );
-      case DashboardScreen.routeName:
-        final target = settings.arguments is RoleNavTarget
-            ? settings.arguments as RoleNavTarget
-            : RoleNavTarget.home;
-        return MaterialPageRoute<void>(
-          builder: (_) => DashboardScreen(initialTarget: target),
-          settings: settings,
-        );
-      case JobsScreen.routeName:
-        return MaterialPageRoute<void>(
-          builder: (_) => const DashboardScreen(initialTarget: RoleNavTarget.jobs),
-          settings: settings,
-        );
-      case ChatScreen.routeName:
-        return MaterialPageRoute<void>(
-          builder: (_) => const DashboardScreen(initialTarget: RoleNavTarget.chat),
-          settings: settings,
-        );
-      case ProfileScreen.routeName:
-        return MaterialPageRoute<void>(
-          builder: (_) => const DashboardScreen(initialTarget: RoleNavTarget.profile),
-          settings: settings,
-        );
-      default:
-        return MaterialPageRoute<void>(
-          builder: (_) => const SplashScreen(),
-          settings: settings,
-        );
-    }
+    return _router.onGenerateRoute(settings);
   }
 
   @override
@@ -297,7 +204,7 @@ class _AppView extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         navigatorKey: navigatorKey,
         scaffoldMessengerKey: scaffoldMessengerKey,
-        initialRoute: SplashScreen.routeName,
+        initialRoute: AppRoutes.onboarding,
         onGenerateRoute: _onGenerateRoute,
       ),
     );

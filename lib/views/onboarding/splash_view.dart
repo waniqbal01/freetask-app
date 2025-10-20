@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../controllers/auth/auth_bloc.dart';
-import '../controllers/auth/auth_event.dart';
-import '../controllers/auth/auth_state.dart';
-import '../controllers/nav/role_nav_cubit.dart';
-import 'dashboard_screen.dart';
-import 'login_screen.dart';
+import '../../config/routes.dart';
+import '../../controllers/auth/auth_bloc.dart';
+import '../../controllers/auth/auth_event.dart';
+import '../../controllers/auth/auth_state.dart';
+import '../../controllers/nav/role_nav_cubit.dart';
+import 'login_view.dart';
 
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+class SplashView extends StatefulWidget {
+  const SplashView({super.key});
 
-  static const routeName = '/';
+  static const routeName = AppRoutes.onboarding;
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<SplashView> createState() => _SplashViewState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashViewState extends State<SplashView>
     with SingleTickerProviderStateMixin {
   double _opacity = 0;
   bool _navigated = false;
@@ -36,14 +36,14 @@ class _SplashScreenState extends State<SplashScreen>
     if (state is AuthAuthenticated) {
       _navigated = true;
       Navigator.of(context).pushNamedAndRemoveUntil(
-        DashboardScreen.routeName,
+        AppRoutes.dashboard,
         (route) => false,
         arguments: RoleNavTarget.home,
       );
     } else if (state is AuthUnauthenticated) {
       _navigated = true;
       Navigator.of(context).pushNamedAndRemoveUntil(
-        LoginScreen.routeName,
+        LoginView.routeName,
         (route) => false,
       );
     }
