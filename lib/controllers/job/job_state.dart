@@ -140,7 +140,7 @@ class JobAlert extends Equatable {
 
 class JobState extends Equatable {
   const JobState({
-    this.feeds = const {},
+    this.feeds = const <JobListType, JobFeedState>{},
     this.selectedJob,
     this.isLoadingDetail = false,
     this.isSubmitting = false,
@@ -148,7 +148,7 @@ class JobState extends Equatable {
     this.successMessage,
     this.currentList = JobListType.available,
     this.notification,
-    this.categories = const {},
+    this.categories = const <String>{},
     this.reviewPromptJob,
     this.submittedReview,
   });
