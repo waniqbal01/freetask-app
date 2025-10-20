@@ -11,6 +11,7 @@ import 'package:freetask_app/controllers/job/job_bloc.dart';
 import 'package:freetask_app/controllers/job/job_event.dart';
 import 'package:freetask_app/controllers/job/job_state.dart';
 import 'package:freetask_app/controllers/wallet/wallet_cubit.dart';
+import 'package:freetask_app/controllers/wallet/wallet_state.dart';
 import 'package:freetask_app/controllers/chat/chat_bloc.dart';
 import 'package:freetask_app/controllers/chat/chat_event.dart';
 import 'package:freetask_app/controllers/chat/chat_state.dart';

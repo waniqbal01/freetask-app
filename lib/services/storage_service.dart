@@ -91,7 +91,7 @@ class StorageService {
   }
 
   Future<void> clearAll() async {
-    await Future.wait<void>([
+    await Future.wait([
       _store.remove(_tokenKey),
       _store.remove(_userKey),
       _store.remove(_refreshTokenKey),
