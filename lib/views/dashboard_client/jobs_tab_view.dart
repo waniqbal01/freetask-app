@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../controllers/job/job_bloc.dart';
-import '../controllers/job/job_event.dart';
-import '../controllers/job/job_state.dart';
-import '../models/job.dart';
-import '../models/job_list_type.dart';
-import '../widgets/job_card.dart';
+import '../../config/routes.dart';
+import '../../controllers/job/job_bloc.dart';
+import '../../controllers/job/job_event.dart';
+import '../../controllers/job/job_state.dart';
+import '../../models/job.dart';
+import '../../models/job_list_type.dart';
+import '../../widgets/job_card.dart';
 
-class JobsScreen extends StatefulWidget {
-  const JobsScreen({super.key});
-
-  static const routeName = '/jobs';
+class JobsTabView extends StatefulWidget {
+  const JobsTabView({super.key});
 
   @override
-  State<JobsScreen> createState() => _JobsScreenState();
+  State<JobsTabView> createState() => _JobsTabViewState();
 }
 
-class _JobsScreenState extends State<JobsScreen> {
+class _JobsTabViewState extends State<JobsTabView> {
   final _scrollController = ScrollController();
 
   @override
@@ -79,9 +78,9 @@ class _JobsScreenState extends State<JobsScreen> {
         final status = feed.statusFilter;
         final filters = [
           const _StatusFilter(label: 'All', status: null),
-          const _StatusFilter(label: 'Pending', status: JobStatus.pending),
-          const _StatusFilter(label: 'Active', status: JobStatus.inProgress),
-          const _StatusFilter(label: 'Completed', status: JobStatus.completed),
+          const _StatusFilter(label: '🟢 Open', status: JobStatus.pending),
+          const _StatusFilter(label: '🟡 In Progress', status: JobStatus.inProgress),
+          const _StatusFilter(label: '🔵 Completed', status: JobStatus.completed),
         ];
 
         if (feed.isLoadingInitial) {
@@ -169,13 +168,10 @@ class _JobsScreenState extends State<JobsScreen> {
                             final job = jobs[index];
                             return JobCard(
                               job: job,
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Selected ${job.title}'),
-                                  ),
-                                );
-                              },
+                              onTap: () => Navigator.of(context).pushNamed(
+                                AppRoutes.jobDetail,
+                                arguments: job.id,
+                              ),
                             );
                           },
                           separatorBuilder: (_, __) => const SizedBox(height: 12),

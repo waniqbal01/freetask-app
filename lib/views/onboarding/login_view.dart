@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../controllers/auth/auth_bloc.dart';
-import '../controllers/auth/auth_event.dart';
-import '../controllers/auth/auth_state.dart';
-import '../controllers/nav/role_nav_cubit.dart';
-import '../utils/role_permissions.dart';
-import '../widgets/custom_button.dart';
-import '../widgets/input_field.dart';
-import 'dashboard_screen.dart';
+import '../../config/routes.dart';
+import '../../controllers/auth/auth_bloc.dart';
+import '../../controllers/auth/auth_event.dart';
+import '../../controllers/auth/auth_state.dart';
+import '../../controllers/nav/role_nav_cubit.dart';
+import '../../utils/role_permissions.dart';
+import '../../widgets/custom_button.dart';
+import '../../widgets/input_field.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class LoginView extends StatefulWidget {
+  const LoginView({super.key});
 
-  static const routeName = '/login';
+  static const routeName = AppRoutes.login;
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<LoginView> createState() => _LoginViewState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
+class _LoginViewState extends State<LoginView>
     with SingleTickerProviderStateMixin {
   final _loginEmailController = TextEditingController();
   final _loginPasswordController = TextEditingController();
@@ -87,8 +87,11 @@ class _LoginScreenState extends State<LoginScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Welcome back, ${state.user.name}!')),
           );
+          final route = state.user.role == UserRoles.freelancer
+              ? AppRoutes.freelancerDashboard
+              : AppRoutes.dashboard;
           Navigator.of(context).pushNamedAndRemoveUntil(
-            DashboardScreen.routeName,
+            route,
             (route) => false,
             arguments: RoleNavTarget.home,
           );

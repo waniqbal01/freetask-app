@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../models/app_notification.dart';
+import '../utils/role_permissions.dart';
 import 'api_client.dart';
 
 /// Lightweight notification bridge that mimics the previous Firebase-backed
@@ -24,6 +26,31 @@ class NotificationService {
     await _apiClient.client.post<void>(
       '/users/me/fcm-token',
       data: {'token': token},
+      options: _apiClient.guard(permission: RolePermission.viewNotifications),
+    );
+  }
+
+  Future<List<AppNotification>> fetchNotifications({
+    NotificationCategory category = NotificationCategory.all,
+  }) async {
+    final response = await _apiClient.client.get<List<dynamic>>(
+      '/notifications',
+      queryParameters: {
+        if (category != NotificationCategory.all) 'category': category.value,
+      },
+      options: _apiClient.guard(permission: RolePermission.viewNotifications),
+    );
+    final data = response.data ?? const [];
+    return data
+        .whereType<Map<String, dynamic>>()
+        .map(AppNotification.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<void> markAsRead(String id) async {
+    await _apiClient.client.post<void>(
+      '/notifications/$id/read',
+      options: _apiClient.guard(permission: RolePermission.viewNotifications),
     );
   }
 

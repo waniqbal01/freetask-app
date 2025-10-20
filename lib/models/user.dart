@@ -11,6 +11,8 @@ class UserModel {
     this.location,
     this.phoneNumber,
     this.verified = false,
+    this.averageRating = 0,
+    this.reviewCount = 0,
   });
 
   final String id;
@@ -22,6 +24,8 @@ class UserModel {
   final String? location;
   final String? phoneNumber;
   final bool verified;
+  final double averageRating;
+  final int reviewCount;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     String? readString(dynamic value) {
@@ -50,6 +54,14 @@ class UserModel {
         json['phoneNumber'] ?? json['phone'] ?? json['contactNumber'],
       )?.trim(),
       verified: json['verified'] as bool? ?? false,
+      averageRating: (json['averageRating'] as num?)?.toDouble() ??
+          (json['rating'] as num?)?.toDouble() ??
+          (json['avg_rating'] as num?)?.toDouble() ??
+          0,
+      reviewCount: json['reviewCount'] as int? ??
+          json['reviewsCount'] as int? ??
+          json['total_reviews'] as int? ??
+          0,
     );
   }
 
@@ -64,6 +76,8 @@ class UserModel {
       'location': location,
       'phoneNumber': phoneNumber,
       'verified': verified,
+      'averageRating': averageRating,
+      'reviewCount': reviewCount,
     };
   }
 
@@ -77,6 +91,8 @@ class UserModel {
     String? location,
     String? phoneNumber,
     bool? verified,
+    double? averageRating,
+    int? reviewCount,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -88,6 +104,8 @@ class UserModel {
       location: location ?? this.location,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       verified: verified ?? this.verified,
+      averageRating: averageRating ?? this.averageRating,
+      reviewCount: reviewCount ?? this.reviewCount,
     );
   }
 }
@@ -103,6 +121,8 @@ class User extends UserModel {
     super.location,
     super.phoneNumber,
     super.verified,
+    super.averageRating,
+    super.reviewCount,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -120,6 +140,8 @@ class User extends UserModel {
       location: model.location,
       phoneNumber: model.phoneNumber,
       verified: model.verified,
+      averageRating: model.averageRating,
+      reviewCount: model.reviewCount,
     );
   }
 
@@ -134,6 +156,8 @@ class User extends UserModel {
     String? location,
     String? phoneNumber,
     bool? verified,
+    double? averageRating,
+    int? reviewCount,
   }) {
     final model = super.copyWith(
       id: id,
@@ -145,6 +169,8 @@ class User extends UserModel {
       location: location,
       phoneNumber: phoneNumber,
       verified: verified,
+      averageRating: averageRating,
+      reviewCount: reviewCount,
     );
     return User.fromModel(model);
   }

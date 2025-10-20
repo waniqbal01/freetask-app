@@ -16,36 +16,10 @@ class JobCard extends StatelessWidget {
   final VoidCallback? onPrimaryAction;
   final String? primaryActionLabel;
 
-  Color _statusColor(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
-    switch (job.status) {
-      case JobStatus.pending:
-        return color.withValues(alpha: 0.12);
-      case JobStatus.inProgress:
-        return Colors.orange.withValues(alpha: 0.12);
-      case JobStatus.completed:
-        return Colors.green.withValues(alpha: 0.12);
-      case JobStatus.cancelled:
-        return Colors.red.withValues(alpha: 0.12);
-    }
-  }
-
-  Color _statusTextColor() {
-    switch (job.status) {
-      case JobStatus.pending:
-        return const Color(0xFF3A7BD5);
-      case JobStatus.inProgress:
-        return Colors.orange;
-      case JobStatus.completed:
-        return Colors.green;
-      case JobStatus.cancelled:
-        return Colors.red;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final statusColor = job.status.statusColor(theme);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -81,14 +55,14 @@ class JobCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: _statusColor(context),
+                      color: statusColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       job.status.label,
                       style: theme.textTheme.labelMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: _statusTextColor(),
+                        color: statusColor,
                       ),
                     ),
                   ),
@@ -101,6 +75,16 @@ class JobCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: LinearProgressIndicator(
+                  value: job.status.progress,
+                  minHeight: 6,
+                  backgroundColor: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
+                  valueColor: AlwaysStoppedAnimation<Color>(statusColor),
                 ),
               ),
               const SizedBox(height: 12),

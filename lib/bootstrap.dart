@@ -5,11 +5,14 @@ import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/chat_cache_service.dart';
 import 'services/chat_service.dart';
+import 'services/bid_service.dart';
 import 'services/job_service.dart';
+import 'services/notification_service.dart';
 import 'services/profile_service.dart';
 import 'services/role_guard.dart';
 import 'services/socket_service.dart';
 import 'services/storage_service.dart';
+import 'services/wallet_service.dart';
 
 /// Provides a convenient entry point for Flutter applications to configure the
 /// pure Dart services used by the package. The bootstrap ensures that the
@@ -26,6 +29,9 @@ class AppBootstrap {
     required this.chatCacheService,
     required this.profileService,
     required this.socketService,
+    required this.bidService,
+    required this.walletService,
+    required this.notificationService,
   });
 
   /// Configures the service layer with real platform implementations.
@@ -40,6 +46,9 @@ class AppBootstrap {
     final chatService = ChatService(apiClient, chatCacheService);
     final profileService = ProfileService(apiClient, storage);
     final socketService = SocketService();
+    final bidService = BidService(apiClient);
+    final walletService = WalletService(apiClient);
+    final notificationService = NotificationService(apiClient);
 
     apiClient.setRefreshCallback(() async => authService.refreshToken());
 
@@ -53,6 +62,9 @@ class AppBootstrap {
       chatCacheService: chatCacheService,
       profileService: profileService,
       socketService: socketService,
+      bidService: bidService,
+      walletService: walletService,
+      notificationService: notificationService,
     );
   }
 
@@ -65,4 +77,7 @@ class AppBootstrap {
   final ChatCacheService chatCacheService;
   final ProfileService profileService;
   final SocketService socketService;
+  final BidService bidService;
+  final WalletService walletService;
+  final NotificationService notificationService;
 }
