@@ -187,7 +187,7 @@ class _DashboardOverview extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: () async {
         context.read<JobBloc>().add(const JobListRequested(JobListType.available, refresh: true));
-        await Future<void>.delayed(const Duration(milliseconds: 600));
+        await Future.delayed(const Duration(milliseconds: 600));
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),

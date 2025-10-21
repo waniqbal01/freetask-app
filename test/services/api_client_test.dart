@@ -143,7 +143,7 @@ void main() {
       expect(storage.token, isNull);
       expect(storage.refreshToken, isNull);
       expect(adapter.requests, hasLength(1));
-      await Future<void>.delayed(Duration.zero);
+      await Future.delayed(Duration.zero);
       expect(logoutEvents, isNotEmpty);
     });
   });
