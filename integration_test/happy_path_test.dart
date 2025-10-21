@@ -226,12 +226,12 @@ void main() {
       when(() => socketService.presence).thenAnswer((_) => presenceController.stream);
       when(() => socketService.messageStatuses).thenAnswer((_) => statusController.stream);
       when(() => socketService.connection).thenAnswer((_) => connectionController.stream);
-      when(() => socketService.joinChatRoom(any())).thenReturn(null);
-      when(() => socketService.leaveChatRoom(any())).thenReturn(null);
+      when(() => socketService.joinChatRoom(any())).thenAnswer((_) {});
+      when(() => socketService.leaveChatRoom(any())).thenAnswer((_) {});
       when(() => socketService.sendTyping(chatId: any(named: 'chatId'), isTyping: any(named: 'isTyping')))
-          .thenReturn(null);
+          .thenAnswer((_) {});
       when(() => socketService.sendReadReceipt(chatId: any(named: 'chatId'), messageIds: any(named: 'messageIds')))
-          .thenReturn(null);
+          .thenAnswer((_) {});
 
       final chatBloc = ChatBloc(
         chatService,
