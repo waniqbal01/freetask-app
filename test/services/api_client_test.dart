@@ -129,8 +129,8 @@ void main() {
       dio.httpClientAdapter = adapter;
 
       final api = ApiClient(dio, storage, roleGuard);
-      final logoutEvents = <void>[];
-      api.logoutStream.listen(logoutEvents.add);
+      final logoutEvents = <Object?>[];
+      api.logoutStream.listen((_) => logoutEvents.add(null));
       api.setRefreshCallback(() async {
         throw AuthException('Session expired');
       });
