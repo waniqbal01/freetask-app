@@ -216,7 +216,7 @@ class _JobStatusSection extends StatelessWidget {
               value: job.status.progress,
               minHeight: 6,
               backgroundColor:
-                  theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+                  theme.colorScheme.surfaceContainerHighest.withOpacity(0.2),
               valueColor: AlwaysStoppedAnimation<Color>(statusColor),
             ),
             const SizedBox(height: 12),
