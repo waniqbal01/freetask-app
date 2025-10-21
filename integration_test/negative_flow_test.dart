@@ -34,7 +34,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() {
-    registerFallbackValue<List<File>>(<File>[]);
+    registerFallbackValue(<File>[]);
   });
 
   group('Negative flows', () {
@@ -101,10 +101,10 @@ void main() {
       when(() => socketService.presence).thenAnswer((_) => presenceController.stream);
       when(() => socketService.messageStatuses).thenAnswer((_) => statusController.stream);
       when(() => socketService.connection).thenAnswer((_) => connectionController.stream);
-      when(() => socketService.joinChatRoom(any())).thenAnswer((_) {});
-      when(() => socketService.leaveChatRoom(any())).thenAnswer((_) {});
+      when(() => socketService.joinChatRoom(any())).thenAnswer((_) async {});
+      when(() => socketService.leaveChatRoom(any())).thenAnswer((_) async {});
       when(() => socketService.sendTyping(chatId: any(named: 'chatId'), isTyping: any(named: 'isTyping')))
-          .thenAnswer((_) {});
+          .thenAnswer((_) async {});
 
       when(() => chatService.fetchMessages('chat-err')).thenAnswer((_) async => const []);
       when(
