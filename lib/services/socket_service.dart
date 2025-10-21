@@ -97,65 +97,63 @@ class SocketService {
 
     _socket = socket;
 
-    _socket?.on('message:new', (dynamic data) {
-      final payload = _ensureMap(data);
-      if (payload != null) {
-        _messageController.add(Message.fromJson(payload));
-      }
+    _listenForPayload('message:new', (payload) {
+      _messageController.add(Message.fromJson(payload));
     });
 
-    _socket?.on('chat:typing', (dynamic data) {
-      final payload = _ensureMap(data);
-      if (payload == null) {
-        return;
-      }
+    _listenForPayload('chat:typing', (payload) {
       final chatId = payload['chatId']?.toString();
       final typingUserId = payload['userId']?.toString();
-      final isTyping =
-          payload['isTyping'] == true || payload['isTyping'] == 'true';
-      if (chatId != null && typingUserId != null) {
-        _typingController.add(
-          TypingEvent(chatId: chatId, userId: typingUserId, isTyping: isTyping),
-        );
-      }
-    });
-
-    _socket?.on('user:status', (dynamic data) {
-      final payload = _ensureMap(data);
-      if (payload == null) {
+      if (chatId == null || typingUserId == null) {
         return;
       }
+      final isTyping = _coerceBool(payload['isTyping']);
+      _typingController.add(
+        TypingEvent(chatId: chatId, userId: typingUserId, isTyping: isTyping),
+      );
+    });
+
+    _listenForPayload('user:status', (payload) {
       final userIdValue = payload['userId']?.toString();
-      final isOnline =
-          payload['isOnline'] == true || payload['isOnline'] == 'true';
-      if (userIdValue != null) {
-        _presenceController.add(
-          UserPresenceEvent(userId: userIdValue, isOnline: isOnline),
-        );
-      }
-    });
-
-    _socket?.on('message:status', (dynamic data) {
-      final payload = _ensureMap(data);
-      if (payload == null) {
+      if (userIdValue == null) {
         return;
       }
+      final isOnline = _coerceBool(payload['isOnline']);
+      _presenceController.add(
+        UserPresenceEvent(userId: userIdValue, isOnline: isOnline),
+      );
+    });
+
+    _listenForPayload('message:status', (payload) {
       final chatId = payload['chatId']?.toString();
       final messageId = payload['messageId']?.toString();
+      if (chatId == null || messageId == null) {
+        return;
+      }
       final statusValue = payload['status']?.toString();
-      if (chatId != null && messageId != null) {
-        final deliveredAtRaw = payload['deliveredAt']?.toString();
-        final readAtRaw = payload['readAt']?.toString();
-        _statusController.add(
-          MessageStatusUpdate(
-            chatId: chatId,
-            messageId: messageId,
-            status: MessageDeliveryStatusX.fromValue(statusValue),
-            deliveredAt:
-                deliveredAtRaw == null ? null : DateTime.tryParse(deliveredAtRaw),
-            readAt: readAtRaw == null ? null : DateTime.tryParse(readAtRaw),
-          ),
-        );
+      final deliveredAtRaw = payload['deliveredAt']?.toString();
+      final readAtRaw = payload['readAt']?.toString();
+      _statusController.add(
+        MessageStatusUpdate(
+          chatId: chatId,
+          messageId: messageId,
+          status: MessageDeliveryStatusX.fromValue(statusValue),
+          deliveredAt:
+              deliveredAtRaw == null ? null : DateTime.tryParse(deliveredAtRaw),
+          readAt: readAtRaw == null ? null : DateTime.tryParse(readAtRaw),
+        ),
+      );
+    });
+  }
+
+  void _listenForPayload(
+    String event,
+    void Function(Map<String, dynamic> payload) handler,
+  ) {
+    _socket?.on(event, (dynamic data) {
+      final payload = _ensureMap(data);
+      if (payload != null) {
+        handler(payload);
       }
     });
   }
@@ -168,9 +166,27 @@ class SocketService {
       return data;
     }
     if (data is Map) {
-      return Map<String, dynamic>.from(data as Map<dynamic, dynamic>);
+      final result = <String, dynamic>{};
+      for (final entry in data.entries) {
+        final key = entry.key;
+        if (key is! String) {
+          return null;
+        }
+        result[key] = entry.value;
+      }
+      return result;
     }
     return null;
+  }
+
+  bool _coerceBool(dynamic value) {
+    if (value is bool) {
+      return value;
+    }
+    if (value is String) {
+      return value.toLowerCase() == 'true';
+    }
+    return false;
   }
 
   void emit(String event, dynamic data) {
