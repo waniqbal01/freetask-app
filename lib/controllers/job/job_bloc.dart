@@ -478,8 +478,10 @@ class JobBloc extends Bloc<JobEvent, JobState> {
     }
 
     final shouldPromptReview = _shouldPromptReviewFor(job);
-    final clearExistingPrompt =
-        !shouldPromptReview && state.reviewPromptJob?.id == job.id;
+    final existingPrompt = state.reviewPromptJob;
+    final clearExistingPrompt = !shouldPromptReview &&
+        existingPrompt != null &&
+        existingPrompt.id == job.id;
     emit(
       state.copyWith(
         feeds: feeds,
@@ -488,8 +490,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         successMessage: successMessage,
         notification: notification,
         categories: _mergeCategories([job]),
-        reviewPromptJob:
-            shouldPromptReview ? job : state.reviewPromptJob,
+        reviewPromptJob: shouldPromptReview ? job : existingPrompt,
         clearReviewPrompt: clearExistingPrompt,
       ),
     );
