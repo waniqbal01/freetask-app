@@ -36,7 +36,7 @@ class ApiClient {
 
           final allowedRoles = (options.extra['allowedRoles'] as List?)
                   ?.whereType<String>()
-                  .toSet() ??
+                  ?.toSet() ??
               const <String>{};
           if (allowedRoles.isNotEmpty) {
             try {

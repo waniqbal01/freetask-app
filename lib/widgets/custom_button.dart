@@ -27,7 +27,7 @@ class CustomButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           elevation: 0,
-          shadowColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+          shadowColor: theme.colorScheme.primary.withOpacity(0.15),
         ),
         child: loading
             ? SizedBox(
