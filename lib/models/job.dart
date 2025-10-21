@@ -226,7 +226,7 @@ class Job extends Equatable {
   }
 
   static JobStatus _mapStatus(dynamic value) {
-    final status = value?.toString().toLowerCase() ?? 'pending';
+    final status = (value?.toString() ?? 'pending').toLowerCase();
     switch (status) {
       case 'pending':
         return JobStatus.pending;

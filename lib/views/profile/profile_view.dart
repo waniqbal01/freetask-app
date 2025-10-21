@@ -81,7 +81,7 @@ class _ProfileViewState extends State<ProfileView> {
                         Row(
                           children: [
                             Text(
-                              user?.role.toUpperCase() ?? '',
+                              user != null ? user.role.toUpperCase() : '',
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: Colors.grey.shade600,
                                 letterSpacing: 1.2,

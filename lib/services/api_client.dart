@@ -75,7 +75,8 @@ class ApiClient {
         onError: (error, handler) async {
           final response = error.response;
           final statusCode = response?.statusCode;
-          final requestId = response?.headers.value('x-request-id');
+          final headers = response?.headers;
+          final requestId = headers?.value('x-request-id');
           MonitoringService.instance.updateRequestContext(requestId);
           if ((statusCode ?? 0) >= 500) {
             await MonitoringService.instance.recordError(
