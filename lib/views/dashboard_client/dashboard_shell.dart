@@ -305,7 +305,7 @@ class _MetricCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -317,7 +317,7 @@ class _MetricCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.12),
+              color: theme.colorScheme.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
