@@ -176,8 +176,9 @@ class ApiClient {
       await _refreshCallback!.call();
       _refreshCompleter!.complete();
     } catch (error) {
-      if (!(_refreshCompleter?.isCompleted ?? true)) {
-        _refreshCompleter!.completeError(error);
+      final completer = _refreshCompleter;
+      if (completer != null && !completer.isCompleted) {
+        completer.completeError(error);
       }
       rethrow;
     } finally {

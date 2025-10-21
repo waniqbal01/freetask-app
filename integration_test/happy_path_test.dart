@@ -44,7 +44,7 @@ class _MockWalletService extends Mock implements WalletService {}
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() {
-    registerFallbackValue<List<File>>(<File>[]);
+    registerFallbackValue(<File>[]);
   });
 
   group('Happy path integration', () {

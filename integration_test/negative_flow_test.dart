@@ -34,7 +34,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() {
-    registerFallbackValue<List<File>>(<File>[]);
+    registerFallbackValue(<File>[]);
   });
 
   group('Negative flows', () {
