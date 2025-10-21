@@ -73,17 +73,19 @@ class ApiClient {
           return handler.next(response);
         },
         onError: (error, handler) async {
-          final requestId = error.response?.headers.value('x-request-id');
+          final response = error.response;
+          final statusCode = response?.statusCode;
+          final requestId = response?.headers.value('x-request-id');
           MonitoringService.instance.updateRequestContext(requestId);
-          if ((error.response?.statusCode ?? 0) >= 500) {
+          if ((statusCode ?? 0) >= 500) {
             await MonitoringService.instance.recordError(
               error,
               error.stackTrace ?? StackTrace.current,
             );
           }
           final isSkipAuth = error.requestOptions.extra['skipAuth'] == true;
-          if (error.response?.statusCode != 401 || isSkipAuth) {
-            if (error.response?.statusCode == 401 && !isSkipAuth) {
+          if (statusCode != 401 || isSkipAuth) {
+            if (statusCode == 401 && !isSkipAuth) {
               await _handleUnauthorized();
             }
             return handler.next(error);
