@@ -39,7 +39,7 @@ class ChatBubble extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -62,7 +62,8 @@ class ChatBubble extends StatelessWidget {
                 (attachment) => Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.attach_file, size: 16, color: textColor.withOpacity(0.8)),
+                    Icon(Icons.attach_file,
+                        size: 16, color: textColor.withValues(alpha: 0.8)),
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
@@ -82,18 +83,19 @@ class ChatBubble extends StatelessWidget {
                 Text(
                   _formatTime(message.createdAt),
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: textColor.withOpacity(0.7),
+                    color: textColor.withValues(alpha: 0.7),
                     fontSize: 11,
                   ),
                 ),
                 if (isMine) ...[
                   const SizedBox(width: 6),
-                  Icon(statusIcon, size: 14, color: textColor.withOpacity(0.8)),
+                  Icon(statusIcon,
+                      size: 14, color: textColor.withValues(alpha: 0.8)),
                   const SizedBox(width: 2),
                   Text(
                     statusLabel,
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: textColor.withOpacity(0.7),
+                      color: textColor.withValues(alpha: 0.7),
                       fontSize: 10,
                     ),
                   ),

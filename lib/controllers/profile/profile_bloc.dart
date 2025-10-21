@@ -31,8 +31,10 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   ) async {
     final cachedUser = event.initialUser ?? _storage.getUser();
     final currentUserId = _storage.getUser()?.id;
-    final isOwnProfile =
-        event.forceReadOnly ? false : (cachedUser?.id == null || cachedUser?.id == currentUserId);
+    final cachedUserId = cachedUser?.id;
+    final isOwnProfile = event.forceReadOnly
+        ? false
+        : (cachedUserId == null || cachedUserId == currentUserId);
     emit(
       state.copyWith(
         user: cachedUser,
