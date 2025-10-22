@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../config/routes.dart';
@@ -26,11 +27,17 @@ class _LoginViewState extends State<LoginView>
   final _signupNameController = TextEditingController();
   final _signupEmailController = TextEditingController();
   final _signupPasswordController = TextEditingController();
+  final _signupConfirmPasswordController = TextEditingController();
   final _loginFormKey = GlobalKey<FormState>();
   final _signupFormKey = GlobalKey<FormState>();
 
   late final TabController _tabController;
   String _selectedRole = UserRoles.client;
+  bool _loginPasswordVisible = false;
+  bool _signupPasswordVisible = false;
+  bool _signupConfirmPasswordVisible = false;
+
+  static final _emailRegExp = RegExp('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
 
   @override
   void initState() {
@@ -46,11 +53,13 @@ class _LoginViewState extends State<LoginView>
     _signupNameController.dispose();
     _signupEmailController.dispose();
     _signupPasswordController.dispose();
+    _signupConfirmPasswordController.dispose();
     super.dispose();
   }
 
   void _onLogin(AuthBloc bloc) {
     if (_loginFormKey.currentState?.validate() ?? false) {
+      FocusScope.of(context).unfocus();
       bloc.add(
         LoginSubmitted(
           email: _loginEmailController.text.trim(),
@@ -62,6 +71,7 @@ class _LoginViewState extends State<LoginView>
 
   void _onSignup(AuthBloc bloc) {
     if (_signupFormKey.currentState?.validate() ?? false) {
+      FocusScope.of(context).unfocus();
       bloc.add(
         SignupSubmitted(
           name: _signupNameController.text.trim(),
@@ -71,6 +81,26 @@ class _LoginViewState extends State<LoginView>
         ),
       );
     }
+  }
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Email is required';
+    }
+    if (!_emailRegExp.hasMatch(value.trim())) {
+      return 'Enter a valid email address';
+    }
+    return null;
+  }
+
+  String? _validatePasswordConfirmation(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Confirm your password';
+    }
+    if (value != _signupPasswordController.text) {
+      return 'Passwords do not match';
+    }
+    return null;
   }
 
   @override
@@ -152,7 +182,7 @@ class _LoginViewState extends State<LoginView>
                         ),
                         const Divider(height: 1),
                         SizedBox(
-                          height: 420,
+                          height: 480,
                           child: TabBarView(
                             controller: _tabController,
                             children: [
@@ -168,25 +198,42 @@ class _LoginViewState extends State<LoginView>
                                         label: 'Email',
                                         hint: 'you@example.com',
                                         keyboardType: TextInputType.emailAddress,
-                                        validator: (value) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'Email is required';
-                                          }
-                                          return null;
-                                        },
+                                        validator: _validateEmail,
+                                        autofillHints: const [
+                                          AutofillHints.email,
+                                        ],
                                       ),
                                       const SizedBox(height: 16),
                                       InputField(
                                         controller: _loginPasswordController,
                                         label: 'Password',
-                                        obscureText: true,
+                                        obscureText: !_loginPasswordVisible,
                                         validator: (value) {
                                           if (value == null || value.isEmpty) {
                                             return 'Password is required';
                                           }
+                                          if (value.length < 6) {
+                                            return 'Use at least 6 characters';
+                                          }
                                           return null;
                                         },
                                         textInputAction: TextInputAction.done,
+                                        autofillHints: const [
+                                          AutofillHints.password,
+                                        ],
+                                        suffixIcon: IconButton(
+                                          icon: Icon(
+                                            _loginPasswordVisible
+                                                ? Icons.visibility_off
+                                                : Icons.visibility,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _loginPasswordVisible =
+                                                  !_loginPasswordVisible;
+                                            });
+                                          },
+                                        ),
                                       ),
                                       const Spacer(),
                                       CustomButton(
@@ -215,6 +262,9 @@ class _LoginViewState extends State<LoginView>
                                           }
                                           return null;
                                         },
+                                        autofillHints: const [
+                                          AutofillHints.name,
+                                        ],
                                       ),
                                       const SizedBox(height: 16),
                                       InputField(
@@ -222,25 +272,66 @@ class _LoginViewState extends State<LoginView>
                                         label: 'Email',
                                         hint: 'you@example.com',
                                         keyboardType: TextInputType.emailAddress,
-                                        validator: (value) {
-                                          if (value == null || value.isEmpty) {
-                                            return 'Email is required';
-                                          }
-                                          return null;
-                                        },
+                                        validator: _validateEmail,
+                                        autofillHints: const [
+                                          AutofillHints.email,
+                                        ],
                                       ),
                                       const SizedBox(height: 16),
                                       InputField(
                                         controller: _signupPasswordController,
                                         label: 'Password',
-                                        obscureText: true,
+                                        obscureText: !_signupPasswordVisible,
                                         validator: (value) {
                                           if (value == null || value.length < 6) {
                                             return 'Use at least 6 characters';
                                           }
                                           return null;
                                         },
+                                        textInputAction: TextInputAction.next,
+                                        autofillHints: const [
+                                          AutofillHints.newPassword,
+                                        ],
+                                        suffixIcon: IconButton(
+                                          icon: Icon(
+                                            _signupPasswordVisible
+                                                ? Icons.visibility_off
+                                                : Icons.visibility,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _signupPasswordVisible =
+                                                  !_signupPasswordVisible;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      InputField(
+                                        controller:
+                                            _signupConfirmPasswordController,
+                                        label: 'Confirm Password',
+                                        obscureText:
+                                            !_signupConfirmPasswordVisible,
+                                        validator:
+                                            _validatePasswordConfirmation,
                                         textInputAction: TextInputAction.done,
+                                        autofillHints: const [
+                                          AutofillHints.newPassword,
+                                        ],
+                                        suffixIcon: IconButton(
+                                          icon: Icon(
+                                            _signupConfirmPasswordVisible
+                                                ? Icons.visibility_off
+                                                : Icons.visibility,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _signupConfirmPasswordVisible =
+                                                  !_signupConfirmPasswordVisible;
+                                            });
+                                          },
+                                        ),
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
