@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:freetask_app/controllers/auth/auth_bloc.dart';
@@ -32,6 +32,12 @@ import 'package:freetask_app/services/wallet_service.dart';
 import 'package:freetask_app/services/key_value_store.dart';
 import 'package:freetask_app/repositories/auth_repository.dart';
 
+Future<void> pumpEventQueue({int times = 20}) async {
+  for (var i = 0; i < times; i++) {
+    await Future<void>.delayed(Duration.zero);
+  }
+}
+
 class _MockAuthService extends Mock implements AuthService {}
 
 class _MockJobService extends Mock implements JobService {}
@@ -43,9 +49,9 @@ class _MockSocketService extends Mock implements SocketService {}
 class _MockWalletService extends Mock implements WalletService {}
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() {
     registerFallbackValue(<File>[]);
+    registerFallbackValue(<String>[]);
   });
 
   group('Happy path integration', () {
