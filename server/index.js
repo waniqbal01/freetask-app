@@ -8,6 +8,7 @@ const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const { loadEnvironmentConfig, seedEnvironmentData } = require('./config/environments');
 const Sentry = require('@sentry/node');
 
 const PORT = process.env.PORT || 4000;
@@ -17,6 +18,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 const ACCESS_TOKEN_TTL = parseInt(process.env.JWT_TTL || '900', 10); // seconds
 const REFRESH_TOKEN_TTL = parseInt(process.env.REFRESH_TTL || `${7 * 24 * 60 * 60}`, 10);
 const COOKIE_NAME = process.env.AUTH_COOKIE_NAME || 'freetask_refresh_token';
+const environmentConfig = loadEnvironmentConfig(APP_ENV);
+const shouldUseSecureCookies =
+  typeof environmentConfig.cookies?.secure === 'boolean'
+    ? environmentConfig.cookies.secure
+    : APP_ENV === 'production';
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN || '',
@@ -29,10 +35,34 @@ const app = express();
 
 app.use(Sentry.Handlers.requestHandler());
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+const allowedOrigins = new Set(environmentConfig.cors.allowedOrigins || []);
+const allowOriginPattern = environmentConfig.cors.allowPattern || null;
+
+function isOriginAllowed(origin) {
+  if (!origin) {
+    return true;
+  }
+  if (allowedOrigins.has(origin)) {
+    return true;
+  }
+  if (allowOriginPattern && allowOriginPattern.test(origin)) {
+    return true;
+  }
+  return false;
+}
+
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || true,
+    origin(origin, callback) {
+      if (isOriginAllowed(origin)) {
+        return callback(null, true);
+      }
+      const corsError = new Error('Origin is not allowed by CORS policy');
+      corsError.type = 'cors';
+      return callback(corsError);
+    },
     credentials: true,
+    exposedHeaders: ['X-Request-Id'],
   }),
 );
 app.use(compression());
@@ -59,11 +89,23 @@ const signupLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const refreshLimiterConfig = environmentConfig.rateLimiting?.refresh || {};
 const refreshLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 20,
+  windowMs: refreshLimiterConfig.windowMs || 60 * 1000,
+  max: refreshLimiterConfig.max || 20,
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) =>
+    res.status(429).json({
+      error: { message: 'Too many refresh attempts. Please wait before retrying.' },
+      requestId: req.requestId,
+    }),
+  keyGenerator: (req) => {
+    if (refreshLimiterConfig.useUserAgentKey) {
+      return `${req.ip}:${req.headers['user-agent'] || 'unknown'}`;
+    }
+    return req.ip;
+  },
 });
 
 const db = {
@@ -71,6 +113,7 @@ const db = {
   refreshTokens: new Map(),
   emailVerifications: new Map(),
   passwordResets: new Map(),
+  jobs: new Map(),
   auditLogs: [],
 };
 
@@ -119,7 +162,7 @@ function setRefreshCookie(res, token) {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: APP_ENV === 'production',
+    secure: shouldUseSecureCookies,
     maxAge: REFRESH_TOKEN_TTL * 1000,
     path: '/auth',
   });
@@ -346,15 +389,15 @@ app.post(
     const { email, code } = req.body;
     const user = findUserByEmail(email);
     if (!user) {
-      return res.status(404).json({
-        error: { message: 'User not found' },
+      return res.status(401).json({
+        error: { message: 'Account not found. Please sign up before verifying your email.' },
         requestId: req.requestId,
       });
     }
 
     const record = db.emailVerifications.get(email);
     if (!record || record.code !== code || record.expiresAt < Date.now()) {
-      return res.status(400).json({
+      return res.status(401).json({
         error: { message: 'Invalid or expired verification code' },
         requestId: req.requestId,
       });
@@ -386,7 +429,7 @@ app.post(
     const refreshToken = tokenFromBody || tokenFromCookie;
 
     if (!refreshToken) {
-      return res.status(400).json({
+      return res.status(401).json({
         error: { message: 'Refresh token is required' },
         requestId: req.requestId,
       });
@@ -475,7 +518,7 @@ app.post(
     const { email, token, password } = req.body;
     const reset = db.passwordResets.get(token);
     if (!reset || reset.email !== email || reset.expiresAt < Date.now()) {
-      return res.status(400).json({
+      return res.status(401).json({
         error: { message: 'Invalid or expired reset token' },
         requestId: req.requestId,
       });
@@ -483,8 +526,8 @@ app.post(
 
     const user = findUserByEmail(email);
     if (!user) {
-      return res.status(404).json({
-        error: { message: 'User not found' },
+      return res.status(401).json({
+        error: { message: 'Account not found. Please verify the email used for reset.' },
         requestId: req.requestId,
       });
     }
@@ -509,6 +552,12 @@ app.get('/users/me', authGuard, (req, res) => {
 });
 
 app.use((err, req, res, next) => {
+  if (err && err.type === 'cors') {
+    return res.status(403).json({
+      error: { message: 'Origin not allowed' },
+      requestId: req.requestId,
+    });
+  }
   Sentry.captureException(err);
   return res.status(500).json({
     error: { message: 'Unexpected server error' },
@@ -518,7 +567,27 @@ app.use((err, req, res, next) => {
 
 app.use(Sentry.Handlers.errorHandler());
 
-app.listen(PORT, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Authentication API listening on port ${PORT}`);
-});
+async function bootstrap() {
+  try {
+    await seedEnvironmentData(APP_ENV, {
+      db,
+      findUserByEmail,
+      audit,
+      hashPassword: (value) => bcrypt.hash(value, 10),
+    });
+
+    app.listen(PORT, () => {
+      // eslint-disable-next-line no-console
+      console.log(
+        `Authentication API listening on port ${PORT} (env: ${APP_ENV})`,
+      );
+    });
+  } catch (error) {
+    Sentry.captureException(error);
+    // eslint-disable-next-line no-console
+    console.error('Failed to start authentication API', error);
+    process.exit(1);
+  }
+}
+
+bootstrap();
