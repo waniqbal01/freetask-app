@@ -11,6 +11,8 @@ class InputField extends StatelessWidget {
     this.keyboardType,
     this.onChanged,
     this.validator,
+    this.suffixIcon,
+    this.autofillHints,
   });
 
   final TextEditingController controller;
@@ -21,6 +23,8 @@ class InputField extends StatelessWidget {
   final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
   final String? Function(String?)? validator;
+  final Widget? suffixIcon;
+  final Iterable<String>? autofillHints;
 
   @override
   Widget build(BuildContext context) {
@@ -43,8 +47,10 @@ class InputField extends StatelessWidget {
           keyboardType: keyboardType,
           onChanged: onChanged,
           validator: validator,
+          autofillHints: autofillHints,
           decoration: InputDecoration(
             hintText: hint,
+            suffixIcon: suffixIcon,
           ),
         ),
       ],
