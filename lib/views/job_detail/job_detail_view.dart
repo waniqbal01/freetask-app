@@ -75,10 +75,22 @@ class _JobDetailViewState extends State<JobDetailView> {
         ),
         body: BlocBuilder<JobBloc, JobState>(
           builder: (context, state) {
-            if (state.isLoadingDetail || state.selectedJob == null) {
+            if (state.isLoadingDetail && state.selectedJob == null) {
               return const Center(child: CircularProgressIndicator());
             }
-            final job = state.selectedJob!;
+            final job = state.selectedJob;
+            if (job == null) {
+              final message = state.errorMessage ?? 'Job not found.';
+              return _JobDetailState(
+                message: message,
+                icon: state.errorMessage != null
+                    ? Icons.error_outline
+                    : Icons.work_outline,
+                onRetry: () => context
+                    .read<JobBloc>()
+                    .add(LoadJobDetail(widget.jobId, force: true)),
+              );
+            }
             return MultiBlocProvider(
               providers: [
                 BlocProvider<BidCubit>(
@@ -178,6 +190,51 @@ class _JobDetailViewState extends State<JobDetailView> {
           },
         );
       },
+    );
+  }
+}
+
+class _JobDetailState extends StatelessWidget {
+  const _JobDetailState({
+    required this.message,
+    required this.icon,
+    this.onRetry,
+  });
+
+  final String message;
+  final IconData icon;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: icon == Icons.error_outline
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: onRetry,
+                child: const Text('Retry'),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

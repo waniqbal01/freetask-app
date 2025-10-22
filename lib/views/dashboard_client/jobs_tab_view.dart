@@ -76,6 +76,7 @@ class _JobsTabViewState extends State<JobsTabView> {
         final feed = state.feedFor(JobListType.available);
         final jobs = feed.jobs;
         final status = feed.statusFilter;
+        final errorMessage = feed.errorMessage;
         final filters = [
           const _StatusFilter(label: 'All', status: null),
           const _StatusFilter(label: '🟢 Open', status: JobStatus.pending),
@@ -85,6 +86,18 @@ class _JobsTabViewState extends State<JobsTabView> {
 
         if (feed.isLoadingInitial) {
           return const Center(child: CircularProgressIndicator());
+        }
+
+        if (errorMessage != null && jobs.isEmpty) {
+          return _JobListStateMessage(
+            icon: Icons.error_outline,
+            title: 'Unable to load jobs',
+            message: errorMessage,
+            actionLabel: 'Retry',
+            onAction: () => context
+                .read<JobBloc>()
+                .add(const JobListRequested(JobListType.available, refresh: true)),
+          );
         }
 
         return Padding(
@@ -132,34 +145,10 @@ class _JobsTabViewState extends State<JobsTabView> {
                 child: RefreshIndicator(
                   onRefresh: _refresh,
                   child: jobs.isEmpty
-                      ? ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
-                            const SizedBox(height: 80),
-                            Center(
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.work_outline,
-                                    size: 48,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'No jobs yet',
-                                    style: theme.textTheme.titleMedium,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Check back later or adjust your filters.',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                      ? const _JobListStateMessage(
+                          icon: Icons.work_outline,
+                          title: 'No jobs yet',
+                          message: 'Check back later or adjust your filters.',
                         )
                       : ListView.separated(
                           controller: _scrollController,
@@ -184,6 +173,15 @@ class _JobsTabViewState extends State<JobsTabView> {
                 const SizedBox(height: 12),
                 const Center(child: CircularProgressIndicator()),
               ],
+              if (errorMessage != null && jobs.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  errorMessage,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
             ],
           ),
         );
@@ -197,4 +195,55 @@ class _StatusFilter {
 
   final String label;
   final JobStatus? status;
+}
+
+class _JobListStateMessage extends StatelessWidget {
+  const _JobListStateMessage({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 80),
+        Center(
+          child: Column(
+            children: [
+              Icon(icon, size: 48, color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              Text(title, style: theme.textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(
+                message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (actionLabel != null && onAction != null) ...[
+                const SizedBox(height: 16),
+                OutlinedButton(
+                  onPressed: onAction,
+                  child: Text(actionLabel!),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }

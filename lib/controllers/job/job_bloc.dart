@@ -114,7 +114,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         ),
       );
     } on JobException catch (error, stackTrace) {
-      appLog('Failed to load jobs', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to load jobs', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           feeds: {
@@ -129,7 +129,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error on load jobs', error: error, stackTrace: stackTrace);
+      AppLogger.e('Unexpected error on load jobs', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           feeds: {
@@ -208,7 +208,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         ),
       );
     } on JobException catch (error, stackTrace) {
-      appLog('Failed to load more jobs', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to load more jobs', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           feeds: {
@@ -222,7 +222,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error on load more jobs', error: error, stackTrace: stackTrace);
+      AppLogger.e('Unexpected error on load more jobs', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           feeds: {
@@ -307,7 +307,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         ),
       );
     } on JobException catch (error, stackTrace) {
-      appLog('Failed to load job detail', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to load job detail', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isLoadingDetail: false,
@@ -315,7 +315,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error on load job detail',
+      AppLogger.e('Unexpected error on load job detail',
           error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
@@ -346,7 +346,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         successMessage: 'Job created successfully.',
       );
     } on JobException catch (error, stackTrace) {
-      appLog('Failed to create job', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to create job', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isSubmitting: false,
@@ -354,7 +354,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error on create job', error: error, stackTrace: stackTrace);
+      AppLogger.e('Unexpected error on create job', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isSubmitting: false,
@@ -439,7 +439,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         notification: notificationBuilder?.call(job),
       );
     } on JobException catch (error, stackTrace) {
-      appLog('Job mutation failed', error: error, stackTrace: stackTrace);
+      AppLogger.e('Job mutation failed', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isSubmitting: false,
@@ -447,7 +447,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error on job mutation', error: error, stackTrace: stackTrace);
+      AppLogger.e('Unexpected error on job mutation', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isSubmitting: false,
@@ -587,7 +587,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         ),
       );
     } on JobException catch (error, stackTrace) {
-      appLog('Failed to submit review', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to submit review', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isSubmitting: false,
@@ -595,7 +595,7 @@ class JobBloc extends Bloc<JobEvent, JobState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected review error', error: error, stackTrace: stackTrace);
+      AppLogger.e('Unexpected review error', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isSubmitting: false,

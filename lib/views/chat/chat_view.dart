@@ -56,6 +56,17 @@ class _ChatViewState extends State<ChatView> {
           return const Center(child: CircularProgressIndicator());
         }
         final threads = state.threads;
+        if (state.errorMessage != null && threads.isEmpty) {
+          return _ChatListStateMessage(
+            icon: Icons.error_outline,
+            title: 'Unable to load conversations',
+            message: state.errorMessage!,
+            actionLabel: 'Retry',
+            onAction: () => context
+                .read<ChatListBloc>()
+                .add(const LoadChatThreads()),
+          );
+        }
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Column(
@@ -79,35 +90,11 @@ class _ChatViewState extends State<ChatView> {
                 child: RefreshIndicator(
                   onRefresh: _refresh,
                   child: threads.isEmpty
-                      ? ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
-                            const SizedBox(height: 80),
-                            Center(
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.chat_bubble_outline,
-                                    size: 48,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'No conversations yet',
-                                    style: theme.textTheme.titleMedium,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Start a chat from a job or invite someone to collaborate.',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: Colors.grey.shade600,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                      ? const _ChatListStateMessage(
+                          icon: Icons.chat_bubble_outline,
+                          title: 'No conversations yet',
+                          message:
+                              'Start a chat from a job or invite someone to collaborate.',
                         )
                       : ListView.separated(
                           physics: const AlwaysScrollableScrollPhysics(),
@@ -171,6 +158,15 @@ class _ChatViewState extends State<ChatView> {
                         ),
                 ),
               ),
+              if (state.errorMessage != null && threads.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  state.errorMessage!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ],
             ],
           ),
         );
@@ -202,6 +198,102 @@ class _ChatRoomPage extends StatelessWidget {
       child: _ChatRoomView(
         thread: thread,
         currentUserId: userId,
+      ),
+    );
+  }
+}
+
+class _ChatListStateMessage extends StatelessWidget {
+  const _ChatListStateMessage({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 80),
+        Center(
+          child: Column(
+            children: [
+              Icon(icon, size: 48, color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              Text(title, style: theme.textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(
+                message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (actionLabel != null && onAction != null) ...[
+                const SizedBox(height: 16),
+                OutlinedButton(
+                  onPressed: onAction,
+                  child: Text(actionLabel!),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChatRoomStateMessage extends StatelessWidget {
+  const _ChatRoomStateMessage({
+    required this.icon,
+    required this.message,
+    this.onRetry,
+  });
+
+  final IconData icon;
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 48, color: Colors.grey.shade400),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: icon == Icons.error_outline
+                    ? theme.colorScheme.error
+                    : Colors.grey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: onRetry,
+                child: const Text('Retry'),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -397,14 +489,22 @@ class _ChatRoomViewState extends State<_ChatRoomView> {
                   if (state.isLoading && messages.isEmpty) {
                     return const Center(child: CircularProgressIndicator());
                   }
+                  if (state.errorMessage != null && messages.isEmpty) {
+                    return _ChatRoomStateMessage(
+                      icon: Icons.error_outline,
+                      message: state.errorMessage!,
+                      onRetry: () => context.read<ChatBloc>().add(
+                            ChatStarted(
+                              chatId: widget.thread.id,
+                              participantIds: widget.thread.participants,
+                            ),
+                          ),
+                    );
+                  }
                   if (messages.isEmpty) {
-                    return Center(
-                      child: Text(
-                        'Say hello to start the conversation.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
+                    return const _ChatRoomStateMessage(
+                      icon: Icons.chat_bubble_outline,
+                      message: 'Say hello to start the conversation.',
                     );
                   }
                   final ordered = messages.toList()

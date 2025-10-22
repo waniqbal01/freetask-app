@@ -135,7 +135,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         add(ReadReceiptRequested(unreadMessageIds));
       }
     } on ChatException catch (error, stackTrace) {
-      appLog('Failed to load messages', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to load messages', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isLoading: false,
@@ -143,7 +143,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error when loading messages',
+      AppLogger.e('Unexpected error when loading messages',
           error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
@@ -241,7 +241,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         ),
       );
     } on ChatException catch (error, stackTrace) {
-      appLog('Failed to send message', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to send message', error: error, stackTrace: stackTrace);
       add(
         OutgoingMessageUpdated(
           localId: pendingMessage.localId,
@@ -250,7 +250,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error while sending message',
+      AppLogger.e('Unexpected error while sending message',
           error: error, stackTrace: stackTrace);
       add(
         OutgoingMessageUpdated(
@@ -461,7 +461,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         messageIds: event.messageIds,
       );
     } catch (error, stackTrace) {
-      appLog('Failed to mark messages as read', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to mark messages as read', error: error, stackTrace: stackTrace);
     }
     _socketService.sendReadReceipt(chatId: chatId, messageIds: event.messageIds);
 

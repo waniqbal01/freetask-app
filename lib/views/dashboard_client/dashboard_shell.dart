@@ -209,48 +209,55 @@ class _DashboardOverview extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            BlocBuilder<metrics.DashboardMetricsCubit, metrics.DashboardMetricsState>(
-              builder: (context, state) {
-                if (state.loading) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 64),
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                }
+            BlocBuilder<JobBloc, JobState>(
+              builder: (context, jobState) {
+                final hasAnyJobs = jobState.feeds.values.any(
+                  (feed) => feed.jobs.isNotEmpty,
+                );
+                final isLoading = jobState.feeds.values.any(
+                  (feed) => feed.isLoadingInitial || feed.isRefreshing,
+                );
+                final errorMessage = jobState.errorMessage;
+                return BlocBuilder<metrics.DashboardMetricsCubit, metrics.DashboardMetricsState>(
+                  builder: (context, metricsState) {
+                    if (isLoading && metricsState.metrics.isEmpty) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 64),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
 
-                final metricsList = state.metrics.isNotEmpty
-                    ? state.metrics
-                    : const [
-                        metrics.DashboardMetricData(
-                          label: 'Active Jobs',
-                          value: '0',
-                          icon: 'work_outline',
-                        ),
-                        metrics.DashboardMetricData(
-                          label: 'Earnings',
-                          value: '0',
-                          icon: 'payments_outlined',
-                        ),
-                        metrics.DashboardMetricData(
-                          label: 'Chats',
-                          value: '0',
-                          icon: 'chat_bubble_outline',
-                        ),
-                      ];
+                    if (errorMessage != null && metricsState.metrics.isEmpty) {
+                      return _EmptyState(
+                        icon: Icons.error_outline,
+                        message: errorMessage,
+                        actionLabel: 'Retry',
+                        onAction: () {
+                          context
+                              .read<JobBloc>()
+                              .add(const JobListRequested(JobListType.available, refresh: true));
+                        },
+                      );
+                    }
 
-                return Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: metricsList
-                      .take(6)
-                      .map(
-                        (metric) => _MetricCard(
-                          data: metric,
-                        ),
-                      )
-                      .toList(),
+                    if (!hasAnyJobs && metricsState.metrics.isEmpty) {
+                      return const _EmptyState(
+                        icon: Icons.insights_outlined,
+                        message: 'No activity yet. Start by posting a job or accepting one.',
+                      );
+                    }
+
+                    return Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: metricsState.metrics
+                          .take(6)
+                          .map((metric) => _MetricCard(data: metric))
+                          .toList(),
+                    );
+                  },
                 );
               },
             ),
@@ -339,6 +346,52 @@ class _MetricCard extends StatelessWidget {
               color: Colors.grey.shade600,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.icon,
+    required this.message,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final IconData icon;
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            size: 48,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.grey.shade600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 16),
+            OutlinedButton(
+              onPressed: onAction,
+              child: Text(actionLabel!),
+            ),
+          ],
         ],
       ),
     );

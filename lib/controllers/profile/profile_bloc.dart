@@ -59,7 +59,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         ),
       );
     } on ProfileException catch (error, stackTrace) {
-      appLog('Profile load failed', error: error, stackTrace: stackTrace);
+      AppLogger.e('Profile load failed', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isLoading: false,
@@ -67,7 +67,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error loading profile', error: error, stackTrace: stackTrace);
+      AppLogger.e('Unexpected error loading profile', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isLoading: false,
@@ -98,7 +98,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         ),
       );
     } on ProfileException catch (error, stackTrace) {
-      appLog('Profile refresh failed', error: error, stackTrace: stackTrace);
+      AppLogger.e('Profile refresh failed', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isRefreshing: false,
@@ -106,7 +106,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error refreshing profile', error: error, stackTrace: stackTrace);
+      AppLogger.e('Unexpected error refreshing profile', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isRefreshing: false,
@@ -147,7 +147,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       );
       add(const ProfileRefreshed(silent: true));
     } on ProfileException catch (error, stackTrace) {
-      appLog('Profile update failed', error: error, stackTrace: stackTrace);
+      AppLogger.e('Profile update failed', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isSaving: false,
@@ -155,7 +155,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error updating profile', error: error, stackTrace: stackTrace);
+      AppLogger.e('Unexpected error updating profile', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isSaving: false,
@@ -196,7 +196,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         add(const ProfileRefreshed(silent: true));
       }
     } on ProfileException catch (error, stackTrace) {
-      appLog('Avatar upload failed', error: error, stackTrace: stackTrace);
+      AppLogger.e('Avatar upload failed', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isUploadingAvatar: false,
@@ -204,7 +204,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error uploading avatar', error: error, stackTrace: stackTrace);
+      AppLogger.e('Unexpected error uploading avatar', error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           isUploadingAvatar: false,

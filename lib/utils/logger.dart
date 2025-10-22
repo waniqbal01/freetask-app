@@ -2,17 +2,38 @@ import 'package:flutter/foundation.dart';
 
 import '../services/monitoring_service.dart';
 
-void appLog(String message, {Object? error, StackTrace? stackTrace}) {
-  MonitoringService.instance.log(message, error: error, stackTrace: stackTrace);
-  if (!kDebugMode) return;
-  // ignore: avoid_print
-  print('[Freetask] $message');
-  if (error != null) {
-    // ignore: avoid_print
-    print('Error: $error');
+class AppLogger {
+  const AppLogger._();
+
+  static void d(String message, {Object? error, StackTrace? stackTrace}) {
+    _log('DEBUG', message, error: error, stackTrace: stackTrace);
   }
-  if (stackTrace != null) {
-    // ignore: avoid_print
-    print(stackTrace);
+
+  static void e(String message, {Object? error, StackTrace? stackTrace}) {
+    _log('ERROR', message, error: error, stackTrace: stackTrace);
+  }
+
+  static void _log(
+    String level,
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    MonitoringService.instance.log(
+      '[$level] $message',
+      error: error,
+      stackTrace: stackTrace,
+    );
+    if (!kDebugMode) {
+      return;
+    }
+    final buffer = StringBuffer('[Freetask][$level] $message');
+    debugPrint(buffer.toString());
+    if (error != null) {
+      debugPrint('└─ error: $error');
+    }
+    if (stackTrace != null) {
+      debugPrint('└─ stackTrace: $stackTrace');
+    }
   }
 }

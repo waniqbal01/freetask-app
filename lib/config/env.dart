@@ -1,5 +1,5 @@
-class Env {
-  const Env._();
+class AppEnv {
+  const AppEnv._();
 
   static const String apiBase = String.fromEnvironment(
     'API_BASE',

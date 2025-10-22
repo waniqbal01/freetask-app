@@ -72,7 +72,7 @@ class SocketService {
   void connect({required String token, required String userId}) {
     disconnect();
 
-    final uri = Env.socketBase;
+    final uri = AppEnv.socketBase;
     final options = io.OptionBuilder()
         .setTransports(['websocket'])
         .enableReconnection()
