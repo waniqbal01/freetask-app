@@ -39,6 +39,22 @@ class DashboardMetricsCubit extends Cubit<DashboardMetricsState> {
   }
 
   void _emitForRole(String role, JobState jobState) {
+    final shouldComputeMetrics = jobState.feeds.values.any(
+      (feed) => feed.initialized || feed.jobs.isNotEmpty,
+    );
+
+    if (!shouldComputeMetrics) {
+      emit(
+        DashboardMetricsState(
+          role: role,
+          metrics: const <DashboardMetricData>[],
+          loading: true,
+          updatedAt: state.updatedAt,
+        ),
+      );
+      return;
+    }
+
     final metrics = _buildMetrics(role, jobState);
     emit(
       DashboardMetricsState(
