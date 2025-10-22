@@ -23,8 +23,7 @@ class ApiClient {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           final token = _storage.token;
-          final requiresAuth =
-              (options.extra['requiresAuth'] as bool?) ?? true;
+          final requiresAuth = (options.extra['requiresAuth'] as bool?) ?? true;
           if (requiresAuth && token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
@@ -36,7 +35,7 @@ class ApiClient {
 
           final allowedRoles = (options.extra['allowedRoles'] as List?)
                   ?.whereType<String>()
-                  ?.toSet() ??
+                  .toSet() ??
               const <String>{};
           if (allowedRoles.isNotEmpty) {
             try {
@@ -81,7 +80,7 @@ class ApiClient {
           if ((statusCode ?? 0) >= 500) {
             await MonitoringService.instance.recordError(
               error,
-              error.stackTrace ?? StackTrace.current,
+              error.stackTrace,
             );
           }
           final isSkipAuth = error.requestOptions.extra['skipAuth'] == true;

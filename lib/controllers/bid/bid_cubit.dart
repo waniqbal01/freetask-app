@@ -30,10 +30,12 @@ class BidCubit extends Cubit<BidState> {
     }
   }
 
-  Future<void> submitBid({required double amount, required String message}) async {
+  Future<void> submitBid(
+      {required double amount, required String message}) async {
     emit(state.copyWith(status: BidViewStatus.loading, clearError: true));
     try {
-      final bid = await _bidService.submitBid(jobId: jobId, amount: amount, message: message);
+      final bid = await _bidService.submitBid(
+          jobId: jobId, amount: amount, message: message);
       emit(
         state.copyWith(
           status: BidViewStatus.loaded,
@@ -67,14 +69,13 @@ class BidCubit extends Cubit<BidState> {
   }
 
   Future<void> _transitionBid(
-    Bid bid,
-    Future<Bid> Function(String bidId) transition,
-    {required BidStatus successStatus},
-  ) async {
+      Bid bid, Future<Bid> Function(String bidId) transition,
+      {required BidStatus successStatus}) async {
     emit(state.copyWith(status: BidViewStatus.loading, clearError: true));
     try {
       final updated = await transition(bid.id);
-      final bids = state.bids.map((item) => item.id == bid.id ? updated : item).toList();
+      final bids =
+          state.bids.map((item) => item.id == bid.id ? updated : item).toList();
       emit(state.copyWith(status: BidViewStatus.loaded, bids: bids));
     } catch (error) {
       emit(

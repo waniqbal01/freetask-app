@@ -149,30 +149,253 @@ class _LoginViewState extends State<LoginView> {
                       horizontal: horizontalPadding,
                       vertical: 32,
                     ),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: maxWidth),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _buildHeader(theme, isGeneralLoading),
-                          const SizedBox(height: 24),
-                          _buildSwitcher(theme),
-                          const SizedBox(height: 24),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 300),
-                            transitionBuilder: (child, animation) =>
-                                FadeTransition(opacity: animation, child: child),
-                            child: _isLoginForm
-                                ? _buildLoginForm(
-                                    theme,
-                                    authBloc,
-                                    isLoginLoading,
-                                  )
-                                : _buildSignupForm(
-                                    theme,
-                                    authBloc,
-                                    isSignupLoading,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Post jobs, collaborate, and stay on top of your work in one minimalist workspace.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 16,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        TabBar(
+                          controller: _tabController,
+                          labelColor: theme.colorScheme.primary,
+                          unselectedLabelColor: Colors.grey.shade500,
+                          indicatorColor: theme.colorScheme.primary,
+                          labelStyle: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          tabs: const [
+                            Tab(text: 'Login'),
+                            Tab(text: 'Register'),
+                          ],
+                        ),
+                        const Divider(height: 1),
+                        SizedBox(
+                          height: 480,
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Form(
+                                  key: _loginFormKey,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      InputField(
+                                        controller: _loginEmailController,
+                                        label: 'Email',
+                                        hint: 'you@example.com',
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        validator: _validateEmail,
+                                        autofillHints: const [
+                                          AutofillHints.email,
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      InputField(
+                                        controller: _loginPasswordController,
+                                        label: 'Password',
+                                        obscureText: !_loginPasswordVisible,
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Password is required';
+                                          }
+                                          if (value.length < 6) {
+                                            return 'Use at least 6 characters';
+                                          }
+                                          return null;
+                                        },
+                                        textInputAction: TextInputAction.done,
+                                        autofillHints: const [
+                                          AutofillHints.password,
+                                        ],
+                                        suffixIcon: IconButton(
+                                          icon: Icon(
+                                            _loginPasswordVisible
+                                                ? Icons.visibility_off
+                                                : Icons.visibility,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _loginPasswordVisible =
+                                                  !_loginPasswordVisible;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      CustomButton(
+                                        label: 'Login',
+                                        loading: isLoading,
+                                        onPressed: () => _onLogin(authBloc),
+                                      ),
+                                    ],
                                   ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Form(
+                                  key: _signupFormKey,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      InputField(
+                                        controller: _signupNameController,
+                                        label: 'Full Name',
+                                        hint: 'Jane Cooper',
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Name is required';
+                                          }
+                                          return null;
+                                        },
+                                        autofillHints: const [
+                                          AutofillHints.name,
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      InputField(
+                                        controller: _signupEmailController,
+                                        label: 'Email',
+                                        hint: 'you@example.com',
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        validator: _validateEmail,
+                                        autofillHints: const [
+                                          AutofillHints.email,
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      InputField(
+                                        controller: _signupPasswordController,
+                                        label: 'Password',
+                                        obscureText: !_signupPasswordVisible,
+                                        validator: (value) {
+                                          if (value == null ||
+                                              value.length < 6) {
+                                            return 'Use at least 6 characters';
+                                          }
+                                          return null;
+                                        },
+                                        textInputAction: TextInputAction.next,
+                                        autofillHints: const [
+                                          AutofillHints.newPassword,
+                                        ],
+                                        suffixIcon: IconButton(
+                                          icon: Icon(
+                                            _signupPasswordVisible
+                                                ? Icons.visibility_off
+                                                : Icons.visibility,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _signupPasswordVisible =
+                                                  !_signupPasswordVisible;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      InputField(
+                                        controller:
+                                            _signupConfirmPasswordController,
+                                        label: 'Confirm Password',
+                                        obscureText:
+                                            !_signupConfirmPasswordVisible,
+                                        validator:
+                                            _validatePasswordConfirmation,
+                                        textInputAction: TextInputAction.done,
+                                        autofillHints: const [
+                                          AutofillHints.newPassword,
+                                        ],
+                                        suffixIcon: IconButton(
+                                          icon: Icon(
+                                            _signupConfirmPasswordVisible
+                                                ? Icons.visibility_off
+                                                : Icons.visibility,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _signupConfirmPasswordVisible =
+                                                  !_signupConfirmPasswordVisible;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Role',
+                                        style: theme.textTheme.labelMedium
+                                            ?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade100,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                        ),
+                                        child: DropdownButtonHideUnderline(
+                                          child: DropdownButton<String>(
+                                            value: _selectedRole,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            items: const [
+                                              DropdownMenuItem(
+                                                value: UserRoles.client,
+                                                child: Text('Client'),
+                                              ),
+                                              DropdownMenuItem(
+                                                value: UserRoles.freelancer,
+                                                child: Text('Freelancer'),
+                                              ),
+                                            ],
+                                            onChanged: (value) {
+                                              if (value == null) return;
+                                              setState(
+                                                  () => _selectedRole = value);
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      CustomButton(
+                                        label: 'Create account',
+                                        loading: isLoading,
+                                        onPressed: () => _onSignup(authBloc),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 16),
                           Center(
