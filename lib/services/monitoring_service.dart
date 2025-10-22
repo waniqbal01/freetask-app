@@ -18,9 +18,9 @@ class MonitoringService {
   Future<void> bootstrap(Future<void> Function() appRunner) async {
     await SentryFlutter.init(
       (options) {
-        options.dsn = Env.sentryDsn;
-        options.environment = Env.appEnvironment;
-        options.release = Env.appRelease;
+        options.dsn = AppEnv.sentryDsn;
+        options.environment = AppEnv.appEnvironment;
+        options.release = AppEnv.appRelease;
         options.tracesSampleRate = 1.0;
         options.beforeSend = (event, {hint}) {
           if ((event.tags?['requestId'] ?? '').isEmpty && _latestRequestId != null) {
@@ -28,8 +28,8 @@ class MonitoringService {
               tags: {
                 ...?event.tags,
                 'requestId': _latestRequestId!,
-                'environment': Env.appEnvironment,
-                'release': Env.appRelease,
+                'environment': AppEnv.appEnvironment,
+                'release': AppEnv.appRelease,
               },
             );
           }
@@ -57,8 +57,9 @@ class MonitoringService {
         await Firebase.initializeApp(options: options);
       }
       await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
-      await FirebaseCrashlytics.instance.setCustomKey('release', Env.appRelease);
-      await FirebaseCrashlytics.instance.setCustomKey('environment', Env.appEnvironment);
+      await FirebaseCrashlytics.instance.setCustomKey('release', AppEnv.appRelease);
+      await FirebaseCrashlytics.instance
+          .setCustomKey('environment', AppEnv.appEnvironment);
       _crashlyticsReady = true;
     } catch (error, stackTrace) {
       debugPrint('[Monitoring] Crashlytics init failed: $error');
@@ -82,8 +83,8 @@ class MonitoringService {
         if (_latestRequestId != null) {
           scope.setTag('requestId', _latestRequestId!);
         }
-        scope.setTag('environment', Env.appEnvironment);
-        scope.setTag('release', Env.appRelease);
+        scope.setTag('environment', AppEnv.appEnvironment);
+        scope.setTag('release', AppEnv.appRelease);
       },
     );
     if (_crashlyticsReady) {
@@ -112,19 +113,21 @@ class MonitoringService {
   }
 
   FirebaseOptions? _firebaseOptionsFromEnv() {
-    if (Env.firebaseApiKey.isEmpty ||
-        Env.firebaseAppId.isEmpty ||
-        Env.firebaseProjectId.isEmpty ||
-        Env.firebaseMessagingSenderId.isEmpty) {
+    if (AppEnv.firebaseApiKey.isEmpty ||
+        AppEnv.firebaseAppId.isEmpty ||
+        AppEnv.firebaseProjectId.isEmpty ||
+        AppEnv.firebaseMessagingSenderId.isEmpty) {
       return null;
     }
     return FirebaseOptions(
-      apiKey: Env.firebaseApiKey,
-      appId: Env.firebaseAppId,
-      projectId: Env.firebaseProjectId,
-      messagingSenderId: Env.firebaseMessagingSenderId,
-      storageBucket: Env.firebaseStorageBucket.isEmpty ? null : Env.firebaseStorageBucket,
-      measurementId: Env.firebaseMeasurementId.isEmpty ? null : Env.firebaseMeasurementId,
+      apiKey: AppEnv.firebaseApiKey,
+      appId: AppEnv.firebaseAppId,
+      projectId: AppEnv.firebaseProjectId,
+      messagingSenderId: AppEnv.firebaseMessagingSenderId,
+      storageBucket:
+          AppEnv.firebaseStorageBucket.isEmpty ? null : AppEnv.firebaseStorageBucket,
+      measurementId:
+          AppEnv.firebaseMeasurementId.isEmpty ? null : AppEnv.firebaseMeasurementId,
     );
   }
 }

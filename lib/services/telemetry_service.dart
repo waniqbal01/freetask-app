@@ -37,7 +37,7 @@ class TelemetryService {
       _sink?.writeln(line);
       _debugSink?.writeln(line);
     } catch (error, stackTrace) {
-      appLog('Telemetry write failed', error: error, stackTrace: stackTrace);
+      AppLogger.e('Telemetry write failed', error: error, stackTrace: stackTrace);
     }
   }
 
@@ -62,7 +62,7 @@ class TelemetryService {
       _sink = file.openWrite(mode: FileMode.append);
       _openCompleter!.complete();
     } catch (error, stackTrace) {
-      appLog('Unable to open telemetry sink', error: error, stackTrace: stackTrace);
+      AppLogger.e('Unable to open telemetry sink', error: error, stackTrace: stackTrace);
       _openCompleter!.completeError(error, stackTrace);
       rethrow;
     } finally {

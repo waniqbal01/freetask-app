@@ -12,7 +12,7 @@ class ApiClient {
   ApiClient(Dio dio, this._storage, this._roleGuard)
       : _dio = dio
           ..options = BaseOptions(
-            baseUrl: Env.apiBase,
+            baseUrl: AppEnv.apiBase,
             connectTimeout: const Duration(seconds: 20),
             receiveTimeout: const Duration(seconds: 20),
             sendTimeout: const Duration(seconds: 20),

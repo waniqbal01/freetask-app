@@ -138,11 +138,11 @@ class AuthRepository {
       await _authService.refreshToken();
       return true;
     } on AuthException catch (error, stackTrace) {
-      appLog('Token refresh failed', error: error, stackTrace: stackTrace);
+      AppLogger.e('Token refresh failed', error: error, stackTrace: stackTrace);
       await _storage.clearAll();
       return false;
     } catch (error, stackTrace) {
-      appLog('Unexpected error refreshing token', error: error, stackTrace: stackTrace);
+      AppLogger.e('Unexpected error refreshing token', error: error, stackTrace: stackTrace);
       await _storage.clearAll();
       return false;
     }

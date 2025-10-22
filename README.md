@@ -21,6 +21,16 @@ Node.js/Express backend.
    ```bash
    dart test
    ```
+4. Launch the Flutter app with explicit environment configuration
+   ```bash
+   flutter run --dart-define=API_BASE=https://your-api.example.com/api \
+              --dart-define=SOCKET_BASE=https://your-api.example.com
+   ```
+5. Build release binaries with the same environment values
+   ```bash
+   flutter build apk --dart-define=API_BASE=https://your-api.example.com/api \
+                     --dart-define=SOCKET_BASE=https://your-api.example.com
+   ```
 
 ### Express API
 

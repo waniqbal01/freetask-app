@@ -25,7 +25,7 @@ class ProfileService {
       await _storage.saveUser(user);
       return user;
     } on DioException catch (error, stackTrace) {
-      appLog('Failed to fetch current user', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to fetch current user', error: error, stackTrace: stackTrace);
       throw ProfileException(_mapError(error));
     }
   }
@@ -56,7 +56,7 @@ class ProfileService {
       await _storage.saveUser(user);
       return user;
     } on DioException catch (error, stackTrace) {
-      appLog('Failed to update profile', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to update profile', error: error, stackTrace: stackTrace);
       throw ProfileException(_mapError(error));
     }
   }
@@ -88,7 +88,7 @@ class ProfileService {
       }
       return url is String ? url : null;
     } on DioException catch (error, stackTrace) {
-      appLog('Failed to upload avatar', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to upload avatar', error: error, stackTrace: stackTrace);
       throw ProfileException(_mapError(error));
     }
   }

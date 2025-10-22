@@ -26,7 +26,7 @@ Future<void> main() async {
       final bootstrap = await AppBootstrap.init();
       runApp(FreetaskApp(bootstrap: bootstrap));
     } catch (error, stackTrace) {
-      appLog('Failed to start application', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to start application', error: error, stackTrace: stackTrace);
       await MonitoringService.instance.recordError(error, stackTrace);
       rethrow;
     }

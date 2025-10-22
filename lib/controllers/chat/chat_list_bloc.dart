@@ -22,10 +22,10 @@ class ChatListBloc extends Bloc<ChatListEvent, ChatListState> {
       final threads = await _chatService.fetchThreads();
       emit(state.copyWith(isLoading: false, threads: threads));
     } on ChatException catch (error, stackTrace) {
-      appLog('Failed to load chat threads', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to load chat threads', error: error, stackTrace: stackTrace);
       emit(state.copyWith(isLoading: false, errorMessage: error.message));
     } catch (error, stackTrace) {
-      appLog('Unexpected error on load chat threads',
+      AppLogger.e('Unexpected error on load chat threads',
           error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
@@ -50,10 +50,10 @@ class ChatListBloc extends Bloc<ChatListEvent, ChatListState> {
         ),
       );
     } on ChatException catch (error, stackTrace) {
-      appLog('Failed to refresh chat threads', error: error, stackTrace: stackTrace);
+      AppLogger.e('Failed to refresh chat threads', error: error, stackTrace: stackTrace);
       emit(state.copyWith(isRefreshing: false, errorMessage: error.message));
     } catch (error, stackTrace) {
-      appLog('Unexpected error on refresh chat threads',
+      AppLogger.e('Unexpected error on refresh chat threads',
           error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
