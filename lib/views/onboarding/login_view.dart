@@ -133,7 +133,6 @@ class _LoginViewState extends State<LoginView> {
         final authBloc = context.read<AuthBloc>();
         final isLoginLoading = state.isLoading && state.flow == AuthFlow.login;
         final isSignupLoading = state.isLoading && state.flow == AuthFlow.signup;
-        final isGeneralLoading = state.isLoading && state.flow == AuthFlow.general;
 
         return Scaffold(
           backgroundColor: theme.colorScheme.surface,
@@ -142,7 +141,6 @@ class _LoginViewState extends State<LoginView> {
               builder: (context, constraints) {
                 final isWide = constraints.maxWidth >= 720;
                 final horizontalPadding = isWide ? 56.0 : 24.0;
-                final maxWidth = isWide ? 520.0 : double.infinity;
                 return Center(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.symmetric(
@@ -164,7 +162,7 @@ class _LoginViewState extends State<LoginView> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
+                          color: Colors.black.withAlpha(5), // Corrected method
                           blurRadius: 16,
                           offset: const Offset(0, 10),
                         ),
@@ -199,17 +197,20 @@ class _LoginViewState extends State<LoginView> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      InputField(
-                                        controller: _loginEmailController,
-                                        label: 'Email',
-                                        hint: 'you@example.com',
-                                        keyboardType:
-                                            TextInputType.emailAddress,
-                                        validator: _validateEmail,
-                                        autofillHints: const [
-                                          AutofillHints.email,
-                                        ],
-                                      ),
+                                      // Import statements should be at the top of the file
+                                      import 'package:your_package_name/input_field.dart'; // Ensure to replace with the actual package name
+                                      
+                                                                            InputField(
+                                                                              controller: _loginEmailController,
+                                                                              label: 'Email',
+                                                                              hint: 'you@example.com',
+                                                                              keyboardType:
+                                                                                  TextInputType.emailAddress,
+                                                                              validator: _validateEmail,
+                                                                              autofillHints: const [
+                                                                                AutofillHints.email,
+                                                                              ],
+                                                                            ),
                                       const SizedBox(height: 16),
                                       InputField(
                                         controller: _loginPasswordController,
@@ -431,7 +432,7 @@ class _LoginViewState extends State<LoginView> {
         Text(
           'Collaborate effortlessly with clients and freelancers in a single secure workspace.',
           style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.7),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
         const SizedBox(height: 12),
@@ -451,7 +452,8 @@ class _LoginViewState extends State<LoginView> {
   Widget _buildSwitcher(ThemeData theme) {
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.4),
+        color: theme.colorScheme.surfaceContainerHighest
+            .withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(18),
       ),
       padding: const EdgeInsets.all(6),
@@ -484,7 +486,7 @@ class _LoginViewState extends State<LoginView> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: theme.shadowColor.withOpacity(0.08),
+            color: theme.shadowColor.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -578,7 +580,7 @@ class _LoginViewState extends State<LoginView> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: theme.shadowColor.withOpacity(0.08),
+            color: theme.shadowColor.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -684,7 +686,7 @@ class _LoginViewState extends State<LoginView> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedRole,
+                initialValue: _selectedRole,
                 items: const [
                   DropdownMenuItem(
                     value: UserRoles.client,
@@ -751,12 +753,14 @@ class _SwitcherButton extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: selected ? theme.colorScheme.background : Colors.transparent,
+            color: selected
+                ? theme.colorScheme.surface
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(14),
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: theme.shadowColor.withOpacity(0.08),
+                      color: theme.shadowColor.withValues(alpha: 0.08),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),
@@ -770,7 +774,7 @@ class _SwitcherButton extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: selected
                   ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface.withOpacity(0.6),
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
         ),

@@ -61,12 +61,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error during auth check', error: error, stackTrace: stackTrace);
+      appLog('Unexpected error during auth check',
+          error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           status: AuthStatus.unauthenticated,
           flow: AuthFlow.general,
-          message: const AuthMessage.error('Unexpected error occurred.'),
+          message: AuthMessage.error('Unexpected error occurred.'),
           resetUser: true,
         ),
       );
@@ -147,7 +148,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           status: AuthStatus.authenticated,
           user: session.user,
           flow: AuthFlow.signup,
-          message: const AuthMessage.success(
+          message: AuthMessage.success(
             'Account created successfully. Please verify your email.',
           ),
         ),
@@ -163,7 +164,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error on signup', error: error, stackTrace: stackTrace);
+      appLog('Unexpected error on signup',
+          error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           status: AuthStatus.unauthenticated,
@@ -182,7 +184,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       await _repository.logout();
     } catch (error, stackTrace) {
-      appLog('Logout encountered an issue', error: error, stackTrace: stackTrace);
+      appLog('Logout encountered an issue',
+          error: error, stackTrace: stackTrace);
     }
 
     emit(
@@ -224,7 +227,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } on AuthException catch (error, stackTrace) {
-      appLog('Password reset request failed', error: error, stackTrace: stackTrace);
+      appLog('Password reset request failed',
+          error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           status: state.user != null
@@ -235,7 +239,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ),
       );
     } catch (error, stackTrace) {
-      appLog('Unexpected error on password reset', error: error, stackTrace: stackTrace);
+      appLog('Unexpected error on password reset',
+          error: error, stackTrace: stackTrace);
       emit(
         state.copyWith(
           status: state.user != null
