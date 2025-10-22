@@ -13,6 +13,7 @@ import 'services/role_guard.dart';
 import 'services/socket_service.dart';
 import 'services/storage_service.dart';
 import 'services/wallet_service.dart';
+import 'repositories/auth_repository.dart';
 
 /// Provides a convenient entry point for Flutter applications to configure the
 /// pure Dart services used by the package. The bootstrap ensures that the
@@ -22,6 +23,7 @@ class AppBootstrap {
   const AppBootstrap._({
     required this.apiClient,
     required this.authService,
+    required this.authRepository,
     required this.storageService,
     required this.roleGuard,
     required this.jobService,
@@ -41,6 +43,10 @@ class AppBootstrap {
     final roleGuard = RoleGuard(storage);
     final apiClient = ApiClient(Dio(), storage, roleGuard);
     final authService = AuthService(apiClient, storage);
+    final authRepository = AuthRepository(
+      authService: authService,
+      storage: storage,
+    );
     final chatCacheService = ChatCacheService(store);
     final jobService = JobService(apiClient, roleGuard, storage);
     final chatService = ChatService(apiClient, chatCacheService);
@@ -55,6 +61,7 @@ class AppBootstrap {
     return AppBootstrap._(
       apiClient: apiClient,
       authService: authService,
+      authRepository: authRepository,
       storageService: storage,
       roleGuard: roleGuard,
       jobService: jobService,
@@ -70,6 +77,7 @@ class AppBootstrap {
 
   final ApiClient apiClient;
   final AuthService authService;
+  final AuthRepository authRepository;
   final StorageService storageService;
   final RoleGuard roleGuard;
   final JobService jobService;

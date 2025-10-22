@@ -100,7 +100,7 @@ class _DashboardShellState extends State<DashboardShell> {
           listenWhen: (previous, current) =>
               previous.status != current.status,
           listener: (context, state) {
-            if (state is AuthUnauthenticated && mounted) {
+            if (state.status == AuthStatus.unauthenticated && mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('You have been logged out.')),
               );

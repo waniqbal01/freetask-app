@@ -1,139 +1,177 @@
 import 'package:bloc/bloc.dart';
 
-import '../../models/user.dart';
+import '../../repositories/auth_repository.dart';
 import '../../services/auth_service.dart';
-import '../../services/storage_service.dart';
 import '../../utils/logger.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  AuthBloc(this._authService, this._storage)
-      : super(const AuthLoading()) {
+  AuthBloc(this._repository) : super(AuthState.initial()) {
     on<AuthCheckRequested>(_onAuthCheckRequested);
-    on<LoginSubmitted>(_onLoginSubmitted);
-    on<SignupSubmitted>(_onSignupSubmitted);
-    on<FetchMe>(_onFetchMe);
+    on<LoginRequested>(_onLoginRequested);
+    on<SignupRequested>(_onSignupRequested);
     on<LogoutRequested>(_onLogoutRequested);
+    on<PasswordResetRequested>(_onPasswordResetRequested);
   }
 
-  final AuthService _authService;
-  final StorageService _storage;
+  final AuthRepository _repository;
 
   Future<void> _onAuthCheckRequested(
     AuthCheckRequested event,
     Emitter<AuthState> emit,
   ) async {
-    if (state is! AuthLoading) {
-      emit(const AuthLoading());
-    }
-    final token = _storage.token;
-    if (token == null || token.isEmpty) {
-      emit(const AuthUnauthenticated());
-      return;
-    }
-
-    final refreshed = await _ensureValidToken(emit);
-    if (!refreshed) {
-      emit(const AuthUnauthenticated());
-      return;
-    }
-
-    final cachedUser = _storage.getUser();
-    if (cachedUser != null) {
-      emit(AuthAuthenticated(cachedUser));
-    }
+    emit(
+      state.copyWith(
+        status: AuthStatus.loading,
+        flow: AuthFlow.general,
+        clearMessage: true,
+      ),
+    );
 
     try {
-      final User user = await _authService.fetchMe();
-      emit(AuthAuthenticated(user));
+      final session = await _repository.restoreSession();
+      if (session == null) {
+        emit(
+          state.copyWith(
+            status: AuthStatus.unauthenticated,
+            flow: AuthFlow.general,
+            resetUser: true,
+          ),
+        );
+        return;
+      }
+
+      emit(
+        state.copyWith(
+          status: AuthStatus.authenticated,
+          user: session.user,
+          flow: AuthFlow.general,
+          clearMessage: true,
+        ),
+      );
     } on AuthException catch (error, stackTrace) {
-      appLog('Fetch me failed', error: error, stackTrace: stackTrace);
-      emit(AuthError(error.message));
-      emit(const AuthUnauthenticated());
+      appLog('Auth check failed', error: error, stackTrace: stackTrace);
+      emit(
+        state.copyWith(
+          status: AuthStatus.unauthenticated,
+          flow: AuthFlow.general,
+          message: AuthMessage.error(error.message),
+          resetUser: true,
+        ),
+      );
     } catch (error, stackTrace) {
-      appLog('Unexpected error on FetchMe', error: error, stackTrace: stackTrace);
-      emit(const AuthError('Unexpected error occurred.'));
-      emit(const AuthUnauthenticated());
+      appLog('Unexpected error during auth check', error: error, stackTrace: stackTrace);
+      emit(
+        state.copyWith(
+          status: AuthStatus.unauthenticated,
+          flow: AuthFlow.general,
+          message: const AuthMessage.error('Unexpected error occurred.'),
+          resetUser: true,
+        ),
+      );
     }
   }
 
-  Future<void> _onFetchMe(
-    FetchMe event,
+  Future<void> _onLoginRequested(
+    LoginRequested event,
     Emitter<AuthState> emit,
   ) async {
-    final previousState = state;
-    if (previousState is! AuthAuthenticated) {
-      emit(const AuthLoading());
-    }
+    emit(
+      state.copyWith(
+        status: AuthStatus.loading,
+        flow: AuthFlow.login,
+        clearMessage: true,
+      ),
+    );
 
-    final refreshed = await _ensureValidToken(emit);
-    if (!refreshed) {
-      emit(const AuthUnauthenticated());
-      return;
-    }
     try {
-      final User user = await _authService.fetchMe();
-      emit(AuthAuthenticated(user));
-    } on AuthException catch (error, stackTrace) {
-      appLog('Fetch me failed', error: error, stackTrace: stackTrace);
-      emit(AuthError(error.message));
-      emit(const AuthUnauthenticated());
-    } catch (error, stackTrace) {
-      appLog('Unexpected error on FetchMe', error: error, stackTrace: stackTrace);
-      emit(const AuthError('Unexpected error occurred.'));
-      emit(const AuthUnauthenticated());
-    }
-  }
-
-  Future<void> _onLoginSubmitted(
-    LoginSubmitted event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(const AuthLoading());
-    try {
-      final authResponse = await _authService.login(
+      final session = await _repository.login(
         email: event.email,
         password: event.password,
       );
-      emit(AuthAuthenticated(authResponse.user));
+      emit(
+        state.copyWith(
+          status: AuthStatus.authenticated,
+          user: session.user,
+          flow: AuthFlow.login,
+          message: AuthMessage.success(
+            'Welcome back, ${session.user.name.split(' ').first}!',
+          ),
+        ),
+      );
     } on AuthException catch (error, stackTrace) {
       appLog('Login failed', error: error, stackTrace: stackTrace);
-      emit(AuthError(error.message, flow: AuthFlow.login));
-      emit(const AuthUnauthenticated());
+      emit(
+        state.copyWith(
+          status: AuthStatus.unauthenticated,
+          flow: AuthFlow.login,
+          message: AuthMessage.error(error.message),
+          resetUser: true,
+        ),
+      );
     } catch (error, stackTrace) {
       appLog('Unexpected error on login', error: error, stackTrace: stackTrace);
-      emit(const AuthError('Unexpected error occurred.', flow: AuthFlow.login));
-      emit(const AuthUnauthenticated());
+      emit(
+        state.copyWith(
+          status: AuthStatus.unauthenticated,
+          flow: AuthFlow.login,
+          message: const AuthMessage.error('Unexpected error occurred.'),
+          resetUser: true,
+        ),
+      );
     }
   }
 
-  Future<void> _onSignupSubmitted(
-    SignupSubmitted event,
+  Future<void> _onSignupRequested(
+    SignupRequested event,
     Emitter<AuthState> emit,
   ) async {
-    emit(const AuthLoading());
+    emit(
+      state.copyWith(
+        status: AuthStatus.loading,
+        flow: AuthFlow.signup,
+        clearMessage: true,
+      ),
+    );
+
     try {
-      final authResponse = await _authService.signup(
+      final session = await _repository.signup(
         name: event.name,
         email: event.email,
         password: event.password,
         role: event.role,
       );
-      emit(AuthAuthenticated(authResponse.user));
+      emit(
+        state.copyWith(
+          status: AuthStatus.authenticated,
+          user: session.user,
+          flow: AuthFlow.signup,
+          message: const AuthMessage.success(
+            'Account created successfully. Please verify your email.',
+          ),
+        ),
+      );
     } on AuthException catch (error, stackTrace) {
       appLog('Signup failed', error: error, stackTrace: stackTrace);
-      emit(AuthError(error.message, flow: AuthFlow.signup));
-      emit(const AuthUnauthenticated());
+      emit(
+        state.copyWith(
+          status: AuthStatus.unauthenticated,
+          flow: AuthFlow.signup,
+          message: AuthMessage.error(error.message),
+          resetUser: true,
+        ),
+      );
     } catch (error, stackTrace) {
       appLog('Unexpected error on signup', error: error, stackTrace: stackTrace);
       emit(
-        const AuthError(
-          'Unexpected error occurred.',
+        state.copyWith(
+          status: AuthStatus.unauthenticated,
           flow: AuthFlow.signup,
+          message: const AuthMessage.error('Unexpected error occurred.'),
+          resetUser: true,
         ),
       );
-      emit(const AuthUnauthenticated());
     }
   }
 
@@ -141,31 +179,72 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     LogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
-    await _authService.logout();
-    emit(const AuthUnauthenticated());
+    try {
+      await _repository.logout();
+    } catch (error, stackTrace) {
+      appLog('Logout encountered an issue', error: error, stackTrace: stackTrace);
+    }
+
+    emit(
+      state.copyWith(
+        status: AuthStatus.unauthenticated,
+        flow: AuthFlow.general,
+        message: event.showMessage
+            ? const AuthMessage.success('You have been logged out.')
+            : null,
+        clearMessage: !event.showMessage,
+        resetUser: true,
+      ),
+    );
   }
 
-  Future<bool> _ensureValidToken(Emitter<AuthState> emit) async {
-    final expiry = _storage.tokenExpiry;
-    if (expiry == null) {
-      return true;
-    }
-
-    final now = DateTime.now();
-    if (expiry.isAfter(now.add(const Duration(minutes: 1)))) {
-      return true;
-    }
+  Future<void> _onPasswordResetRequested(
+    PasswordResetRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        status: AuthStatus.loading,
+        flow: AuthFlow.passwordReset,
+        clearMessage: true,
+      ),
+    );
 
     try {
-      await _authService.refreshToken();
-      return true;
+      await _repository.requestPasswordReset(event.email);
+      emit(
+        state.copyWith(
+          status: state.user != null
+              ? AuthStatus.authenticated
+              : AuthStatus.unauthenticated,
+          flow: AuthFlow.passwordReset,
+          message: AuthMessage.success(
+            'Password reset instructions have been sent to ${event.email}.',
+          ),
+        ),
+      );
     } on AuthException catch (error, stackTrace) {
-      appLog('Token refresh failed', error: error, stackTrace: stackTrace);
-      emit(AuthError(error.message));
+      appLog('Password reset request failed', error: error, stackTrace: stackTrace);
+      emit(
+        state.copyWith(
+          status: state.user != null
+              ? AuthStatus.authenticated
+              : AuthStatus.unauthenticated,
+          flow: AuthFlow.passwordReset,
+          message: AuthMessage.error(error.message),
+        ),
+      );
     } catch (error, stackTrace) {
-      appLog('Unexpected error refreshing token', error: error, stackTrace: stackTrace);
-      emit(const AuthError('Unable to refresh session. Please sign in again.'));
+      appLog('Unexpected error on password reset', error: error, stackTrace: stackTrace);
+      emit(
+        state.copyWith(
+          status: state.user != null
+              ? AuthStatus.authenticated
+              : AuthStatus.unauthenticated,
+          flow: AuthFlow.passwordReset,
+          message: const AuthMessage.error('Unexpected error occurred.'),
+        ),
+      );
     }
-    return false;
   }
 }

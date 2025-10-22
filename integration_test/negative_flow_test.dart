@@ -21,6 +21,7 @@ import 'package:freetask_app/services/key_value_store.dart';
 import 'package:freetask_app/services/socket_service.dart';
 import 'package:freetask_app/services/storage_service.dart';
 import 'package:freetask_app/services/wallet_service.dart';
+import 'package:freetask_app/repositories/auth_repository.dart';
 
 class _MockAuthService extends Mock implements AuthService {}
 
@@ -74,16 +75,20 @@ void main() {
       when(() => authService.refreshToken()).thenThrow(AuthException('Session expired.'));
       when(() => authService.logout()).thenAnswer((_) async {});
 
-      final authBloc = AuthBloc(authService, storage);
+      final repository = AuthRepository(authService: authService, storage: storage);
+      final authBloc = AuthBloc(repository);
       final emitted = <AuthState>[];
       final sub = authBloc.stream.listen(emitted.add);
 
-      authBloc.add(const LoginSubmitted(email: 'mira@example.com', password: 'pw1234'));
+      authBloc.add(const LoginRequested(email: 'mira@example.com', password: 'pw1234'));
       await pumpEventQueue(times: 5);
       authBloc.add(const AuthCheckRequested());
       await pumpEventQueue(times: 5);
 
-      expect(emitted.whereType<AuthUnauthenticated>().isNotEmpty, isTrue);
+      expect(
+        emitted.where((state) => state.status == AuthStatus.unauthenticated).isNotEmpty,
+        isTrue,
+      );
 
       await sub.cancel();
       await authBloc.close();

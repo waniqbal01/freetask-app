@@ -1,53 +1,43 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:test/test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:test/test.dart';
 
 import 'package:freetask_app/controllers/auth/auth_bloc.dart';
 import 'package:freetask_app/controllers/auth/auth_event.dart';
 import 'package:freetask_app/controllers/auth/auth_state.dart';
-import 'package:freetask_app/models/auth_response.dart';
 import 'package:freetask_app/models/user.dart';
-import 'package:freetask_app/services/auth_service.dart';
-import 'package:freetask_app/services/storage_service.dart';
+import 'package:freetask_app/repositories/auth_repository.dart';
 
-class MockAuthService extends Mock implements AuthService {}
-
-class MockStorageService extends Mock implements StorageService {}
+class MockAuthRepository extends Mock implements AuthRepository {}
 
 void main() {
-  late MockAuthService authService;
-  late MockStorageService storageService;
+  late MockAuthRepository repository;
 
   setUp(() {
-    authService = MockAuthService();
-    storageService = MockStorageService();
-
-    when(() => storageService.token).thenReturn(null);
-    when(() => storageService.getUser()).thenReturn(null);
+    repository = MockAuthRepository();
   });
 
-  test('dummy test passes', () {
-    expect(1 + 1, equals(2));
-  });
-
-  test('initial state is loading', () {
-    final bloc = AuthBloc(authService, storageService);
-    expect(bloc.state, const AuthLoading());
+  test('initial state has unknown status', () {
+    final bloc = AuthBloc(repository);
+    expect(bloc.state.status, AuthStatus.unknown);
     bloc.close();
   });
 
   blocTest<AuthBloc, AuthState>(
-    'emits unauthenticated when app launched without token',
+    'emits loading then unauthenticated when restoreSession returns null',
     build: () {
-      when(() => storageService.token).thenReturn(null);
-      return AuthBloc(authService, storageService);
+      when(() => repository.restoreSession()).thenAnswer((_) async => null);
+      return AuthBloc(repository);
     },
     act: (bloc) => bloc.add(const AuthCheckRequested()),
-    expect: () => [const AuthUnauthenticated()],
+    expect: () => [
+      const AuthState(status: AuthStatus.loading, flow: AuthFlow.general),
+      const AuthState(status: AuthStatus.unauthenticated, flow: AuthFlow.general),
+    ],
   );
 
   blocTest<AuthBloc, AuthState>(
-    'emits loading then authenticated on successful login',
+    'emits authenticated state after successful login',
     build: () {
       final user = const User(
         id: '1',
@@ -56,31 +46,35 @@ void main() {
         role: 'client',
         verified: true,
       );
-      when(
-        () => authService.login(
-          email: any(named: 'email'),
-          password: any(named: 'password'),
-        ),
-      ).thenAnswer((_) async => AuthResponse(token: 'token', user: user));
-      return AuthBloc(authService, storageService);
+      final session = AuthSession(
+        user: user,
+        token: 'token',
+        refreshToken: 'refresh',
+        expiresAt: DateTime.now().add(const Duration(minutes: 15)),
+      );
+      when(() => repository.login(email: any(named: 'email'), password: any(named: 'password')))
+          .thenAnswer((_) async => session);
+      return AuthBloc(repository);
     },
     act: (bloc) => bloc.add(
-      const LoginSubmitted(email: 'jane@example.com', password: 'password'),
+      const LoginRequested(email: 'jane@example.com', password: 'password'),
     ),
     expect: () => [
-      const AuthLoading(),
-      isA<AuthAuthenticated>().having((state) => state.user.email, 'user email',
-          'jane@example.com'),
+      const AuthState(status: AuthStatus.loading, flow: AuthFlow.login),
+      predicate<AuthState>((state) =>
+          state.status == AuthStatus.authenticated && state.user?.email == 'jane@example.com'),
     ],
   );
 
   blocTest<AuthBloc, AuthState>(
     'emits unauthenticated after logout request',
     build: () {
-      when(() => authService.logout()).thenAnswer((_) async {});
-      return AuthBloc(authService, storageService);
+      when(() => repository.logout()).thenAnswer((_) async {});
+      return AuthBloc(repository);
     },
     act: (bloc) => bloc.add(const LogoutRequested()),
-    expect: () => [const AuthUnauthenticated()],
+    expect: () => [
+      const AuthState(status: AuthStatus.unauthenticated, flow: AuthFlow.general),
+    ],
   );
 }

@@ -2,53 +2,81 @@ import 'package:equatable/equatable.dart';
 
 import '../../models/user.dart';
 
-enum AuthFlow { general, login, signup }
+enum AuthFlow { general, login, signup, passwordReset }
 
-enum AuthStatus { authenticated, unauthenticated, unknown }
+enum AuthStatus { authenticated, unauthenticated, loading, unknown }
 
-abstract class AuthState extends Equatable {
-  const AuthState(this.status);
+enum AuthMessageType { success, error }
+
+class AuthMessage extends Equatable {
+  const AuthMessage._({
+    required this.text,
+    required this.type,
+    required this.timestamp,
+  });
+
+  factory AuthMessage.success(String text) {
+    return AuthMessage._(
+      text: text,
+      type: AuthMessageType.success,
+      timestamp: DateTime.now().microsecondsSinceEpoch,
+    );
+  }
+
+  factory AuthMessage.error(String text) {
+    return AuthMessage._(
+      text: text,
+      type: AuthMessageType.error,
+      timestamp: DateTime.now().microsecondsSinceEpoch,
+    );
+  }
+
+  final String text;
+  final AuthMessageType type;
+  final int timestamp;
+
+  bool get isError => type == AuthMessageType.error;
+
+  @override
+  List<Object?> get props => [text, type, timestamp];
+}
+
+class AuthState extends Equatable {
+  const AuthState({
+    required this.status,
+    this.user,
+    this.flow = AuthFlow.general,
+    this.message,
+  });
+
+  factory AuthState.initial() {
+    return const AuthState(status: AuthStatus.unknown);
+  }
 
   final AuthStatus status;
-
-  String? get role => null;
-
-  @override
-  List<Object?> get props => [status];
-}
-
-class AuthUnauthenticated extends AuthState {
-  const AuthUnauthenticated() : super(AuthStatus.unauthenticated);
-}
-
-class AuthLoading extends AuthState {
-  const AuthLoading({this.flow = AuthFlow.general}) : super(AuthStatus.unknown);
-
+  final User? user;
   final AuthFlow flow;
+  final AuthMessage? message;
+
+  bool get isLoading => status == AuthStatus.loading;
+  bool get isAuthenticated => status == AuthStatus.authenticated && user != null;
+
+  AuthState copyWith({
+    AuthStatus? status,
+    User? user,
+    bool resetUser = false,
+    AuthFlow? flow,
+    AuthMessage? message,
+    bool clearMessage = false,
+  }) {
+    return AuthState(
+      status: status ?? this.status,
+      user: resetUser ? null : user ?? this.user,
+      flow: flow ?? this.flow,
+      message: clearMessage ? null : message ?? this.message,
+    );
+  }
 
   @override
-  List<Object?> get props => [status, flow];
-}
-
-class AuthAuthenticated extends AuthState {
-  const AuthAuthenticated(this.user) : super(AuthStatus.authenticated);
-
-  final User user;
-
-  @override
-  String? get role => user.role;
-
-  @override
-  List<Object?> get props => [status, user];
-}
-
-class AuthError extends AuthState {
-  const AuthError(this.message, {this.flow = AuthFlow.general})
-      : super(AuthStatus.unknown);
-
-  final String message;
-  final AuthFlow flow;
-
-  @override
-  List<Object?> get props => [status, message, flow];
+  List<Object?> get props => [status, user, flow, message];
 }

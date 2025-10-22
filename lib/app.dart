@@ -31,6 +31,7 @@ import 'services/socket_service.dart';
 import 'services/storage_service.dart';
 import 'services/wallet_service.dart';
 import 'utils/role_permissions.dart';
+import 'repositories/auth_repository.dart';
 
 class FreetaskApp extends StatefulWidget {
   const FreetaskApp({required this.bootstrap, super.key});
@@ -62,7 +63,7 @@ class _FreetaskAppState extends State<FreetaskApp> {
     super.initState();
     final initialRole =
         _storage.role ?? _storage.getUser()?.role ?? UserRoles.defaultRole;
-    _authBloc = AuthBloc(widget.bootstrap.authService, _storage);
+    _authBloc = AuthBloc(widget.bootstrap.authRepository);
     _jobBloc = JobBloc(widget.bootstrap.jobService, _storage);
     _metricsCubit = DashboardMetricsCubit(_jobBloc, _storage);
     _roleNavCubit = RoleNavCubit(initialRole: initialRole);
@@ -84,18 +85,18 @@ class _FreetaskAppState extends State<FreetaskApp> {
     });
 
     _authSubscription = _authBloc.stream.listen((state) {
-      if (state is AuthAuthenticated) {
-        _roleNavCubit.updateRole(state.user.role);
-        _metricsCubit.updateRole(state.user.role);
+      if (state.status == AuthStatus.authenticated && state.user != null) {
+        _roleNavCubit.updateRole(state.user!.role);
+        _metricsCubit.updateRole(state.user!.role);
         _jobBloc.add(const JobListRequested(JobListType.available));
         final token = _storage.token;
         if (token != null && token.isNotEmpty) {
           widget.bootstrap.socketService.connect(
             token: token,
-            userId: state.user.id,
+            userId: state.user!.id,
           );
         }
-      } else if (state is AuthUnauthenticated) {
+      } else if (state.status == AuthStatus.unauthenticated) {
         widget.bootstrap.socketService.disconnect();
         _roleNavCubit.updateRole(UserRoles.defaultRole);
       }
@@ -121,6 +122,9 @@ class _FreetaskAppState extends State<FreetaskApp> {
       providers: [
         RepositoryProvider<ApiClient>.value(value: widget.bootstrap.apiClient),
         RepositoryProvider<AuthService>.value(value: widget.bootstrap.authService),
+        RepositoryProvider<AuthRepository>.value(
+          value: widget.bootstrap.authRepository,
+        ),
         RepositoryProvider<StorageService>.value(value: _storage),
         RepositoryProvider<RoleGuard>.value(value: widget.bootstrap.roleGuard),
         RepositoryProvider<JobService>.value(value: widget.bootstrap.jobService),
