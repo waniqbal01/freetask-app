@@ -14,7 +14,7 @@ class AuthResponse {
   final DateTime? expiresAt;
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    final expiresRaw = json['expiresAt'] ?? json['expires_in'];
+    final expiresRaw = json['expiresAt'] ?? json['expires_in'] ?? json['expiresIn'];
     DateTime? expiresAt;
     if (expiresRaw is String) {
       expiresAt = DateTime.tryParse(expiresRaw)?.toLocal();
@@ -22,11 +22,17 @@ class AuthResponse {
       expiresAt = DateTime.now().add(Duration(seconds: expiresRaw));
     }
 
+    final rawUser = (json['user'] as Map<String, dynamic>?) ??
+        (json['profile'] as Map<String, dynamic>?) ??
+        const <String, dynamic>{};
+
     return AuthResponse(
-      token: json['token'] as String? ?? '',
-      refreshToken: json['refreshToken'] as String? ?? json['refresh_token'] as String?,
+      token: json['accessToken'] as String? ?? json['token'] as String? ?? '',
+      refreshToken: json['refreshToken'] as String? ??
+          json['refresh_token'] as String? ??
+          json['refresh'] as String?,
       expiresAt: expiresAt,
-      user: User.fromJson(json['user'] as Map<String, dynamic>? ?? {}),
+      user: User.fromJson(rawUser),
     );
   }
 }

@@ -33,14 +33,14 @@ class _SplashViewState extends State<SplashView>
 
   void _handleState(AuthState state) {
     if (!mounted || _navigated) return;
-    if (state is AuthAuthenticated) {
+    if (state.status == AuthStatus.authenticated && state.user != null) {
       _navigated = true;
       Navigator.of(context).pushNamedAndRemoveUntil(
         AppRoutes.dashboard,
         (route) => false,
         arguments: RoleNavTarget.home,
       );
-    } else if (state is AuthUnauthenticated) {
+    } else if (state.status == AuthStatus.unauthenticated) {
       _navigated = true;
       Navigator.of(context).pushNamedAndRemoveUntil(
         LoginView.routeName,

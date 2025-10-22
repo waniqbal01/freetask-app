@@ -6,6 +6,7 @@ import '../views/dashboard_freelancer/dashboard_freelancer_view.dart';
 import '../views/job_detail/job_detail_view.dart';
 import '../views/notification/notifications_view.dart';
 import '../views/onboarding/login_view.dart';
+import '../views/onboarding/forgot_password_view.dart';
 import '../views/onboarding/splash_view.dart';
 import '../views/profile/profile_view.dart';
 import '../views/wallet/wallet_view.dart';
@@ -13,6 +14,7 @@ import '../views/wallet/wallet_view.dart';
 class AppRoutes {
   static const onboarding = '/';
   static const login = '/login';
+  static const forgotPassword = '/forgot-password';
   static const dashboard = '/dashboard';
   static const freelancerDashboard = '/dashboard/freelancer';
   static const jobDetail = '/job-detail';
@@ -33,6 +35,11 @@ class AppRouter {
       case AppRoutes.login:
         return MaterialPageRoute<void>(
           builder: (_) => const LoginView(),
+          settings: settings,
+        );
+      case AppRoutes.forgotPassword:
+        return MaterialPageRoute<void>(
+          builder: (_) => const ForgotPasswordView(),
           settings: settings,
         );
       case AppRoutes.dashboard:

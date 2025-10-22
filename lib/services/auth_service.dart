@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../models/auth_response.dart';
 import '../models/user.dart';
+import '../utils/role_permissions.dart';
 import 'api_client.dart';
 import 'storage_service.dart';
 
@@ -22,11 +23,14 @@ class AuthService {
           'email': email,
           'password': password,
         },
-        options: Options(extra: const {'skipAuth': true}),
+        options: _apiClient.guard(requiresAuth: false),
       );
-      final data = response.data ?? <String, dynamic>{};
+      final data = _unwrapData(response.data);
       final authResponse = AuthResponse.fromJson(data);
       await _persistSession(authResponse);
+      if (authResponse.user.id.isNotEmpty) {
+        return authResponse;
+      }
       final user = await fetchMe();
       return AuthResponse(
         token: authResponse.token,
@@ -47,18 +51,21 @@ class AuthService {
   }) async {
     try {
       final response = await _apiClient.client.post<Map<String, dynamic>>(
-        '/auth/register',
+        '/auth/signup',
         data: {
           'name': name,
           'email': email,
           'password': password,
           'role': role,
         },
-        options: Options(extra: const {'skipAuth': true}),
+        options: _apiClient.guard(requiresAuth: false),
       );
-      final data = response.data ?? <String, dynamic>{};
+      final data = _unwrapData(response.data);
       final authResponse = AuthResponse.fromJson(data);
       await _persistSession(authResponse);
+      if (authResponse.user.id.isNotEmpty) {
+        return authResponse;
+      }
       final user = await fetchMe();
       return AuthResponse(
         token: authResponse.token,
@@ -75,9 +82,13 @@ class AuthService {
     try {
       final response = await _apiClient.client.get<Map<String, dynamic>>(
         '/users/me',
+        options: _apiClient.guard(permission: RolePermission.viewDashboard),
       );
-      final data = response.data ?? <String, dynamic>{};
-      final user = User.fromJson(data);
+      final data = _unwrapData(response.data);
+      final userMap = data['user'] is Map<String, dynamic>
+          ? data['user'] as Map<String, dynamic>
+          : data;
+      final user = User.fromJson(userMap);
       await _storage.saveUser(user);
       return user;
     } on DioException catch (error) {
@@ -85,7 +96,25 @@ class AuthService {
     }
   }
 
-  Future<void> logout() => _storage.clearAll();
+  Future<void> logout() async {
+    final refreshToken = _storage.refreshToken;
+    try {
+      await _apiClient.client.post<void>(
+        '/auth/logout',
+        data: {
+          if (refreshToken != null && refreshToken.isNotEmpty)
+            'refreshToken': refreshToken,
+        },
+        options: _apiClient.guard(permission: RolePermission.viewDashboard),
+      );
+    } on DioException catch (error) {
+      if (error.response?.statusCode != 401) {
+        rethrow;
+      }
+    } finally {
+      await _storage.clearAll();
+    }
+  }
 
   Future<String> refreshToken() async {
     final refreshToken = _storage.refreshToken;
@@ -98,18 +127,21 @@ class AuthService {
       final response = await _apiClient.client.post<Map<String, dynamic>>(
         '/auth/refresh',
         data: {'refreshToken': refreshToken},
-        options: Options(extra: const {'skipAuth': true}),
+        options: _apiClient.guard(requiresAuth: false),
       );
-      final data = response.data ?? <String, dynamic>{};
-      final newToken = data['token'] as String? ?? '';
+      final data = _unwrapData(response.data);
+      final newToken =
+          data['accessToken'] as String? ?? data['token'] as String? ?? '';
       if (newToken.isEmpty) {
         await _storage.clearAll();
         throw AuthException('Unable to refresh session. Please sign in again.');
       }
 
-      final newRefreshToken =
-          data['refreshToken'] as String? ?? data['refresh_token'] as String?;
-      final expiresRaw = data['expiresAt'] ?? data['expires_in'];
+      final newRefreshToken = data['refreshToken'] as String? ??
+          data['refresh_token'] as String? ??
+          data['refresh'] as String?;
+      final expiresRaw =
+          data['expiresAt'] ?? data['expires_in'] ?? data['expiresIn'];
       DateTime? expiresAt;
       if (expiresRaw is String) {
         expiresAt = DateTime.tryParse(expiresRaw)?.toLocal();
@@ -136,6 +168,56 @@ class AuthService {
     }
     await _storage.saveTokenExpiry(authResponse.expiresAt);
     await _storage.saveUser(authResponse.user);
+  }
+
+  Future<void> requestPasswordReset(String email) async {
+    try {
+      await _apiClient.client.post<void>(
+        '/auth/forgot-password',
+        data: {'email': email},
+        options: _apiClient.guard(requiresAuth: false),
+      );
+    } on DioException catch (error) {
+      throw AuthException(_mapError(error));
+    }
+  }
+
+  Future<void> confirmPasswordReset({
+    required String email,
+    required String token,
+    required String password,
+  }) async {
+    try {
+      await _apiClient.client.post<void>(
+        '/auth/reset-password',
+        data: {
+          'email': email,
+          'token': token,
+          'password': password,
+        },
+        options: _apiClient.guard(requiresAuth: false),
+      );
+    } on DioException catch (error) {
+      throw AuthException(_mapError(error));
+    }
+  }
+
+  Future<void> verifyEmail({
+    required String email,
+    required String code,
+  }) async {
+    try {
+      await _apiClient.client.post<void>(
+        '/auth/verify-email',
+        data: {
+          'email': email,
+          'code': code,
+        },
+        options: _apiClient.guard(requiresAuth: false),
+      );
+    } on DioException catch (error) {
+      throw AuthException(_mapError(error));
+    }
   }
 
   String _mapError(DioException error) {
@@ -177,6 +259,17 @@ class AuthService {
       return data;
     }
     if (data is Map<String, dynamic>) {
+      final nestedError = data['error'];
+      if (nestedError is Map<String, dynamic>) {
+        final message = nestedError['message'];
+        if (message is String && message.trim().isNotEmpty) {
+          return message;
+        }
+        final details = nestedError['details'];
+        if (details is String && details.trim().isNotEmpty) {
+          return details;
+        }
+      }
       for (final key in const ['message', 'error', 'detail', 'description']) {
         final value = data[key];
         if (value is String && value.trim().isNotEmpty) {
@@ -210,6 +303,31 @@ class AuthService {
       }
     }
     return null;
+  }
+
+  Map<String, dynamic> _unwrapData(Map<String, dynamic>? data) {
+    if (data == null) {
+      return <String, dynamic>{};
+    }
+    if (data['data'] is Map<String, dynamic>) {
+      final inner = data['data'] as Map<String, dynamic>;
+      if (inner['user'] is Map<String, dynamic> ||
+          inner['profile'] is Map<String, dynamic> ||
+          inner['accessToken'] != null ||
+          inner['token'] != null) {
+        return inner;
+      }
+    }
+    if (data['user'] is Map<String, dynamic>) {
+      return data;
+    }
+    if (data['profile'] is Map<String, dynamic>) {
+      return data;
+    }
+    if (data['accessToken'] != null || data['token'] != null) {
+      return data;
+    }
+    return data;
   }
 }
 

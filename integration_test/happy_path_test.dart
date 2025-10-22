@@ -30,6 +30,7 @@ import 'package:freetask_app/services/socket_service.dart';
 import 'package:freetask_app/services/storage_service.dart';
 import 'package:freetask_app/services/wallet_service.dart';
 import 'package:freetask_app/services/key_value_store.dart';
+import 'package:freetask_app/repositories/auth_repository.dart';
 
 class _MockAuthService extends Mock implements AuthService {}
 
@@ -94,11 +95,12 @@ void main() {
       when(() => authService.login(email: any(named: 'email'), password: any(named: 'password')))
           .thenAnswer((_) async => authResponse);
 
-      final authBloc = AuthBloc(authService, storage);
+      final repository = AuthRepository(authService: authService, storage: storage);
+      final authBloc = AuthBloc(repository);
       final authStates = <AuthState>[];
       final authSub = authBloc.stream.listen(authStates.add);
 
-      authBloc.add(const SignupSubmitted(
+      authBloc.add(const SignupRequested(
         name: 'Aisha Client',
         email: 'aisha@example.com',
         password: 'password',
@@ -106,7 +108,10 @@ void main() {
       ));
       await pumpEventQueue(times: 5);
 
-      expect(authStates.whereType<AuthAuthenticated>().length, 1);
+      expect(
+        authStates.where((state) => state.status == AuthStatus.authenticated).length,
+        1,
+      );
       expect(storage.getUser(), isNotNull);
 
       final createdJob = Job(
