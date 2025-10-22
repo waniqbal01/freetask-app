@@ -38,7 +38,7 @@ function authenticate(baseUrl, email) {
 }
 
 export function setup() {
-  const baseUrl = __ENV.BASE_URL || 'http://localhost:4000';
+  const baseUrl = __ENV.BASE_URL || 'https://localhost:4000';
   const clientEmail = __ENV.CLIENT_EMAIL || 'client@example.com';
   const freelancerEmail = __ENV.FREELANCER_EMAIL || 'freelancer@example.com';
 
