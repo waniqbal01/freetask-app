@@ -1,0 +1,22 @@
+# Flutter and Dart build directories
+.dart_tool/
+build/
+.melos_tool/
+.packages
+
+# Generated plugin specifications
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# IDE directories
+.idea/
+.vscode/
+
+# Coverage and logs
+coverage/
+*.log
+
+# Node server dependencies
+server/node_modules/
+
+# Miscellaneous
