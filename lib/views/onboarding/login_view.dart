@@ -208,7 +208,7 @@ class _LoginViewState extends State<LoginView> {
         Text(
           'Collaborate effortlessly with clients and freelancers in a single secure workspace.',
           style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            color: theme.colorScheme.onSurface.withOpacity(0.7),
           ),
         ),
         const SizedBox(height: 12),
@@ -228,8 +228,8 @@ class _LoginViewState extends State<LoginView> {
   Widget _buildSwitcher(ThemeData theme) {
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest
-            .withValues(alpha: 0.4),
+        color: theme.colorScheme.surfaceVariant
+            .withOpacity(0.4),
         borderRadius: BorderRadius.circular(18),
       ),
       padding: const EdgeInsets.all(6),
@@ -262,7 +262,7 @@ class _LoginViewState extends State<LoginView> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: theme.shadowColor.withValues(alpha: 0.08),
+            color: theme.shadowColor.withOpacity(0.08),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -356,7 +356,7 @@ class _LoginViewState extends State<LoginView> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: theme.shadowColor.withValues(alpha: 0.08),
+            color: theme.shadowColor.withOpacity(0.08),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -536,7 +536,7 @@ class _SwitcherButton extends StatelessWidget {
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: theme.shadowColor.withValues(alpha: 0.08),
+                      color: theme.shadowColor.withOpacity(0.08),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),
@@ -550,7 +550,7 @@ class _SwitcherButton extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: selected
                   ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  : theme.colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
         ),

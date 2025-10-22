@@ -29,7 +29,7 @@ class JobCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -55,7 +55,7 @@ class JobCard extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.12),
+                      color: statusColor.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -84,8 +84,8 @@ class JobCard extends StatelessWidget {
                   value: job.status.progress,
                   minHeight: 6,
                   backgroundColor:
-                      theme.colorScheme.surfaceContainerHighest
-                          .withValues(alpha: 0.3),
+                      theme.colorScheme.surfaceVariant
+                          .withOpacity(0.3),
                   valueColor: AlwaysStoppedAnimation<Color>(statusColor),
                 ),
               ),
