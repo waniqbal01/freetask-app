@@ -117,7 +117,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         state.copyWith(
           status: AuthStatus.unauthenticated,
           flow: AuthFlow.login,
-          message: const AuthMessage.error('Unexpected error occurred.'),
+          message: AuthMessage.error('Unexpected error occurred.'),
           resetUser: true,
         ),
       );
@@ -170,7 +170,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         state.copyWith(
           status: AuthStatus.unauthenticated,
           flow: AuthFlow.signup,
-          message: const AuthMessage.error('Unexpected error occurred.'),
+          message: AuthMessage.error('Unexpected error occurred.'),
           resetUser: true,
         ),
       );
@@ -193,7 +193,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         status: AuthStatus.unauthenticated,
         flow: AuthFlow.general,
         message: event.showMessage
-            ? const AuthMessage.success('You have been logged out.')
+            ? AuthMessage.success('You have been logged out.')
             : null,
         clearMessage: !event.showMessage,
         resetUser: true,
@@ -247,7 +247,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
               ? AuthStatus.authenticated
               : AuthStatus.unauthenticated,
           flow: AuthFlow.passwordReset,
-          message: const AuthMessage.error('Unexpected error occurred.'),
+          message: AuthMessage.error('Unexpected error occurred.'),
         ),
       );
     }
