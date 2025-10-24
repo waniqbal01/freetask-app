@@ -399,7 +399,6 @@ class _ChatRoomViewState extends State<_ChatRoomView> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return BlocListener<ChatBloc, ChatState>(
       listenWhen: (previous, current) =>
           previous.errorMessage != current.errorMessage ||
