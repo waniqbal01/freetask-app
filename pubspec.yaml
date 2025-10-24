@@ -26,14 +26,14 @@ dependencies:
   firebase_crashlytics: ^3.4.7
 
 dev_dependencies:
-  bloc_test: ^9.1.6
-  lints: ^3.0.0
-  mocktail: ^1.0.3
-  test: ^1.25.0
   flutter_test:
     sdk: flutter
   integration_test:
     sdk: flutter
+  bloc_test: ^9.1.6
+  lints: ^3.0.0
+  mocktail: ^1.0.3
+  test: ^1.25.0
 
 dependency_overrides:
   shared_preferences:
