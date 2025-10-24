@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 import 'package:freetask_app/controllers/auth/auth_bloc.dart';
@@ -49,6 +50,8 @@ class _MockSocketService extends Mock implements SocketService {}
 class _MockWalletService extends Mock implements WalletService {}
 
 void main() {
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
   setUpAll(() {
     registerFallbackValue(<File>[]);
     registerFallbackValue(<String>[]);

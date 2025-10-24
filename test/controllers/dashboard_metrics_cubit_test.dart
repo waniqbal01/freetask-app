@@ -1,6 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import 'package:freetask_app/controllers/dashboard/dashboard_metrics_cubit.dart';
 import 'package:freetask_app/controllers/job/job_bloc.dart';
