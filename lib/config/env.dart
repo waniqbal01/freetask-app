@@ -3,12 +3,12 @@ class AppEnv {
 
   static const String apiBase = String.fromEnvironment(
     'API_BASE',
-    defaultValue: 'https://localhost:8080/api',
+    defaultValue: 'http://localhost:4000',
   );
 
   static const String socketBase = String.fromEnvironment(
     'SOCKET_BASE',
-    defaultValue: 'https://localhost:8080',
+    defaultValue: 'http://localhost:4000',
   );
 
   static const String sentryDsn = String.fromEnvironment(
