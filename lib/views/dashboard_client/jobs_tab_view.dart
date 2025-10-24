@@ -128,7 +128,7 @@ class _JobsTabViewState extends State<JobsTabView> {
                       selected: status == filter.status,
                       onSelected: (_) => _onStatusSelected(filter.status),
                       selectedColor:
-                          theme.colorScheme.primary.withOpacity(0.15),
+                          theme.colorScheme.primary.withValues(alpha: 0.15),
                       labelStyle: theme.textTheme.bodyMedium?.copyWith(
                         color: status == filter.status
                             ? theme.colorScheme.primary

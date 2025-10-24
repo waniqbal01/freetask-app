@@ -57,7 +57,7 @@ class _ProfileViewState extends State<ProfileView> {
                   CircleAvatar(
                     radius: 36,
                     backgroundColor:
-                        theme.colorScheme.primary.withOpacity(0.15),
+                        theme.colorScheme.primary.withValues(alpha: 0.15),
                     child: Text(
                       _initialsFor(user),
                       style: theme.textTheme.headlineSmall?.copyWith(
@@ -184,7 +184,7 @@ class _InfoTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
