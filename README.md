@@ -26,6 +26,9 @@ Node.js/Express backend.
    flutter run --dart-define=API_BASE=https://your-api.example.com/api \
               --dart-define=SOCKET_BASE=https://your-api.example.com
    ```
+   The local Express API bundled with this repo listens on
+   `http://localhost:4000`, so omitting the defines during development will
+   now fall back to those defaults.
 5. Build release binaries with the same environment values
    ```bash
    flutter build apk --dart-define=API_BASE=https://your-api.example.com/api \
