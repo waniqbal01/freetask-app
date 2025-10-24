@@ -156,7 +156,7 @@ class _LoginViewState extends State<LoginView>
         return Stack(
           children: [
             Scaffold(
-              backgroundColor: Theme.of(context).colorScheme.surface,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
               body: SafeArea(
                 child: Center(
                   child: SingleChildScrollView(
@@ -217,7 +217,7 @@ class _LoginViewState extends State<LoginView>
         Text(
           'Post jobs, collaborate, and manage work seamlessly in one space.',
           style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.7),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
         const SizedBox(height: 12),
@@ -237,18 +237,18 @@ class _LoginViewState extends State<LoginView>
   Widget _buildTabSwitcher(ThemeData theme) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceVariant.withOpacity(0.35),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(18),
       ),
       child: TabBar(
         controller: _tabController,
         splashFactory: NoSplash.splashFactory,
         indicator: BoxDecoration(
-          color: theme.colorScheme.surface,
+          color: theme.colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: theme.shadowColor.withOpacity(0.08),
+              color: theme.shadowColor.withValues(alpha: 0.08),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -256,7 +256,7 @@ class _LoginViewState extends State<LoginView>
         ),
         labelColor: theme.colorScheme.primary,
         unselectedLabelColor:
-            theme.colorScheme.onSurface.withOpacity(0.6),
+            theme.colorScheme.onSurface.withValues(alpha: 0.6),
         tabs: const [
           Tab(text: 'Log in'),
           Tab(text: 'Sign up'),
@@ -291,11 +291,11 @@ class _LoginViewState extends State<LoginView>
     final theme = Theme.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: theme.shadowColor.withOpacity(0.08),
+            color: theme.shadowColor.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -375,11 +375,11 @@ class _LoginViewState extends State<LoginView>
     final theme = Theme.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: theme.shadowColor.withOpacity(0.08),
+            color: theme.shadowColor.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -472,7 +472,7 @@ class _LoginViewState extends State<LoginView>
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedRole,
+                initialValue: _selectedRole,
                 decoration: const InputDecoration(
                   labelText: 'Choose your role',
                   prefixIcon: Icon(Icons.badge_outlined),
@@ -526,7 +526,10 @@ class _FullScreenLoader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: Theme.of(context).colorScheme.surface.withOpacity(0.85),
+      color: Theme.of(context)
+          .colorScheme
+          .surfaceContainerLow
+          .withValues(alpha: 0.85),
       child: const Center(
         child: CircularProgressIndicator(),
       ),
@@ -547,13 +550,13 @@ class _StatusBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isError
-            ? theme.colorScheme.error.withOpacity(0.12)
-            : theme.colorScheme.primary.withOpacity(0.12),
+            ? theme.colorScheme.error.withValues(alpha: 0.12)
+            : theme.colorScheme.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isError
-              ? theme.colorScheme.error.withOpacity(0.4)
-              : theme.colorScheme.primary.withOpacity(0.4),
+              ? theme.colorScheme.error.withValues(alpha: 0.4)
+              : theme.colorScheme.primary.withValues(alpha: 0.4),
         ),
       ),
       child: Row(
