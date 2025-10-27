@@ -27,17 +27,7 @@ class AuthService {
       );
       final data = _unwrapData(response.data);
       final authResponse = AuthResponse.fromJson(data);
-      await _persistSession(authResponse);
-      if (authResponse.user.id.isNotEmpty) {
-        return authResponse;
-      }
-      final user = await fetchMe();
-      return AuthResponse(
-        token: authResponse.token,
-        refreshToken: authResponse.refreshToken,
-        expiresAt: authResponse.expiresAt,
-        user: user,
-      );
+      return _persistAndHydrateSession(authResponse);
     } on DioException catch (error) {
       throw AuthException(_mapError(error));
     }
@@ -62,17 +52,7 @@ class AuthService {
       );
       final data = _unwrapData(response.data);
       final authResponse = AuthResponse.fromJson(data);
-      await _persistSession(authResponse);
-      if (authResponse.user.id.isNotEmpty) {
-        return authResponse;
-      }
-      final user = await fetchMe();
-      return AuthResponse(
-        token: authResponse.token,
-        refreshToken: authResponse.refreshToken,
-        expiresAt: authResponse.expiresAt,
-        user: user,
-      );
+      return _persistAndHydrateSession(authResponse);
     } on DioException catch (error) {
       throw AuthException(_mapError(error));
     }
@@ -142,16 +122,13 @@ class AuthService {
           data['refresh'] as String?;
       final expiresRaw =
           data['expiresAt'] ?? data['expires_in'] ?? data['expiresIn'];
-      DateTime? expiresAt;
-      if (expiresRaw is String) {
-        expiresAt = DateTime.tryParse(expiresRaw)?.toLocal();
-      } else if (expiresRaw is int) {
-        expiresAt = DateTime.now().add(Duration(seconds: expiresRaw));
-      }
+      final expiresAt = AuthResponse.parseExpiry(expiresRaw);
 
       await _storage.saveToken(newToken);
       if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
         await _storage.saveRefreshToken(newRefreshToken);
+      } else {
+        await _storage.clearRefreshToken();
       }
       await _storage.saveTokenExpiry(expiresAt);
       return newToken;
@@ -161,13 +138,37 @@ class AuthService {
     }
   }
 
-  Future<void> _persistSession(AuthResponse authResponse) async {
+  Future<AuthResponse> _persistAndHydrateSession(
+    AuthResponse authResponse,
+  ) async {
     await _storage.saveToken(authResponse.token);
-    if ((authResponse.refreshToken ?? '').isNotEmpty) {
-      await _storage.saveRefreshToken(authResponse.refreshToken!);
+    final refreshToken = authResponse.refreshToken;
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await _storage.saveRefreshToken(refreshToken);
+    } else {
+      await _storage.clearRefreshToken();
     }
     await _storage.saveTokenExpiry(authResponse.expiresAt);
-    await _storage.saveUser(authResponse.user);
+
+    try {
+      var user = authResponse.user;
+      if (user.id.isEmpty || user.email.isEmpty) {
+        if (user.role.isNotEmpty) {
+          await _storage.saveRole(user.role);
+        }
+        user = await fetchMe();
+      }
+      await _storage.saveUser(user);
+      return AuthResponse(
+        token: authResponse.token,
+        refreshToken: refreshToken,
+        expiresAt: authResponse.expiresAt,
+        user: user,
+      );
+    } catch (error) {
+      await _storage.clearAll();
+      rethrow;
+    }
   }
 
   Future<void> requestPasswordReset(String email) async {
