@@ -14,7 +14,7 @@
   "type": "commonjs",
   "dependencies": {
     "@sentry/node": "^7.111.0",
-    "bcryptjs": "^2.4.3",
+    "bcrypt": "^5.1.1",
     "compression": "^1.7.4",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -22,7 +22,9 @@
     "express-rate-limit": "^7.0.0",
     "express-validator": "^7.0.1",
     "helmet": "^7.1.0",
+    "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.3",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
