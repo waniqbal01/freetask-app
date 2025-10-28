@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -5,13 +6,15 @@ const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { loadEnvironmentConfig, seedEnvironmentData } = require('./config/environments');
+const { connectDB } = require('./db');
+const User = require('./models/User');
 const Sentry = require('@sentry/node');
 
-const PORT = process.env.PORT || 4000;
 const APP_ENV = process.env.APP_ENV || process.env.NODE_ENV || 'development';
 const APP_RELEASE = process.env.APP_RELEASE || 'freetask-server@2.0.0';
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
@@ -111,7 +114,6 @@ const refreshLimiter = rateLimit({
 const db = {
   users: new Map(),
   refreshTokens: new Map(),
-  emailVerifications: new Map(),
   passwordResets: new Map(),
   jobs: new Map(),
   auditLogs: [],
@@ -121,8 +123,22 @@ const allowedRoles = new Set(['client', 'freelancer', 'admin', 'manager', 'suppo
 
 function sanitizeUser(user) {
   if (!user) return null;
-  const { passwordHash, ...rest } = user;
-  return rest;
+  const source = typeof user.toObject === 'function' ? user.toObject({ virtuals: false }) : user;
+  const { passwordHash, __v, _id, ...rest } = source;
+  const id = source.id || (_id ? _id.toString() : undefined);
+  const normalizeDate = (value) => {
+    if (!value) return value;
+    return value instanceof Date ? value.toISOString() : value;
+  };
+  return {
+    ...rest,
+    id,
+    email: source.email,
+    role: source.role,
+    verified: source.verified,
+    createdAt: normalizeDate(source.createdAt),
+    updatedAt: normalizeDate(source.updatedAt),
+  };
 }
 
 function audit({ userId, action, metadata, requestId }) {
@@ -137,10 +153,12 @@ function audit({ userId, action, metadata, requestId }) {
 }
 
 function buildTokens(user) {
+  const mapped = sanitizeUser(user);
+  const userId = mapped?.id;
   const accessToken = jwt.sign(
     {
-      sub: user.id,
-      role: user.role,
+      sub: userId,
+      role: mapped.role,
     },
     JWT_SECRET,
     { expiresIn: ACCESS_TOKEN_TTL },
@@ -148,7 +166,7 @@ function buildTokens(user) {
 
   const refreshToken = uuidv4().replace(/-/g, '');
   const expiresAt = Date.now() + REFRESH_TOKEN_TTL * 1000;
-  db.refreshTokens.set(refreshToken, { userId: user.id, expiresAt });
+  db.refreshTokens.set(refreshToken, { userId, expiresAt });
 
   return {
     accessToken,
@@ -190,7 +208,7 @@ function handleValidationResult(req, res, next) {
   return next();
 }
 
-function authGuard(req, res, next) {
+async function authGuard(req, res, next) {
   const header = req.headers.authorization || '';
   const [scheme, token] = header.split(' ');
   if (scheme !== 'Bearer' || !token) {
@@ -202,11 +220,11 @@ function authGuard(req, res, next) {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    const user = db.users.get(payload.sub);
+    const user = await User.findById(payload.sub);
     if (!user) {
       throw new Error('User not found');
     }
-    req.user = user;
+    req.user = sanitizeUser(user);
     return next();
   } catch (error) {
     return res.status(401).json({
@@ -228,13 +246,16 @@ function roleGuard(roles) {
   };
 }
 
-function findUserByEmail(email) {
-  for (const user of db.users.values()) {
-    if (user.email === email) {
-      return user;
-    }
-  }
-  return null;
+async function findUserByEmail(email) {
+  if (!email) return null;
+  return User.findOne({ email });
+}
+
+function signAccessToken(user) {
+  const secret = process.env.JWT_SECRET || JWT_SECRET;
+  return jwt.sign({ sub: user._id.toString(), role: user.role }, secret, {
+    expiresIn: '15m',
+  });
 }
 
 function respondWithAuth(res, user, tokens, message) {
@@ -249,17 +270,6 @@ function respondWithAuth(res, user, tokens, message) {
     requestId: res.req.requestId,
   };
   return res.status(200).json(payload);
-}
-
-function requireVerification(user) {
-  const record = db.emailVerifications.get(user.email);
-  if (!user.verified && record) {
-    return {
-      code: record.code,
-      expiresAt: record.expiresAt,
-    };
-  }
-  return null;
 }
 
 app.post(
@@ -278,58 +288,20 @@ app.post(
   handleValidationResult,
   async (req, res) => {
     try {
-      const { name, email, password } = req.body;
-      const role = allowedRoles.has(req.body.role) ? req.body.role : 'client';
-
-      if (findUserByEmail(email)) {
-        return res.status(409).json({
-          error: { message: 'Email already registered' },
-          requestId: req.requestId,
-        });
+      const { name, email, password, role } = req.body;
+      if (await User.findOne({ email })) {
+        return res.status(409).json({ message: 'Email already exists' });
       }
-
-      const passwordHash = await bcrypt.hash(password, 10);
-      const id = uuidv4();
-      const user = {
-        id,
-        name,
-        email,
-        role,
-        verified: false,
-        passwordHash,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      db.users.set(id, user);
-      const verificationCode = String(Math.floor(100000 + Math.random() * 900000));
-      db.emailVerifications.set(email, {
-        code: verificationCode,
-        expiresAt: Date.now() + 15 * 60 * 1000,
-      });
-
-      const tokens = buildTokens(user);
-      setRefreshCookie(res, tokens.refreshToken);
-      audit({ userId: id, action: 'SIGNUP', metadata: { role }, requestId: req.requestId });
-
-      return res.status(201).json({
-        data: {
-          user: sanitizeUser(user),
-          accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
-          expiresIn: tokens.expiresIn,
-          verificationRequired: true,
-          verificationCode,
-        },
-        message: 'Account created. Please verify your email.',
-        requestId: req.requestId,
-      });
-    } catch (error) {
-      Sentry.captureException(error);
-      return res.status(500).json({
-        error: { message: 'Unable to complete signup' },
-        requestId: req.requestId,
-      });
+      const user = new User({ name, email, role: allowedRoles.has(role) ? role : 'client' });
+      await user.setPassword(password);
+      await user.save();
+      const code = crypto.randomInt(100000, 999999).toString();
+      req.app.locals.emailCodes ??= new Map();
+      req.app.locals.emailCodes.set(email, { code, exp: Date.now() + 15 * 60 * 1000 });
+      return res.status(201).json({ message: 'Signup success. Verify email.', verificationCode: code });
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ message: 'Signup failed' });
     }
   },
 );
@@ -343,38 +315,34 @@ app.post(
   ],
   handleValidationResult,
   async (req, res) => {
-    const { email, password } = req.body;
-    const user = findUserByEmail(email);
-    if (!user) {
-      return res.status(401).json({
-        error: { message: 'Invalid credentials' },
-        requestId: req.requestId,
-      });
-    }
-
-    const match = await bcrypt.compare(password, user.passwordHash);
-    if (!match) {
-      return res.status(401).json({
-        error: { message: 'Invalid credentials' },
-        requestId: req.requestId,
-      });
-    }
-
-    if (!user.verified) {
-      const verification = requireVerification(user);
-      return res.status(403).json({
-        error: {
-          message: 'Email verification required before logging in.',
-          details: verification ? [`Verification code: ${verification.code}`] : undefined,
+    try {
+      const { email, password } = req.body;
+      const user = await User.findOne({ email });
+      if (!user || !(await user.verifyPassword(password))) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      if (!user.verified) {
+        const code = crypto.randomInt(100000, 999999).toString();
+        req.app.locals.emailCodes ??= new Map();
+        req.app.locals.emailCodes.set(email, { code, exp: Date.now() + 15 * 60 * 1000 });
+        return res.status(403).json({
+          message: 'Email verification required',
+          details: { verificationCode: code },
+        });
+      }
+      return res.json({
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
         },
-        requestId: req.requestId,
+        accessToken: signAccessToken(user),
       });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ message: 'Login failed' });
     }
-
-    const tokens = buildTokens(user);
-    setRefreshCookie(res, tokens.refreshToken);
-    audit({ userId: user.id, action: 'LOGIN', requestId: req.requestId });
-    return respondWithAuth(res, user, tokens, 'Login successful');
   },
 );
 
@@ -385,34 +353,27 @@ app.post(
     body('code').isLength({ min: 4 }).withMessage('Verification code is required'),
   ],
   handleValidationResult,
-  (req, res) => {
-    const { email, code } = req.body;
-    const user = findUserByEmail(email);
-    if (!user) {
-      return res.status(401).json({
-        error: { message: 'Account not found. Please sign up before verifying your email.' },
-        requestId: req.requestId,
-      });
+  async (req, res) => {
+    try {
+      const { email, code } = req.body;
+      const rec = req.app.locals.emailCodes?.get(email);
+      if (!rec || rec.exp < Date.now() || rec.code !== code) {
+        return res.status(400).json({ message: 'Invalid or expired code' });
+      }
+      const user = await User.findOneAndUpdate(
+        { email },
+        { $set: { verified: true } },
+        { new: true },
+      );
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      req.app.locals.emailCodes.delete(email);
+      res.json({ message: 'Email verified' });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ message: 'Verify failed' });
     }
-
-    const record = db.emailVerifications.get(email);
-    if (!record || record.code !== code || record.expiresAt < Date.now()) {
-      return res.status(401).json({
-        error: { message: 'Invalid or expired verification code' },
-        requestId: req.requestId,
-      });
-    }
-
-    db.emailVerifications.delete(email);
-    user.verified = true;
-    user.updatedAt = new Date().toISOString();
-    audit({ userId: user.id, action: 'VERIFY_EMAIL', requestId: req.requestId });
-
-    return res.status(200).json({
-      data: { verified: true },
-      message: 'Email verified successfully',
-      requestId: req.requestId,
-    });
   },
 );
 
@@ -423,7 +384,7 @@ app.post(
     body('refreshToken').optional().isString(),
   ],
   handleValidationResult,
-  (req, res) => {
+  async (req, res) => {
     const tokenFromBody = req.body.refreshToken;
     const tokenFromCookie = req.cookies[COOKIE_NAME];
     const refreshToken = tokenFromBody || tokenFromCookie;
@@ -445,7 +406,7 @@ app.post(
       });
     }
 
-    const user = db.users.get(record.userId);
+    const user = await User.findById(record.userId);
     if (!user) {
       db.refreshTokens.delete(refreshToken);
       clearRefreshCookie(res);
@@ -458,7 +419,7 @@ app.post(
     db.refreshTokens.delete(refreshToken);
     const tokens = buildTokens(user);
     setRefreshCookie(res, tokens.refreshToken);
-    audit({ userId: user.id, action: 'REFRESH_TOKEN', requestId: req.requestId });
+    audit({ userId: sanitizeUser(user).id, action: 'REFRESH_TOKEN', requestId: req.requestId });
     return respondWithAuth(res, user, tokens, 'Token refreshed');
   },
 );
@@ -481,9 +442,9 @@ app.post(
   '/auth/forgot-password',
   [body('email').isEmail().withMessage('A valid email is required').normalizeEmail()],
   handleValidationResult,
-  (req, res) => {
+  async (req, res) => {
     const { email } = req.body;
-    const user = findUserByEmail(email);
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(200).json({
         message: 'If that account exists, a reset email has been sent.',
@@ -496,7 +457,7 @@ app.post(
       email,
       expiresAt: Date.now() + 15 * 60 * 1000,
     });
-    audit({ userId: user.id, action: 'REQUEST_PASSWORD_RESET', requestId: req.requestId });
+    audit({ userId: user._id.toString(), action: 'REQUEST_PASSWORD_RESET', requestId: req.requestId });
 
     return res.status(200).json({
       data: { resetToken: token },
@@ -524,7 +485,7 @@ app.post(
       });
     }
 
-    const user = findUserByEmail(email);
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({
         error: { message: 'Account not found. Please verify the email used for reset.' },
@@ -532,10 +493,10 @@ app.post(
       });
     }
 
-    user.passwordHash = await bcrypt.hash(password, 10);
-    user.updatedAt = new Date().toISOString();
+    await user.setPassword(password);
+    await user.save();
     db.passwordResets.delete(token);
-    audit({ userId: user.id, action: 'RESET_PASSWORD', requestId: req.requestId });
+    audit({ userId: user._id.toString(), action: 'RESET_PASSWORD', requestId: req.requestId });
 
     return res.status(200).json({
       message: 'Password has been updated.',
@@ -569,23 +530,20 @@ app.use(Sentry.Handlers.errorHandler());
 
 async function bootstrap() {
   try {
+    await connectDB(process.env.MONGODB_URI);
     await seedEnvironmentData(APP_ENV, {
       db,
       findUserByEmail,
       audit,
       hashPassword: (value) => bcrypt.hash(value, 10),
+      UserModel: User,
     });
 
-    app.listen(PORT, () => {
-      // eslint-disable-next-line no-console
-      console.log(
-        `Authentication API listening on port ${PORT} (env: ${APP_ENV})`,
-      );
-    });
-  } catch (error) {
-    Sentry.captureException(error);
-    // eslint-disable-next-line no-console
-    console.error('Failed to start authentication API', error);
+    const port = process.env.PORT || 4000;
+    app.listen(port, () => console.log(`[API] listening on ${port}`));
+  } catch (e) {
+    Sentry.captureException(e);
+    console.error('[Boot] Failed:', e);
     process.exit(1);
   }
 }

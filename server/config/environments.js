@@ -104,11 +104,33 @@ function loadEnvironmentConfig(env) {
   return baseConfig;
 }
 
-async function seedBetaEnvironment({ db, findUserByEmail, audit, hashPassword }) {
+async function seedBetaEnvironment({ db, findUserByEmail, audit, hashPassword, UserModel }) {
   const requestId = `seed-beta-${Date.now()}`;
 
   const ensureUser = async ({ email, name, role }) => {
-    const existing = findUserByEmail(email);
+    if (UserModel) {
+      const existingDoc = await UserModel.findOne({ email });
+      if (existingDoc) {
+        return existingDoc;
+      }
+      const user = new UserModel({ name, email, role, verified: true });
+      const password = process.env.BETA_DEFAULT_PASSWORD || 'Password123!';
+      if (typeof user.setPassword === 'function') {
+        await user.setPassword(password);
+      } else if (hashPassword) {
+        user.passwordHash = await hashPassword(password);
+      }
+      await user.save();
+      audit({
+        userId: user._id.toString(),
+        action: 'SEED_USER',
+        metadata: { env: 'beta', role },
+        requestId,
+      });
+      return user;
+    }
+
+    const existing = await findUserByEmail(email);
     if (existing) {
       return existing;
     }
