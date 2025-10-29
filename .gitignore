@@ -18,6 +18,5 @@ coverage/
 
 # Node server dependencies
 server/node_modules/
-server/.env
 
 # Miscellaneous

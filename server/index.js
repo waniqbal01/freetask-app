@@ -26,6 +26,9 @@ const shouldUseSecureCookies =
   typeof environmentConfig.cookies?.secure === 'boolean'
     ? environmentConfig.cookies.secure
     : APP_ENV === 'production';
+const allowedOrigins = new Set(environmentConfig.cors.allowedOrigins || []);
+const allowOriginPattern = environmentConfig.cors.allowPattern || null;
+const localOriginPatterns = [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/];
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN || '',
@@ -36,28 +39,19 @@ Sentry.init({
 
 const app = express();
 
-app.use(Sentry.Handlers.requestHandler());
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-const allowedOrigins = new Set(environmentConfig.cors.allowedOrigins || []);
-const allowOriginPattern = environmentConfig.cors.allowPattern || null;
-
-function isOriginAllowed(origin) {
-  if (!origin) {
-    return true;
-  }
-  if (allowedOrigins.has(origin)) {
-    return true;
-  }
-  if (allowOriginPattern && allowOriginPattern.test(origin)) {
-    return true;
-  }
-  return false;
-}
-
 app.use(
   cors({
     origin(origin, callback) {
-      if (isOriginAllowed(origin)) {
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (localOriginPatterns.some((pattern) => pattern.test(origin))) {
+        return callback(null, true);
+      }
+      if (allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+      if (allowOriginPattern && allowOriginPattern.test(origin)) {
         return callback(null, true);
       }
       const corsError = new Error('Origin is not allowed by CORS policy');
@@ -65,11 +59,17 @@ app.use(
       return callback(corsError);
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     exposedHeaders: ['X-Request-Id'],
   }),
 );
-app.use(compression());
+
 app.use(express.json({ limit: '1mb' }));
+
+app.use(Sentry.Handlers.requestHandler());
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(compression());
 app.use(cookieParser());
 app.use((req, res, next) => {
   const requestId = req.headers['x-request-id'] || uuidv4();
@@ -531,6 +531,24 @@ app.use(Sentry.Handlers.errorHandler());
 async function bootstrap() {
   try {
     await connectDB(process.env.MONGODB_URI);
+    if (APP_ENV !== 'production') {
+      await (async () => {
+        const exist = await User.findOne({ email: 'admin@freetask.local' });
+        if (!exist) {
+          const admin = new User({
+            name: 'Admin',
+            email: 'admin@freetask.local',
+            verified: true,
+            role: 'admin',
+          });
+          await admin.setPassword('Admin123!');
+          await admin.save();
+          console.log('[SEED] Admin user created');
+        }
+      })().catch((error) => {
+        console.error('[SEED] Failed:', error);
+      });
+    }
     await seedEnvironmentData(APP_ENV, {
       db,
       findUserByEmail,
@@ -540,7 +558,7 @@ async function bootstrap() {
     });
 
     const port = process.env.PORT || 4000;
-    app.listen(port, () => console.log(`[API] listening on ${port}`));
+    app.listen(port, () => console.log(`[API] running on ${port}`));
   } catch (e) {
     Sentry.captureException(e);
     console.error('[Boot] Failed:', e);
