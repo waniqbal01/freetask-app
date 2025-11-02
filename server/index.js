@@ -439,7 +439,7 @@ const privilegedAccounts = [
 ];
 
 const bypassVerificationAccounts = new Map(
-  privilegedAccounts.map((account) => [account.email, account]),
+  privilegedAccounts.map((account) => [account.email.toLowerCase(), account]),
 );
 
 app.post(
@@ -453,18 +453,19 @@ app.post(
   async (req, res) => {
     try {
       const { email, password } = req.body;
-      const user = await findUserByEmail(email);
+      const normalizedEmail = String(email).toLowerCase();
+      const user = await findUserByEmail(normalizedEmail);
       if (!user || !(await verifyUserPassword(user, password))) {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
 
-      const bypassAccount = bypassVerificationAccounts.get(email);
+      const bypassAccount = bypassVerificationAccounts.get(normalizedEmail);
 
       if (!user.verified) {
         if (!bypassAccount || password !== bypassAccount.password) {
           const code = crypto.randomInt(100000, 999999).toString();
           req.app.locals.emailCodes ??= new Map();
-          req.app.locals.emailCodes.set(email, { code, exp: Date.now() + 15 * 60 * 1000 });
+          req.app.locals.emailCodes.set(normalizedEmail, { code, exp: Date.now() + 15 * 60 * 1000 });
           return res.status(403).json({
             message: 'Email verification required',
             details: { verificationCode: code },
