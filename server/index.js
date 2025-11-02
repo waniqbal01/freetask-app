@@ -119,6 +119,8 @@ const db = {
   auditLogs: [],
 };
 
+let usingMemoryStore = false;
+
 const allowedRoles = new Set(['client', 'freelancer', 'admin', 'manager', 'support']);
 
 function sanitizeUser(user) {
@@ -150,6 +152,17 @@ function audit({ userId, action, metadata, requestId }) {
     requestId: requestId || null,
     timestamp: new Date().toISOString(),
   });
+}
+
+function getUserId(user) {
+  if (!user) return null;
+  if (typeof user.id === 'string' && user.id) {
+    return user.id;
+  }
+  if (user._id) {
+    return user._id.toString();
+  }
+  return null;
 }
 
 function buildTokens(user) {
@@ -220,7 +233,7 @@ async function authGuard(req, res, next) {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(payload.sub);
+    const user = await findUserById(payload.sub);
     if (!user) {
       throw new Error('User not found');
     }
@@ -248,12 +261,117 @@ function roleGuard(roles) {
 
 async function findUserByEmail(email) {
   if (!email) return null;
-  return User.findOne({ email });
+  if (!usingMemoryStore) {
+    return User.findOne({ email });
+  }
+  const normalizedEmail = String(email).toLowerCase();
+  for (const user of db.users.values()) {
+    if (user.email === normalizedEmail) {
+      return user;
+    }
+  }
+  return null;
+}
+
+async function findUserById(id) {
+  if (!id) return null;
+  if (!usingMemoryStore) {
+    return User.findById(id);
+  }
+  return db.users.get(id) || null;
+}
+
+async function createUserRecord({ name, email, password, role, verified = false }) {
+  const normalizedEmail = String(email).toLowerCase();
+  if (!usingMemoryStore) {
+    const user = new User({ name, email: normalizedEmail, role, verified });
+    if (password) {
+      await user.setPassword(password);
+    }
+    await user.save();
+    return user;
+  }
+
+  const id = uuidv4();
+  const now = new Date().toISOString();
+  const passwordHash = password ? await bcrypt.hash(password, 10) : '';
+  const user = {
+    id,
+    name,
+    email: normalizedEmail,
+    role,
+    verified,
+    passwordHash,
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.users.set(id, user);
+  return user;
+}
+
+async function verifyUserPassword(user, password) {
+  if (!user || !password) {
+    return false;
+  }
+
+  if (!usingMemoryStore && typeof user.verifyPassword === 'function') {
+    return user.verifyPassword(password);
+  }
+
+  if (!user.passwordHash) {
+    return false;
+  }
+  return bcrypt.compare(password, user.passwordHash);
+}
+
+async function markUserVerified(email) {
+  const user = await findUserByEmail(email);
+  if (!user) {
+    return null;
+  }
+
+  if (!usingMemoryStore) {
+    user.verified = true;
+    await user.save();
+    return user;
+  }
+
+  user.verified = true;
+  user.updatedAt = new Date().toISOString();
+  db.users.set(user.id, user);
+  return user;
+}
+
+async function updateUserPassword(user, password) {
+  if (!user) {
+    return null;
+  }
+
+  if (!usingMemoryStore) {
+    await user.setPassword(password);
+    await user.save();
+    return user;
+  }
+
+  const userId = getUserId(user);
+  if (!userId) {
+    return null;
+  }
+
+  const existing = db.users.get(userId);
+  if (!existing) {
+    return null;
+  }
+
+  existing.passwordHash = await bcrypt.hash(password, 10);
+  existing.updatedAt = new Date().toISOString();
+  db.users.set(userId, existing);
+  return existing;
 }
 
 function signAccessToken(user) {
   const secret = process.env.JWT_SECRET || JWT_SECRET;
-  return jwt.sign({ sub: user._id.toString(), role: user.role }, secret, {
+  return jwt.sign({ sub: getUserId(user), role: user.role }, secret, {
     expiresIn: '15m',
   });
 }
@@ -289,12 +407,15 @@ app.post(
   async (req, res) => {
     try {
       const { name, email, password, role } = req.body;
-      if (await User.findOne({ email })) {
+      if (await findUserByEmail(email)) {
         return res.status(409).json({ message: 'Email already exists' });
       }
-      const user = new User({ name, email, role: allowedRoles.has(role) ? role : 'client' });
-      await user.setPassword(password);
-      await user.save();
+      const user = await createUserRecord({
+        name,
+        email,
+        password,
+        role: allowedRoles.has(role) ? role : 'client',
+      });
       const code = crypto.randomInt(100000, 999999).toString();
       req.app.locals.emailCodes ??= new Map();
       req.app.locals.emailCodes.set(email, { code, exp: Date.now() + 15 * 60 * 1000 });
@@ -317,8 +438,8 @@ app.post(
   async (req, res) => {
     try {
       const { email, password } = req.body;
-      const user = await User.findOne({ email });
-      if (!user || !(await user.verifyPassword(password))) {
+      const user = await findUserByEmail(email);
+      if (!user || !(await verifyUserPassword(user, password))) {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       if (!user.verified) {
@@ -330,9 +451,10 @@ app.post(
           details: { verificationCode: code },
         });
       }
+      const userId = getUserId(user);
       return res.json({
         user: {
-          id: user._id.toString(),
+          id: userId,
           name: user.name,
           email: user.email,
           role: user.role,
@@ -360,11 +482,7 @@ app.post(
       if (!rec || rec.exp < Date.now() || rec.code !== code) {
         return res.status(400).json({ message: 'Invalid or expired code' });
       }
-      const user = await User.findOneAndUpdate(
-        { email },
-        { $set: { verified: true } },
-        { new: true },
-      );
+      const user = await markUserVerified(email);
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
@@ -406,7 +524,7 @@ app.post(
       });
     }
 
-    const user = await User.findById(record.userId);
+    const user = await findUserById(record.userId);
     if (!user) {
       db.refreshTokens.delete(refreshToken);
       clearRefreshCookie(res);
@@ -444,7 +562,7 @@ app.post(
   handleValidationResult,
   async (req, res) => {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await findUserByEmail(email);
     if (!user) {
       return res.status(200).json({
         message: 'If that account exists, a reset email has been sent.',
@@ -457,7 +575,7 @@ app.post(
       email,
       expiresAt: Date.now() + 15 * 60 * 1000,
     });
-    audit({ userId: user._id.toString(), action: 'REQUEST_PASSWORD_RESET', requestId: req.requestId });
+    audit({ userId: getUserId(user), action: 'REQUEST_PASSWORD_RESET', requestId: req.requestId });
 
     return res.status(200).json({
       data: { resetToken: token },
@@ -485,7 +603,7 @@ app.post(
       });
     }
 
-    const user = await User.findOne({ email });
+    const user = await findUserByEmail(email);
     if (!user) {
       return res.status(401).json({
         error: { message: 'Account not found. Please verify the email used for reset.' },
@@ -493,10 +611,13 @@ app.post(
       });
     }
 
-    await user.setPassword(password);
-    await user.save();
+    const updatedUser = await updateUserPassword(user, password);
     db.passwordResets.delete(token);
-    audit({ userId: user._id.toString(), action: 'RESET_PASSWORD', requestId: req.requestId });
+    audit({
+      userId: getUserId(updatedUser || user),
+      action: 'RESET_PASSWORD',
+      requestId: req.requestId,
+    });
 
     return res.status(200).json({
       message: 'Password has been updated.',
@@ -530,20 +651,35 @@ app.use(Sentry.Handlers.errorHandler());
 
 async function bootstrap() {
   try {
-    await connectDB(process.env.MONGODB_URI);
+    let connectedToMongo = false;
+    try {
+      await connectDB(process.env.MONGODB_URI);
+      connectedToMongo = true;
+    } catch (connectionError) {
+      console.warn(
+        `[Boot] MongoDB connection failed (${connectionError.message}). Falling back to in-memory data store.`,
+      );
+    }
+
+    usingMemoryStore = !connectedToMongo;
+    if (usingMemoryStore) {
+      console.warn('[Boot] Data will not persist between restarts while using the in-memory store.');
+    }
+
     if (APP_ENV !== 'production') {
       await (async () => {
-        const exist = await User.findOne({ email: 'admin@freetask.local' });
+        const exist = await findUserByEmail('admin@freetask.local');
         if (!exist) {
-          const admin = new User({
+          await createUserRecord({
             name: 'Admin',
             email: 'admin@freetask.local',
-            verified: true,
+            password: 'Admin123!',
             role: 'admin',
+            verified: true,
           });
-          await admin.setPassword('Admin123!');
-          await admin.save();
           console.log('[SEED] Admin user created');
+        } else if (!exist.verified) {
+          await markUserVerified('admin@freetask.local');
         }
       })().catch((error) => {
         console.error('[SEED] Failed:', error);
@@ -554,7 +690,7 @@ async function bootstrap() {
       findUserByEmail,
       audit,
       hashPassword: (value) => bcrypt.hash(value, 10),
-      UserModel: User,
+      UserModel: connectedToMongo ? User : null,
     });
 
     const port = process.env.PORT || 4000;
