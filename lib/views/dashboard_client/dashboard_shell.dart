@@ -26,7 +26,7 @@ class DashboardShell extends StatefulWidget {
     this.initialTarget = RoleNavTarget.home,
   });
 
-  static const routeName = AppRoutes.dashboard;
+  static const routeName = AppRoutes.marketplaceHome;
 
   final RoleNavTarget initialTarget;
 
@@ -161,19 +161,15 @@ class _PostJobButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final storage = RepositoryProvider.of<StorageService>(context);
     final role = storage.role ?? storage.getUser()?.role;
-    if (!RolePermissions.roleCanPostJob(role)) {
+    if (!RolePermissions.roleCanCreateService(role)) {
       return const SizedBox.shrink();
     }
     return FloatingActionButton.extended(
       onPressed: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Job posting is coming soon.'),
-          ),
-        );
+        Navigator.of(context).pushNamed(AppRoutes.createService);
       },
       icon: const Icon(Icons.add),
-      label: const Text('Post Job'),
+      label: const Text('Create Service'),
     );
   }
 }

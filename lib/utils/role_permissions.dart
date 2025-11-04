@@ -5,8 +5,6 @@ class UserRoles {
   static const client = 'client';
   static const freelancer = 'freelancer';
   static const admin = 'admin';
-  static const manager = 'manager';
-  static const support = 'support';
 
   static const defaultRole = client;
 
@@ -14,28 +12,24 @@ class UserRoles {
     client,
     freelancer,
     admin,
-    manager,
-    support,
   };
 }
 
 /// High level permission identifiers representing role based capabilities.
 enum RolePermission {
-  viewDashboard,
-  manageUsers,
-  viewJobs,
-  viewOwnJobs,
-  createJob,
-  acceptJob,
-  completeJob,
-  cancelJob,
-  payJob,
-  viewChats,
-  viewBids,
-  manageBids,
-  viewWallet,
-  releasePayment,
-  viewNotifications,
+  viewMarketplace,
+  viewServiceDetail,
+  purchaseServices,
+  checkoutService,
+  viewOrders,
+  manageBuyerOrders,
+  manageSellerOrders,
+  manageOwnServices,
+  accessSellerDashboard,
+  accessAdminConsole,
+  moderateServices,
+  manageTransactions,
+  managePayouts,
 }
 
 class RolePermissionConfig {
@@ -52,114 +46,99 @@ class RolePermissionConfig {
   bool isAllowed(String? role) => role != null && allowedRoles.contains(role);
 }
 
-/// Provides a single source of truth for role permissions.
+/// Provides a single source of truth for role permissions across the
+/// marketplace experience.
 class RolePermissions {
   static final Map<RolePermission, RolePermissionConfig> _configs = {
-    RolePermission.viewDashboard: RolePermissionConfig(
+    RolePermission.viewMarketplace: const RolePermissionConfig(
       allowedRoles: {
         UserRoles.client,
         UserRoles.freelancer,
         UserRoles.admin,
-        UserRoles.manager,
-        UserRoles.support,
       },
-      description: 'view dashboards',
+      description: 'browse marketplace services',
+      requiresAuth: false,
     ),
-    RolePermission.manageUsers: RolePermissionConfig(
-      allowedRoles: {
-        UserRoles.admin,
-        UserRoles.manager,
-        UserRoles.support,
-      },
-      description: 'manage users',
-    ),
-    RolePermission.viewJobs: RolePermissionConfig(
+    RolePermission.viewServiceDetail: const RolePermissionConfig(
       allowedRoles: {
         UserRoles.client,
         UserRoles.freelancer,
         UserRoles.admin,
-        UserRoles.manager,
-        UserRoles.support,
       },
-      description: 'browse jobs',
+      description: 'view detailed service information',
+      requiresAuth: false,
     ),
-    RolePermission.viewOwnJobs: RolePermissionConfig(
-      allowedRoles: {
-        UserRoles.client,
-        UserRoles.freelancer,
-      },
-      description: 'view personal jobs',
-    ),
-    RolePermission.createJob: RolePermissionConfig(
+    RolePermission.purchaseServices: const RolePermissionConfig(
       allowedRoles: {
         UserRoles.client,
       },
-      description: 'create jobs',
+      description: 'purchase services from freelancers',
     ),
-    RolePermission.acceptJob: RolePermissionConfig(
-      allowedRoles: {
-        UserRoles.freelancer,
-      },
-      description: 'accept jobs',
-    ),
-    RolePermission.completeJob: RolePermissionConfig(
-      allowedRoles: {
-        UserRoles.client,
-        UserRoles.freelancer,
-      },
-      description: 'mark jobs as complete',
-    ),
-    RolePermission.cancelJob: RolePermissionConfig(
-      allowedRoles: {
-        UserRoles.client,
-        UserRoles.admin,
-        UserRoles.manager,
-      },
-      description: 'cancel jobs',
-    ),
-    RolePermission.payJob: RolePermissionConfig(
+    RolePermission.checkoutService: const RolePermissionConfig(
       allowedRoles: {
         UserRoles.client,
       },
-      description: 'pay for jobs',
+      description: 'complete service checkout',
     ),
-    RolePermission.viewChats: RolePermissionConfig(
-      allowedRoles: RolePermission.viewJobs.allowedRoles,
-      description: 'access chats',
-    ),
-    RolePermission.viewBids: RolePermissionConfig(
-      allowedRoles: {
-        UserRoles.client,
-        UserRoles.freelancer,
-      },
-      description: 'view bids',
-    ),
-    RolePermission.manageBids: RolePermissionConfig(
-      allowedRoles: {
-        UserRoles.client,
-        UserRoles.admin,
-        UserRoles.manager,
-      },
-      description: 'manage bids',
-    ),
-    RolePermission.viewWallet: RolePermissionConfig(
+    RolePermission.viewOrders: const RolePermissionConfig(
       allowedRoles: {
         UserRoles.client,
         UserRoles.freelancer,
         UserRoles.admin,
-        UserRoles.manager,
       },
-      description: 'view wallet balances',
+      description: 'view marketplace orders',
     ),
-    RolePermission.releasePayment: RolePermissionConfig(
+    RolePermission.manageBuyerOrders: const RolePermissionConfig(
       allowedRoles: {
         UserRoles.client,
+        UserRoles.admin,
       },
-      description: 'release escrow payments',
+      description: 'manage purchased orders',
     ),
-    RolePermission.viewNotifications: RolePermissionConfig(
-      allowedRoles: RolePermission.viewJobs.allowedRoles,
-      description: 'view notifications',
+    RolePermission.manageSellerOrders: const RolePermissionConfig(
+      allowedRoles: {
+        UserRoles.freelancer,
+        UserRoles.admin,
+      },
+      description: 'manage sold orders',
+    ),
+    RolePermission.manageOwnServices: const RolePermissionConfig(
+      allowedRoles: {
+        UserRoles.freelancer,
+        UserRoles.admin,
+      },
+      description: 'create and update services',
+    ),
+    RolePermission.accessSellerDashboard: const RolePermissionConfig(
+      allowedRoles: {
+        UserRoles.freelancer,
+        UserRoles.admin,
+      },
+      description: 'access seller dashboard',
+    ),
+    RolePermission.accessAdminConsole: const RolePermissionConfig(
+      allowedRoles: {
+        UserRoles.admin,
+      },
+      description: 'access administrative console',
+    ),
+    RolePermission.moderateServices: const RolePermissionConfig(
+      allowedRoles: {
+        UserRoles.admin,
+      },
+      description: 'moderate marketplace services',
+    ),
+    RolePermission.manageTransactions: const RolePermissionConfig(
+      allowedRoles: {
+        UserRoles.admin,
+      },
+      description: 'manage escrow transactions',
+    ),
+    RolePermission.managePayouts: const RolePermissionConfig(
+      allowedRoles: {
+        UserRoles.admin,
+      },
+      description: 'release freelancer payouts',
     ),
   };
 
@@ -187,27 +166,24 @@ class RolePermissions {
     return config(permission).requiresAuth;
   }
 
-  static bool roleCanPostJob(String? role) {
-    return isAllowed(role, RolePermission.createJob);
+  static bool roleCanCreateService(String? role) {
+    return isAllowed(role, RolePermission.manageOwnServices);
   }
 
-  static bool roleCanApplyJob(String? role) {
-    return isAllowed(role, RolePermission.acceptJob);
+  static bool roleCanCheckout(String? role) {
+    return isAllowed(role, RolePermission.checkoutService);
   }
 
-  static bool roleCanSeeAdmin(String? role) {
-    return isAllowed(role, RolePermission.manageUsers);
+  static bool roleCanAccessSellerDashboard(String? role) {
+    return isAllowed(role, RolePermission.accessSellerDashboard);
   }
 
-  /// Allows overriding permissions at runtime for future expansion if needed.
-  static void register(
-    RolePermission permission,
-    RolePermissionConfig config,
-  ) {
-    _configs[permission] = config;
+  static bool roleCanAccessAdmin(String? role) {
+    return isAllowed(role, RolePermission.accessAdminConsole);
   }
-}
 
-extension on RolePermission {
-  Set<String> get allowedRoles => RolePermissions.allowedRoles(this);
+  static bool roleCanManageOrders(String? role) {
+    return isAllowed(role, RolePermission.manageBuyerOrders) ||
+        isAllowed(role, RolePermission.manageSellerOrders);
+  }
 }

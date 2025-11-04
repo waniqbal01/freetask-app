@@ -3,11 +3,14 @@ import 'package:dio/dio.dart';
 import 'adapters/shared_prefs_store.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
+import 'services/admin_service.dart';
+import 'services/bid_service.dart';
 import 'services/chat_cache_service.dart';
 import 'services/chat_service.dart';
-import 'services/bid_service.dart';
 import 'services/job_service.dart';
+import 'services/marketplace_service.dart';
 import 'services/notification_service.dart';
+import 'services/order_service.dart';
 import 'services/profile_service.dart';
 import 'services/role_guard.dart';
 import 'services/socket_service.dart';
@@ -34,6 +37,9 @@ class AppBootstrap {
     required this.bidService,
     required this.walletService,
     required this.notificationService,
+    required this.marketplaceService,
+    required this.orderService,
+    required this.adminService,
   });
 
   /// Configures the service layer with real platform implementations.
@@ -55,6 +61,9 @@ class AppBootstrap {
     final bidService = BidService(apiClient);
     final walletService = WalletService(apiClient);
     final notificationService = NotificationService(apiClient);
+    final marketplaceService = MarketplaceService(apiClient);
+    final orderService = OrderService(apiClient);
+    final adminService = AdminService(apiClient);
 
     apiClient.setRefreshCallback(() async => authService.refreshToken());
 
@@ -72,6 +81,9 @@ class AppBootstrap {
       bidService: bidService,
       walletService: walletService,
       notificationService: notificationService,
+      marketplaceService: marketplaceService,
+      orderService: orderService,
+      adminService: adminService,
     );
   }
 
@@ -88,4 +100,7 @@ class AppBootstrap {
   final BidService bidService;
   final WalletService walletService;
   final NotificationService notificationService;
+  final MarketplaceService marketplaceService;
+  final OrderService orderService;
+  final AdminService adminService;
 }

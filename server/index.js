@@ -5,7 +5,7 @@ const cors = require('cors');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
-const { body, validationResult } = require('express-validator');
+const { body, param, validationResult } = require('express-validator');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -13,6 +13,11 @@ const { v4: uuidv4 } = require('uuid');
 const { loadEnvironmentConfig, seedEnvironmentData } = require('./config/environments');
 const { connectDB } = require('./db');
 const User = require('./models/User');
+const Service = require('./models/Service');
+const Order = require('./models/Order');
+const Transaction = require('./models/Transaction');
+const Payout = require('./models/Payout');
+const { requireRole } = require('./middleware/role_guard');
 const Sentry = require('@sentry/node');
 
 const APP_ENV = process.env.APP_ENV || process.env.NODE_ENV || 'development';
@@ -116,12 +121,16 @@ const db = {
   refreshTokens: new Map(),
   passwordResets: new Map(),
   jobs: new Map(),
+  services: new Map(),
+  orders: new Map(),
+  transactions: new Map(),
+  payouts: new Map(),
   auditLogs: [],
 };
 
 let usingMemoryStore = false;
 
-const allowedRoles = new Set(['client', 'freelancer', 'admin', 'manager', 'support']);
+const allowedRoles = new Set(['client', 'freelancer', 'admin']);
 
 function sanitizeUser(user) {
   if (!user) return null;
@@ -388,6 +397,386 @@ function respondWithAuth(res, user, tokens, message) {
     requestId: res.req.requestId,
   };
   return res.status(200).json(payload);
+}
+
+const PLATFORM_FEE_RATE = 0.1;
+
+function toPlainDocument(doc) {
+  if (!doc) return null;
+  if (typeof doc.toObject === 'function') {
+    const plain = doc.toObject({ virtuals: false });
+    const { _id, __v, ...rest } = plain;
+    return {
+      ...rest,
+      id: (_id || plain.id)?.toString(),
+      createdAt: plain.createdAt ? new Date(plain.createdAt).toISOString() : undefined,
+      updatedAt: plain.updatedAt ? new Date(plain.updatedAt).toISOString() : undefined,
+    };
+  }
+
+  const source = { ...doc };
+  if (!source.id && source._id) {
+    source.id = source._id;
+  }
+  if (source.createdAt instanceof Date) {
+    source.createdAt = source.createdAt.toISOString();
+  }
+  if (source.updatedAt instanceof Date) {
+    source.updatedAt = source.updatedAt.toISOString();
+  }
+  return source;
+}
+
+function ensureId(value) {
+  if (!value) return value;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value !== null && typeof value.toString === 'function') {
+    return value.toString();
+  }
+  return value;
+}
+
+function calculateEscrow(amount) {
+  const total = Number(amount) || 0;
+  const platformFee = Math.round(total * PLATFORM_FEE_RATE * 100) / 100;
+  const freelancerAmount = Math.round((total - platformFee) * 100) / 100;
+  return { platformFee, freelancerAmount };
+}
+
+async function formatServiceRecord(service) {
+  if (!service) return null;
+  const plain = toPlainDocument(service);
+  if (!plain) return null;
+  return {
+    id: ensureId(plain.id),
+    freelancer: ensureId(plain.freelancer),
+    title: plain.title,
+    description: plain.description,
+    category: plain.category,
+    price: plain.price,
+    deliveryTime: plain.deliveryTime,
+    media: Array.isArray(plain.media) ? plain.media : [],
+    status: plain.status,
+    createdAt: plain.createdAt,
+    updatedAt: plain.updatedAt,
+  };
+}
+
+async function formatOrderRecord(order) {
+  if (!order) return null;
+
+  if (!usingMemoryStore) {
+    const populated = await order
+      .populate('service')
+      .populate('client', 'name email role')
+      .populate('freelancer', 'name email role');
+    const plain = toPlainDocument(populated);
+    return {
+      id: ensureId(plain.id),
+      service: await formatServiceRecord(populated.service),
+      client: sanitizeUser(populated.client),
+      freelancer: sanitizeUser(populated.freelancer),
+      requirements: plain.requirements || '',
+      status: plain.status,
+      deliveredAt: plain.deliveredAt,
+      deliveryDate: plain.deliveryDate,
+      deliveredWork: plain.deliveredWork,
+      revisionNotes: plain.revisionNotes,
+      totalAmount: plain.totalAmount,
+      createdAt: plain.createdAt,
+      updatedAt: plain.updatedAt,
+    };
+  }
+
+  const plain = toPlainDocument(order);
+  const service = await formatServiceRecord(db.services.get(ensureId(plain.service)));
+  const client = await findUserById(ensureId(plain.client));
+  const freelancer = await findUserById(ensureId(plain.freelancer));
+  return {
+    id: ensureId(plain.id),
+    service,
+    client: sanitizeUser(client),
+    freelancer: sanitizeUser(freelancer),
+    requirements: plain.requirements || '',
+    status: plain.status,
+    deliveredAt: plain.deliveredAt,
+    deliveryDate: plain.deliveryDate,
+    deliveredWork: plain.deliveredWork,
+    revisionNotes: plain.revisionNotes,
+    totalAmount: plain.totalAmount,
+    createdAt: plain.createdAt,
+    updatedAt: plain.updatedAt,
+  };
+}
+
+function normalizeStatusInput(input, allowed) {
+  if (!input) return null;
+  const normalized = String(input).toLowerCase();
+  if (allowed.includes(normalized)) {
+    return normalized;
+  }
+  return null;
+}
+
+async function createServiceRecord(data) {
+  if (!usingMemoryStore) {
+    const record = new Service(data);
+    await record.save();
+    return record;
+  }
+  const id = uuidv4();
+  const now = new Date().toISOString();
+  const record = {
+    id,
+    ...data,
+    freelancer: ensureId(data.freelancer),
+    media: Array.isArray(data.media) ? data.media : [],
+    status: data.status || 'published',
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.services.set(id, record);
+  return record;
+}
+
+async function listServices(filter = {}) {
+  if (!usingMemoryStore) {
+    const query = Service.find(filter);
+    return query.exec();
+  }
+  const services = Array.from(db.services.values());
+  if (!filter || Object.keys(filter).length === 0) {
+    return services;
+  }
+  return services.filter((service) => {
+    return Object.entries(filter).every(([key, value]) => {
+      if (value === undefined) return true;
+      if (Array.isArray(value)) {
+        return value.includes(service[key]);
+      }
+      return service[key] === value;
+    });
+  });
+}
+
+async function findServiceById(id) {
+  if (!id) return null;
+  if (!usingMemoryStore) {
+    return Service.findById(id);
+  }
+  return db.services.get(ensureId(id)) || null;
+}
+
+async function createOrderRecord(data) {
+  if (!usingMemoryStore) {
+    const record = new Order(data);
+    await record.save();
+    return record;
+  }
+  const id = uuidv4();
+  const now = new Date().toISOString();
+  const record = {
+    id,
+    ...data,
+    service: ensureId(data.service),
+    client: ensureId(data.client),
+    freelancer: ensureId(data.freelancer),
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.orders.set(id, record);
+  return record;
+}
+
+async function findOrderById(id) {
+  if (!id) return null;
+  if (!usingMemoryStore) {
+    return Order.findById(id);
+  }
+  return db.orders.get(ensureId(id)) || null;
+}
+
+async function listOrdersForUser(user) {
+  if (!user) return [];
+  const userId = ensureId(getUserId(user) || user.id || user._id);
+  if (!usingMemoryStore) {
+    const query = Order.find({
+      $or: [{ client: userId }, { freelancer: userId }],
+    });
+    return query.exec();
+  }
+  return Array.from(db.orders.values()).filter(
+    (order) => ensureId(order.client) === userId || ensureId(order.freelancer) === userId,
+  );
+}
+
+async function listAllOrders() {
+  if (!usingMemoryStore) {
+    return Order.find();
+  }
+  return Array.from(db.orders.values());
+}
+
+async function saveOrder(order) {
+  if (!order) return null;
+  if (!usingMemoryStore && typeof order.save === 'function') {
+    await order.save();
+    return order;
+  }
+  const id = ensureId(order.id || order._id);
+  if (!id) return order;
+  order.updatedAt = new Date().toISOString();
+  db.orders.set(id, order);
+  return order;
+}
+
+async function createTransactionRecord(data) {
+  if (!usingMemoryStore) {
+    const record = new Transaction(data);
+    await record.save();
+    return record;
+  }
+  const id = uuidv4();
+  const now = new Date().toISOString();
+  const record = {
+    id,
+    ...data,
+    order: ensureId(data.order),
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.transactions.set(id, record);
+  return record;
+}
+
+async function findTransactionByOrder(orderId) {
+  if (!orderId) return null;
+  if (!usingMemoryStore) {
+    return Transaction.findOne({ order: orderId });
+  }
+  const normalized = ensureId(orderId);
+  for (const transaction of db.transactions.values()) {
+    if (ensureId(transaction.order) === normalized) {
+      return transaction;
+    }
+  }
+  return null;
+}
+
+async function saveTransaction(transaction) {
+  if (!transaction) return null;
+  if (!usingMemoryStore && typeof transaction.save === 'function') {
+    await transaction.save();
+    return transaction;
+  }
+  const id = ensureId(transaction.id || transaction._id);
+  if (!id) return transaction;
+  transaction.updatedAt = new Date().toISOString();
+  db.transactions.set(id, transaction);
+  return transaction;
+}
+
+async function createPayoutRecord(data) {
+  if (!usingMemoryStore) {
+    const record = new Payout(data);
+    await record.save();
+    return record;
+  }
+  const id = uuidv4();
+  const now = new Date().toISOString();
+  const record = {
+    id,
+    ...data,
+    freelancer: ensureId(data.freelancer),
+    transaction: ensureId(data.transaction),
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.payouts.set(id, record);
+  return record;
+}
+
+async function findPayoutById(id) {
+  if (!id) return null;
+  if (!usingMemoryStore) {
+    return Payout.findById(id);
+  }
+  return db.payouts.get(ensureId(id)) || null;
+}
+
+async function savePayout(payout) {
+  if (!payout) return null;
+  if (!usingMemoryStore && typeof payout.save === 'function') {
+    await payout.save();
+    return payout;
+  }
+  const id = ensureId(payout.id || payout._id);
+  if (!id) return payout;
+  payout.updatedAt = new Date().toISOString();
+  db.payouts.set(id, payout);
+  return payout;
+}
+
+async function listTransactions(filter = {}) {
+  if (!usingMemoryStore) {
+    return Transaction.find(filter).exec();
+  }
+  const transactions = Array.from(db.transactions.values());
+  if (!filter || Object.keys(filter).length === 0) return transactions;
+  return transactions.filter((transaction) => {
+    return Object.entries(filter).every(([key, value]) => {
+      if (value === undefined) return true;
+      return transaction[key] === value;
+    });
+  });
+}
+
+async function listPayouts(filter = {}) {
+  if (!usingMemoryStore) {
+    return Payout.find(filter).exec();
+  }
+  const payouts = Array.from(db.payouts.values());
+  if (!filter || Object.keys(filter).length === 0) return payouts;
+  return payouts.filter((payout) => {
+    return Object.entries(filter).every(([key, value]) => {
+      if (value === undefined) return true;
+      return payout[key] === value;
+    });
+  });
+}
+
+async function formatTransactionRecord(transaction) {
+  if (!transaction) return null;
+  const plain = toPlainDocument(transaction);
+  return {
+    id: ensureId(plain.id),
+    order: ensureId(plain.order),
+    amount: plain.amount,
+    platformFee: plain.platformFee,
+    freelancerAmount: plain.freelancerAmount,
+    status: plain.status,
+    type: plain.type,
+    notes: plain.notes,
+    createdAt: plain.createdAt,
+    updatedAt: plain.updatedAt,
+  };
+}
+
+async function formatPayoutRecord(payout) {
+  if (!payout) return null;
+  const plain = toPlainDocument(payout);
+  const freelancer = await findUserById(ensureId(plain.freelancer));
+  return {
+    id: ensureId(plain.id),
+    transaction: ensureId(plain.transaction),
+    freelancer: sanitizeUser(freelancer),
+    amount: plain.amount,
+    status: plain.status,
+    method: plain.method,
+    reference: plain.reference,
+    createdAt: plain.createdAt,
+    updatedAt: plain.updatedAt,
+  };
 }
 
 app.post(
@@ -685,6 +1074,683 @@ app.get('/users/me', authGuard, (req, res) => {
     requestId: req.requestId,
   });
 });
+
+app.get('/api/services', async (req, res) => {
+  try {
+    const { category, freelancerId, status } = req.query;
+    const filter = {};
+    if (category) {
+      filter.category = category;
+    }
+    if (freelancerId) {
+      filter.freelancer = freelancerId;
+    }
+    filter.status = status || 'published';
+
+    const services = await listServices(filter);
+    const payload = await Promise.all(services.map((service) => formatServiceRecord(service)));
+    return res.status(200).json({
+      data: payload,
+      requestId: req.requestId,
+    });
+  } catch (error) {
+    console.error('[Services:list] Failed', error);
+    return res.status(500).json({
+      error: { message: 'Failed to load services' },
+      requestId: req.requestId,
+    });
+  }
+});
+
+app.get('/api/services/:serviceId', async (req, res) => {
+  try {
+    const service = await findServiceById(req.params.serviceId);
+    if (!service) {
+      return res.status(404).json({
+        error: { message: 'Service not found' },
+        requestId: req.requestId,
+      });
+    }
+    return res.status(200).json({
+      data: await formatServiceRecord(service),
+      requestId: req.requestId,
+    });
+  } catch (error) {
+    console.error('[Services:get] Failed', error);
+    return res.status(500).json({
+      error: { message: 'Failed to load service' },
+      requestId: req.requestId,
+    });
+  }
+});
+
+app.get('/api/services/mine', authGuard, requireRole('freelancer'), async (req, res) => {
+  try {
+    const services = await listServices({ freelancer: req.user.id });
+    const payload = await Promise.all(services.map((service) => formatServiceRecord(service)));
+    return res.status(200).json({ data: payload, requestId: req.requestId });
+  } catch (error) {
+    console.error('[Services:mine] Failed', error);
+    return res.status(500).json({
+      error: { message: 'Failed to load freelancer services' },
+      requestId: req.requestId,
+    });
+  }
+});
+
+app.post(
+  '/api/services',
+  authGuard,
+  requireRole('freelancer'),
+  [
+    body('title').isString().trim().isLength({ min: 3 }).withMessage('Title is required'),
+    body('description').isString().trim().isLength({ min: 10 }).withMessage('Description is required'),
+    body('category').isString().trim().notEmpty().withMessage('Category is required'),
+    body('price').isNumeric().withMessage('Price must be a number'),
+    body('deliveryTime').isInt({ min: 1 }).withMessage('Delivery time must be at least 1 day'),
+    body('media').optional().isArray().withMessage('Media must be an array'),
+  ],
+  handleValidationResult,
+  async (req, res) => {
+    try {
+      const { title, description, category, price, deliveryTime, media, status } = req.body;
+      const normalizedStatus = normalizeStatusInput(status, ['draft', 'published']);
+      const service = await createServiceRecord({
+        freelancer: req.user.id,
+        title,
+        description,
+        category,
+        price,
+        deliveryTime,
+        media: Array.isArray(media) ? media : [],
+        status: normalizedStatus || 'published',
+      });
+      return res.status(201).json({
+        data: await formatServiceRecord(service),
+        requestId: req.requestId,
+      });
+    } catch (error) {
+      console.error('[Services:create] Failed', error);
+      return res.status(500).json({
+        error: { message: 'Failed to create service' },
+        requestId: req.requestId,
+      });
+    }
+  },
+);
+
+app.put(
+  '/api/services/:serviceId',
+  authGuard,
+  requireRole('freelancer'),
+  [
+    param('serviceId').isString().withMessage('Service id is required'),
+    body('title').optional().isString().trim(),
+    body('description').optional().isString().trim(),
+    body('category').optional().isString().trim(),
+    body('price').optional().isNumeric(),
+    body('deliveryTime').optional().isInt({ min: 1 }),
+    body('media').optional().isArray(),
+    body('status').optional().isString(),
+  ],
+  handleValidationResult,
+  async (req, res) => {
+    try {
+      const service = await findServiceById(req.params.serviceId);
+      if (!service) {
+        return res.status(404).json({
+          error: { message: 'Service not found' },
+          requestId: req.requestId,
+        });
+      }
+
+      const ownerId = ensureId(
+        usingMemoryStore ? service.freelancer : service.freelancer?._id || service.freelancer,
+      );
+      if (req.user.role !== 'admin' && ownerId !== req.user.id) {
+        return res.status(403).json({
+          error: { message: 'You can only update your own services' },
+          requestId: req.requestId,
+        });
+      }
+
+      const updates = {};
+      const { title, description, category, price, deliveryTime, media, status } = req.body;
+      if (title) updates.title = title;
+      if (description) updates.description = description;
+      if (category) updates.category = category;
+      if (price !== undefined) updates.price = price;
+      if (deliveryTime !== undefined) updates.deliveryTime = deliveryTime;
+      if (Array.isArray(media)) updates.media = media;
+      if (status) {
+        const normalized = normalizeStatusInput(status, ['draft', 'published', 'suspended']);
+        if (normalized) {
+          updates.status = normalized;
+        }
+      }
+
+      if (!usingMemoryStore) {
+        Object.assign(service, updates);
+        await service.save();
+      } else {
+        Object.assign(service, updates, { updatedAt: new Date().toISOString() });
+        db.services.set(service.id, service);
+      }
+
+      return res.status(200).json({
+        data: await formatServiceRecord(service),
+        requestId: req.requestId,
+      });
+    } catch (error) {
+      console.error('[Services:update] Failed', error);
+      return res.status(500).json({
+        error: { message: 'Failed to update service' },
+        requestId: req.requestId,
+      });
+    }
+  },
+);
+
+app.post(
+  '/api/orders',
+  authGuard,
+  requireRole('client'),
+  [
+    body('serviceId').isString().withMessage('Service id is required'),
+    body('requirements').optional().isString(),
+  ],
+  handleValidationResult,
+  async (req, res) => {
+    try {
+      const { serviceId, requirements } = req.body;
+      const service = await findServiceById(serviceId);
+      if (!service) {
+        return res.status(404).json({
+          error: { message: 'Service not found' },
+          requestId: req.requestId,
+        });
+      }
+
+      const serviceRecord = await formatServiceRecord(service);
+      if (serviceRecord.status === 'suspended') {
+        return res.status(403).json({
+          error: { message: 'Service is not available for purchase' },
+          requestId: req.requestId,
+        });
+      }
+
+      const expectedDelivery = new Date();
+      expectedDelivery.setDate(expectedDelivery.getDate() + Number(serviceRecord.deliveryTime || 1));
+
+      const order = await createOrderRecord({
+        service: serviceRecord.id,
+        client: req.user.id,
+        freelancer: serviceRecord.freelancer,
+        requirements: requirements || '',
+        status: 'pending',
+        totalAmount: serviceRecord.price,
+        deliveryDate: expectedDelivery.toISOString(),
+      });
+
+      const orderId = ensureId(order.id || order._id);
+      const { platformFee, freelancerAmount } = calculateEscrow(serviceRecord.price);
+      await createTransactionRecord({
+        order: orderId,
+        amount: serviceRecord.price,
+        platformFee,
+        freelancerAmount,
+        status: 'escrow',
+        type: 'escrow',
+      });
+
+      return res.status(201).json({
+        data: await formatOrderRecord(order),
+        requestId: req.requestId,
+      });
+    } catch (error) {
+      console.error('[Orders:create] Failed', error);
+      return res.status(500).json({
+        error: { message: 'Failed to create order' },
+        requestId: req.requestId,
+      });
+    }
+  },
+);
+
+app.get('/api/orders', authGuard, async (req, res) => {
+  try {
+    const orders = req.user.role === 'admin' ? await listAllOrders() : await listOrdersForUser(req.user);
+    const payload = await Promise.all(orders.map((order) => formatOrderRecord(order)));
+    return res.status(200).json({ data: payload, requestId: req.requestId });
+  } catch (error) {
+    console.error('[Orders:list] Failed', error);
+    return res.status(500).json({
+      error: { message: 'Failed to load orders' },
+      requestId: req.requestId,
+    });
+  }
+});
+
+app.get(
+  '/api/orders/:orderId',
+  authGuard,
+  [param('orderId').isString()],
+  handleValidationResult,
+  async (req, res) => {
+    try {
+      const order = await findOrderById(req.params.orderId);
+      if (!order) {
+        return res.status(404).json({
+          error: { message: 'Order not found' },
+          requestId: req.requestId,
+        });
+      }
+
+      const ownerIds = [
+        ensureId(usingMemoryStore ? order.client : order.client?._id || order.client),
+        ensureId(usingMemoryStore ? order.freelancer : order.freelancer?._id || order.freelancer),
+      ];
+      if (req.user.role !== 'admin' && !ownerIds.includes(req.user.id)) {
+        return res.status(403).json({
+          error: { message: 'You do not have access to this order' },
+          requestId: req.requestId,
+        });
+      }
+
+      return res.status(200).json({
+        data: await formatOrderRecord(order),
+        requestId: req.requestId,
+      });
+    } catch (error) {
+      console.error('[Orders:get] Failed', error);
+      return res.status(500).json({
+        error: { message: 'Failed to load order' },
+        requestId: req.requestId,
+      });
+    }
+  },
+);
+
+app.patch(
+  '/api/orders/:orderId/accept',
+  authGuard,
+  requireRole('freelancer'),
+  [param('orderId').isString()],
+  handleValidationResult,
+  async (req, res) => {
+    try {
+      const order = await findOrderById(req.params.orderId);
+      if (!order) {
+        return res.status(404).json({
+          error: { message: 'Order not found' },
+          requestId: req.requestId,
+        });
+      }
+
+      const freelancerId = ensureId(
+        usingMemoryStore ? order.freelancer : order.freelancer?._id || order.freelancer,
+      );
+      if (freelancerId !== req.user.id) {
+        return res.status(403).json({
+          error: { message: 'You can only accept orders assigned to you' },
+          requestId: req.requestId,
+        });
+      }
+
+      order.status = 'accepted';
+      await saveOrder(order);
+      return res.status(200).json({
+        data: await formatOrderRecord(order),
+        requestId: req.requestId,
+      });
+    } catch (error) {
+      console.error('[Orders:accept] Failed', error);
+      return res.status(500).json({
+        error: { message: 'Failed to accept order' },
+        requestId: req.requestId,
+      });
+    }
+  },
+);
+
+app.patch(
+  '/api/orders/:orderId/deliver',
+  authGuard,
+  requireRole('freelancer'),
+  [
+    param('orderId').isString(),
+    body('deliveredWork').isString().withMessage('Delivered work is required'),
+    body('revisionNotes').optional().isString(),
+  ],
+  handleValidationResult,
+  async (req, res) => {
+    try {
+      const order = await findOrderById(req.params.orderId);
+      if (!order) {
+        return res.status(404).json({
+          error: { message: 'Order not found' },
+          requestId: req.requestId,
+        });
+      }
+
+      const freelancerId = ensureId(
+        usingMemoryStore ? order.freelancer : order.freelancer?._id || order.freelancer,
+      );
+      if (freelancerId !== req.user.id) {
+        return res.status(403).json({
+          error: { message: 'You can only deliver orders assigned to you' },
+          requestId: req.requestId,
+        });
+      }
+
+      order.status = 'delivered';
+      order.deliveredWork = req.body.deliveredWork;
+      order.revisionNotes = req.body.revisionNotes || '';
+      order.deliveredAt = new Date().toISOString();
+      await saveOrder(order);
+
+      return res.status(200).json({
+        data: await formatOrderRecord(order),
+        requestId: req.requestId,
+      });
+    } catch (error) {
+      console.error('[Orders:deliver] Failed', error);
+      return res.status(500).json({
+        error: { message: 'Failed to deliver order' },
+        requestId: req.requestId,
+      });
+    }
+  },
+);
+
+app.patch(
+  '/api/orders/:orderId/complete',
+  authGuard,
+  requireRole('client'),
+  [param('orderId').isString()],
+  handleValidationResult,
+  async (req, res) => {
+    try {
+      const order = await findOrderById(req.params.orderId);
+      if (!order) {
+        return res.status(404).json({
+          error: { message: 'Order not found' },
+          requestId: req.requestId,
+        });
+      }
+
+      const clientId = ensureId(
+        usingMemoryStore ? order.client : order.client?._id || order.client,
+      );
+      if (clientId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({
+          error: { message: 'You can only complete your own orders' },
+          requestId: req.requestId,
+        });
+      }
+
+      order.status = 'completed';
+      await saveOrder(order);
+
+      const transaction = await findTransactionByOrder(req.params.orderId);
+      if (transaction) {
+        transaction.status = 'released';
+        await saveTransaction(transaction);
+        await createPayoutRecord({
+          transaction: ensureId(transaction.id || transaction._id),
+          freelancer: ensureId(
+            usingMemoryStore ? order.freelancer : order.freelancer?._id || order.freelancer,
+          ),
+          amount: transaction.freelancerAmount,
+          status: 'pending',
+        });
+      }
+
+      return res.status(200).json({
+        data: await formatOrderRecord(order),
+        requestId: req.requestId,
+      });
+    } catch (error) {
+      console.error('[Orders:complete] Failed', error);
+      return res.status(500).json({
+        error: { message: 'Failed to complete order' },
+        requestId: req.requestId,
+      });
+    }
+  },
+);
+
+app.patch(
+  '/api/orders/:orderId/cancel',
+  authGuard,
+  [param('orderId').isString()],
+  handleValidationResult,
+  async (req, res) => {
+    try {
+      const order = await findOrderById(req.params.orderId);
+      if (!order) {
+        return res.status(404).json({
+          error: { message: 'Order not found' },
+          requestId: req.requestId,
+        });
+      }
+
+      const clientId = ensureId(
+        usingMemoryStore ? order.client : order.client?._id || order.client,
+      );
+      const freelancerId = ensureId(
+        usingMemoryStore ? order.freelancer : order.freelancer?._id || order.freelancer,
+      );
+      const isOwner = req.user.role === 'admin' || req.user.id === clientId || req.user.id === freelancerId;
+      if (!isOwner) {
+        return res.status(403).json({
+          error: { message: 'You are not allowed to cancel this order' },
+          requestId: req.requestId,
+        });
+      }
+
+      order.status = 'cancelled';
+      await saveOrder(order);
+
+      const transaction = await findTransactionByOrder(req.params.orderId);
+      if (transaction) {
+        transaction.status = 'refunded';
+        await saveTransaction(transaction);
+      }
+
+      return res.status(200).json({
+        data: await formatOrderRecord(order),
+        requestId: req.requestId,
+      });
+    } catch (error) {
+      console.error('[Orders:cancel] Failed', error);
+      return res.status(500).json({
+        error: { message: 'Failed to cancel order' },
+        requestId: req.requestId,
+      });
+    }
+  },
+);
+
+app.get('/api/admin/services', authGuard, requireRole('admin'), async (req, res) => {
+  try {
+    const services = await listServices();
+    const payload = await Promise.all(services.map((service) => formatServiceRecord(service)));
+    return res.status(200).json({ data: payload, requestId: req.requestId });
+  } catch (error) {
+    console.error('[Admin:services] Failed', error);
+    return res.status(500).json({
+      error: { message: 'Failed to load services' },
+      requestId: req.requestId,
+    });
+  }
+});
+
+app.patch(
+  '/api/admin/services/:serviceId/status',
+  authGuard,
+  requireRole('admin'),
+  [
+    param('serviceId').isString(),
+    body('status').isString().withMessage('Status is required'),
+  ],
+  handleValidationResult,
+  async (req, res) => {
+    try {
+      const service = await findServiceById(req.params.serviceId);
+      if (!service) {
+        return res.status(404).json({
+          error: { message: 'Service not found' },
+          requestId: req.requestId,
+        });
+      }
+
+      const normalized = normalizeStatusInput(req.body.status, ['draft', 'published', 'suspended']);
+      if (!normalized) {
+        return res.status(422).json({
+          error: { message: 'Invalid status' },
+          requestId: req.requestId,
+        });
+      }
+
+      if (!usingMemoryStore) {
+        service.status = normalized;
+        await service.save();
+      } else {
+        service.status = normalized;
+        service.updatedAt = new Date().toISOString();
+        db.services.set(service.id, service);
+      }
+
+      return res.status(200).json({
+        data: await formatServiceRecord(service),
+        requestId: req.requestId,
+      });
+    } catch (error) {
+      console.error('[Admin:serviceStatus] Failed', error);
+      return res.status(500).json({
+        error: { message: 'Failed to update service status' },
+        requestId: req.requestId,
+      });
+    }
+  },
+);
+
+app.get('/api/admin/orders', authGuard, requireRole('admin'), async (req, res) => {
+  try {
+    const orders = await listAllOrders();
+    const payload = await Promise.all(orders.map((order) => formatOrderRecord(order)));
+    return res.status(200).json({ data: payload, requestId: req.requestId });
+  } catch (error) {
+    console.error('[Admin:orders] Failed', error);
+    return res.status(500).json({
+      error: { message: 'Failed to load orders' },
+      requestId: req.requestId,
+    });
+  }
+});
+
+app.get('/api/admin/transactions', authGuard, requireRole('admin'), async (req, res) => {
+  try {
+    const transactions = await listTransactions();
+    const payload = await Promise.all(
+      transactions.map((transaction) => formatTransactionRecord(transaction)),
+    );
+    return res.status(200).json({ data: payload, requestId: req.requestId });
+  } catch (error) {
+    console.error('[Admin:transactions] Failed', error);
+    return res.status(500).json({
+      error: { message: 'Failed to load transactions' },
+      requestId: req.requestId,
+    });
+  }
+});
+
+app.get('/api/admin/payouts', authGuard, requireRole('admin'), async (req, res) => {
+  try {
+    const payouts = await listPayouts();
+    const payload = await Promise.all(payouts.map((payout) => formatPayoutRecord(payout)));
+    return res.status(200).json({ data: payload, requestId: req.requestId });
+  } catch (error) {
+    console.error('[Admin:payouts] Failed', error);
+    return res.status(500).json({
+      error: { message: 'Failed to load payouts' },
+      requestId: req.requestId,
+    });
+  }
+});
+
+app.patch(
+  '/api/admin/orders/:orderId/refund',
+  authGuard,
+  requireRole('admin'),
+  [param('orderId').isString()],
+  handleValidationResult,
+  async (req, res) => {
+    try {
+      const order = await findOrderById(req.params.orderId);
+      if (!order) {
+        return res.status(404).json({
+          error: { message: 'Order not found' },
+          requestId: req.requestId,
+        });
+      }
+
+      order.status = 'refunded';
+      await saveOrder(order);
+
+      const transaction = await findTransactionByOrder(req.params.orderId);
+      if (transaction) {
+        transaction.status = 'refunded';
+        await saveTransaction(transaction);
+      }
+
+      return res.status(200).json({
+        data: await formatOrderRecord(order),
+        requestId: req.requestId,
+      });
+    } catch (error) {
+      console.error('[Admin:refund] Failed', error);
+      return res.status(500).json({
+        error: { message: 'Failed to refund order' },
+        requestId: req.requestId,
+      });
+    }
+  },
+);
+
+app.patch(
+  '/api/admin/payouts/:payoutId/release',
+  authGuard,
+  requireRole('admin'),
+  [param('payoutId').isString()],
+  handleValidationResult,
+  async (req, res) => {
+    try {
+      const payout = await findPayoutById(req.params.payoutId);
+      if (!payout) {
+        return res.status(404).json({
+          error: { message: 'Payout not found' },
+          requestId: req.requestId,
+        });
+      }
+
+      payout.status = 'paid';
+      await savePayout(payout);
+
+      return res.status(200).json({
+        data: await formatPayoutRecord(payout),
+        requestId: req.requestId,
+      });
+    } catch (error) {
+      console.error('[Admin:payoutRelease] Failed', error);
+      return res.status(500).json({
+        error: { message: 'Failed to release payout' },
+        requestId: req.requestId,
+      });
+    }
+  },
+);
 
 app.use((err, req, res, next) => {
   if (err && err.type === 'cors') {

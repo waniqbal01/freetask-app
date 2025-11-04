@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../views/chat/chat_view.dart';
-import '../views/dashboard_client/dashboard_client_view.dart';
-import '../views/dashboard_freelancer/dashboard_freelancer_view.dart';
 import '../views/job_detail/job_detail_view.dart';
 import '../views/notification/notifications_view.dart';
 import '../views/onboarding/login_view.dart';
@@ -10,13 +8,24 @@ import '../views/onboarding/forgot_password_view.dart';
 import '../views/onboarding/splash_view.dart';
 import '../views/profile/profile_view.dart';
 import '../views/wallet/wallet_view.dart';
+import '../views/marketplace/marketplace_home_view.dart';
+import '../views/marketplace/service_detail_view.dart';
+import '../views/orders/checkout_view.dart';
+import '../views/orders/order_detail_view.dart';
+import '../views/seller/create_service_view.dart';
+import '../views/seller/seller_dashboard_view.dart';
+import '../models/service.dart';
 
 class AppRoutes {
   static const onboarding = '/';
   static const login = '/login';
   static const forgotPassword = '/forgot-password';
-  static const dashboard = '/dashboard';
-  static const freelancerDashboard = '/dashboard/freelancer';
+  static const marketplaceHome = '/marketplace';
+  static const sellerDashboard = '/seller';
+  static const serviceDetail = '/marketplace/service';
+  static const checkout = '/checkout';
+  static const orderDetail = '/orders/detail';
+  static const createService = '/seller/create-service';
   static const jobDetail = '/job-detail';
   static const chat = '/chat';
   static const wallet = '/wallet';
@@ -42,14 +51,58 @@ class AppRouter {
           builder: (_) => const ForgotPasswordView(),
           settings: settings,
         );
-      case AppRoutes.dashboard:
+      case AppRoutes.marketplaceHome:
         return MaterialPageRoute<void>(
-          builder: (_) => const DashboardClientView(),
+          builder: (_) => const MarketplaceHomeView(),
           settings: settings,
         );
-      case AppRoutes.freelancerDashboard:
+      case AppRoutes.sellerDashboard:
         return MaterialPageRoute<void>(
-          builder: (_) => const DashboardFreelancerView(),
+          builder: (_) => const SellerDashboardView(),
+          settings: settings,
+        );
+      case AppRoutes.serviceDetail:
+        final detailArgs = settings.arguments;
+        if (detailArgs is ServiceDetailViewArgs) {
+          return MaterialPageRoute<void>(
+            builder: (_) => ServiceDetailView(
+              serviceId: detailArgs.serviceId,
+              initialService: detailArgs.prefetchedService,
+            ),
+            settings: settings,
+          );
+        }
+        final serviceId = detailArgs?.toString() ?? '';
+        return MaterialPageRoute<void>(
+          builder: (_) => ServiceDetailView(serviceId: serviceId),
+          settings: settings,
+        );
+      case AppRoutes.checkout:
+        final checkoutArgs = settings.arguments;
+        if (checkoutArgs is CheckoutViewArgs) {
+          return MaterialPageRoute<void>(
+            builder: (_) => CheckoutView(service: checkoutArgs.service),
+            settings: settings,
+          );
+        }
+        return MaterialPageRoute<void>(
+          builder: (_) => const CheckoutView(),
+          settings: settings,
+        );
+      case AppRoutes.orderDetail:
+        final orderArgs = settings.arguments;
+        final orderId = orderArgs is OrderDetailViewArgs
+            ? orderArgs.orderId
+            : orderArgs?.toString() ?? '';
+        return MaterialPageRoute<void>(
+          builder: (_) => OrderDetailView(orderId: orderId),
+          settings: settings,
+        );
+      case AppRoutes.createService:
+        final serviceArg = settings.arguments;
+        final initialService = serviceArg is Service ? serviceArg : null;
+        return MaterialPageRoute<void>(
+          builder: (_) => CreateServiceView(initialService: initialService),
           settings: settings,
         );
       case AppRoutes.jobDetail:
