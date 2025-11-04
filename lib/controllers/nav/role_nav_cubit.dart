@@ -1,10 +1,10 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
-import '../../utils/role_permissions.dart';
+import '../../models/user_roles.dart';
 
 class RoleNavCubit extends Cubit<RoleNavState> {
-  RoleNavCubit({String initialRole = UserRoles.defaultRole})
+  RoleNavCubit({String initialRole = kDefaultUserRoleName})
       : super(RoleNavState.forRole(initialRole));
 
   void updateRole(String role) {
@@ -154,11 +154,12 @@ List<RoleNavTab> _tabsFor(String role) {
   ];
 
   final mapping = <String, List<RoleNavTab>>{
-    UserRoles.client: clientTabs,
-    UserRoles.freelancer: freelancerTabs,
-    UserRoles.admin: adminTabs,
-    UserRoles.manager: adminTabs,
-    UserRoles.support: adminTabs,
+    UserRoles.client.name: clientTabs,
+    UserRoles.freelancer.name: freelancerTabs,
+    UserRoles.admin.name: adminTabs,
+    UserRoles.manager.name: adminTabs,
+    UserRoles.support.name: adminTabs,
+    UserRoles.seller.name: freelancerTabs,
   };
 
   return mapping[role] ?? clientTabs;

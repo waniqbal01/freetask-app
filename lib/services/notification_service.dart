@@ -1,7 +1,7 @@
 import 'dart:async';
 
+import '../auth/role_permission.dart';
 import '../models/app_notification.dart';
-import '../utils/role_permissions.dart';
 import 'api_client.dart';
 
 /// Lightweight notification bridge that mimics the previous Firebase-backed

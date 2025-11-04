@@ -9,8 +9,8 @@ import 'package:freetask_app/controllers/job/job_state.dart';
 import 'package:freetask_app/models/job.dart';
 import 'package:freetask_app/models/job_list_type.dart';
 import 'package:freetask_app/models/user.dart';
+import 'package:freetask_app/models/user_roles.dart';
 import 'package:freetask_app/services/storage_service.dart';
-import 'package:freetask_app/utils/role_permissions.dart';
 
 class _MockJobBloc extends MockBloc<JobEvent, JobState> implements JobBloc {}
 
@@ -73,9 +73,9 @@ void main() {
             ),
           },
         );
-        return buildCubit(state, role: UserRoles.admin);
+        return buildCubit(state, role: UserRoles.admin.name);
       },
-      act: (cubit) => cubit.updateRole(UserRoles.admin),
+      act: (cubit) => cubit.updateRole(UserRoles.admin.name),
       expect: () => [
         isA<DashboardMetricsState>().having(
           (state) => state.metrics.map((metric) => metric.label).toList(),
@@ -111,12 +111,12 @@ void main() {
         );
         return buildCubit(
           state,
-          role: UserRoles.freelancer,
+          role: UserRoles.freelancer.name,
           user: const User(
             id: 'freelancer-1',
             name: 'Alex',
             email: 'alex@example.com',
-            role: UserRoles.freelancer,
+            role: UserRoles.freelancer.name,
             avatarUrl: null,
             bio: null,
             location: 'Remote',
@@ -125,7 +125,7 @@ void main() {
           ),
         );
       },
-      act: (cubit) => cubit.updateRole(UserRoles.freelancer),
+      act: (cubit) => cubit.updateRole(UserRoles.freelancer.name),
       expect: () => [
         isA<DashboardMetricsState>().having(
           (state) => state.metrics.map((metric) => metric.label).toList(),

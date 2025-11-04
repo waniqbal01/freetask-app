@@ -1,6 +1,6 @@
+import '../auth/role_permission.dart';
 import '../models/order.dart';
 import '../models/service.dart';
-import '../utils/role_permissions.dart';
 import 'api_client.dart';
 
 class MarketplaceService {

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../auth/role_permission.dart';
 import '../../models/service.dart';
 import '../../services/marketplace_service.dart';
-import '../../utils/role_permissions.dart';
 import '../../widgets/role_gate.dart';
 
 class CreateServiceView extends StatefulWidget {

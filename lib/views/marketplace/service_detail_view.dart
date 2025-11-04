@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../auth/role_permission.dart';
 import '../../config/routes.dart';
 import '../../models/service.dart';
 import '../../services/marketplace_service.dart';
-import '../../utils/role_permissions.dart';
 import '../../widgets/role_gate.dart';
-import 'marketplace_home_view.dart';
+
+class ServiceDetailViewArgs {
+  const ServiceDetailViewArgs({
+    required this.serviceId,
+    this.prefetchedService,
+  });
+
+  final String serviceId;
+  final Service? prefetchedService;
+}
 
 class ServiceDetailView extends StatefulWidget {
   const ServiceDetailView({

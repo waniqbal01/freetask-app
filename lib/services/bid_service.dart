@@ -1,5 +1,5 @@
+import '../auth/role_permission.dart';
 import '../models/bid.dart';
-import '../utils/role_permissions.dart';
 import 'api_client.dart';
 
 class BidService {

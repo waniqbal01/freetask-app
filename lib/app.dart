@@ -18,6 +18,7 @@ import 'controllers/notifications/notifications_cubit.dart';
 import 'controllers/profile/profile_bloc.dart';
 import 'controllers/wallet/wallet_cubit.dart';
 import 'models/job_list_type.dart';
+import 'models/user_roles.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/bid_service.dart';
@@ -33,7 +34,6 @@ import 'services/role_guard.dart';
 import 'services/socket_service.dart';
 import 'services/storage_service.dart';
 import 'services/wallet_service.dart';
-import 'utils/role_permissions.dart';
 import 'repositories/auth_repository.dart';
 
 class FreetaskApp extends StatefulWidget {
@@ -65,7 +65,7 @@ class _FreetaskAppState extends State<FreetaskApp> {
   void initState() {
     super.initState();
     final initialRole =
-        _storage.role ?? _storage.getUser()?.role ?? UserRoles.defaultRole;
+        _storage.role ?? _storage.getUser()?.role ?? kDefaultUserRoleName;
     _authBloc = AuthBloc(widget.bootstrap.authRepository);
     _jobBloc = JobBloc(widget.bootstrap.jobService, _storage);
     _metricsCubit = DashboardMetricsCubit(_jobBloc, _storage);
@@ -101,7 +101,7 @@ class _FreetaskAppState extends State<FreetaskApp> {
         }
       } else if (state.status == AuthStatus.unauthenticated) {
         widget.bootstrap.socketService.disconnect();
-        _roleNavCubit.updateRole(UserRoles.defaultRole);
+        _roleNavCubit.updateRole(kDefaultUserRoleName);
       }
     });
   }

@@ -5,7 +5,7 @@ import '../../config/routes.dart';
 import '../../controllers/auth/auth_bloc.dart';
 import '../../controllers/auth/auth_event.dart';
 import '../../controllers/auth/auth_state.dart';
-import '../../utils/role_permissions.dart';
+import '../../models/user_roles.dart';
 import 'login_view.dart';
 
 class SplashView extends StatefulWidget {
@@ -50,10 +50,13 @@ class _SplashViewState extends State<SplashView>
   }
 
   String _routeForRole(String role) {
-    switch (role) {
+    switch (parseUserRole(role)) {
       case UserRoles.freelancer:
+      case UserRoles.seller:
         return AppRoutes.sellerDashboard;
       case UserRoles.admin:
+      case UserRoles.manager:
+      case UserRoles.support:
         return AppRoutes.sellerDashboard;
       case UserRoles.client:
       default:

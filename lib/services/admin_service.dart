@@ -1,8 +1,8 @@
+import '../auth/role_permission.dart';
 import '../models/order.dart';
 import '../models/payout.dart';
 import '../models/service.dart';
 import '../models/transaction.dart';
-import '../utils/role_permissions.dart';
 import 'api_client.dart';
 
 class AdminService {

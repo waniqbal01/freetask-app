@@ -1,4 +1,4 @@
-import '../utils/role_permissions.dart';
+import 'user_roles.dart';
 
 class UserModel {
   const UserModel({
@@ -42,7 +42,7 @@ class UserModel {
       id: json['id']?.toString() ?? '',
       name: json['name'] as String? ?? '',
       email: json['email'] as String? ?? '',
-      role: json['role'] as String? ?? UserRoles.client,
+      role: json['role'] as String? ?? kDefaultUserRoleName,
       avatarUrl: readString(
         json['avatarUrl'] ?? json['avatar_url'] ?? json['avatar'],
       )?.trim(),
