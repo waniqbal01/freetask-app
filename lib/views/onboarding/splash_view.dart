@@ -53,13 +53,11 @@ class _SplashViewState extends State<SplashView>
     switch (parseUserRole(role)) {
       case UserRoles.freelancer:
       case UserRoles.seller:
-        return AppRoutes.sellerDashboard;
       case UserRoles.admin:
       case UserRoles.manager:
       case UserRoles.support:
         return AppRoutes.sellerDashboard;
       case UserRoles.client:
-      default:
         return AppRoutes.marketplaceHome;
     }
   }

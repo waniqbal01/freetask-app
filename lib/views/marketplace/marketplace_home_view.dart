@@ -6,6 +6,7 @@ import '../../auth/role_permission.dart';
 import '../../models/service.dart';
 import '../../services/marketplace_service.dart';
 import '../../widgets/role_gate.dart';
+import 'service_detail_view.dart';
 
 class MarketplaceHomeView extends StatefulWidget {
   const MarketplaceHomeView({super.key});
@@ -226,12 +227,3 @@ class _UnauthorizedMessage extends StatelessWidget {
   }
 }
 
-class ServiceDetailViewArgs {
-  const ServiceDetailViewArgs({
-    required this.serviceId,
-    this.prefetchedService,
-  });
-
-  final String serviceId;
-  final Service? prefetchedService;
-}

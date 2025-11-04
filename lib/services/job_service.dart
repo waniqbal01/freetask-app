@@ -6,7 +6,6 @@ import 'package:dio/dio.dart';
 import '../auth/role_permission.dart';
 import '../models/job.dart';
 import '../models/review.dart';
-import '../utils/role_permissions.dart';
 import 'api_client.dart';
 import 'role_guard.dart';
 import 'storage_service.dart';
