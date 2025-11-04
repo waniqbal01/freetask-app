@@ -112,7 +112,7 @@ void main() {
         return buildCubit(
           state,
           role: UserRoles.freelancer.name,
-          user: const User(
+          user: User(
             id: 'freelancer-1',
             name: 'Alex',
             email: 'alex@example.com',
