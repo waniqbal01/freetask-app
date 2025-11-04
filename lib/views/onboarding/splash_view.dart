@@ -5,7 +5,7 @@ import '../../config/routes.dart';
 import '../../controllers/auth/auth_bloc.dart';
 import '../../controllers/auth/auth_event.dart';
 import '../../controllers/auth/auth_state.dart';
-import '../../controllers/nav/role_nav_cubit.dart';
+import '../../utils/role_permissions.dart';
 import 'login_view.dart';
 
 class SplashView extends StatefulWidget {
@@ -35,10 +35,10 @@ class _SplashViewState extends State<SplashView>
     if (!mounted || _navigated) return;
     if (state.status == AuthStatus.authenticated && state.user != null) {
       _navigated = true;
+      final route = _routeForRole(state.user!.role);
       Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.dashboard,
+        route,
         (route) => false,
-        arguments: RoleNavTarget.home,
       );
     } else if (state.status == AuthStatus.unauthenticated) {
       _navigated = true;
@@ -46,6 +46,18 @@ class _SplashViewState extends State<SplashView>
         LoginView.routeName,
         (route) => false,
       );
+    }
+  }
+
+  String _routeForRole(String role) {
+    switch (role) {
+      case UserRoles.freelancer:
+        return AppRoutes.sellerDashboard;
+      case UserRoles.admin:
+        return AppRoutes.sellerDashboard;
+      case UserRoles.client:
+      default:
+        return AppRoutes.marketplaceHome;
     }
   }
 

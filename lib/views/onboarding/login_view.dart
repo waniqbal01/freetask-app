@@ -129,13 +129,10 @@ class _LoginViewState extends State<LoginView>
       listener: (context, state) {
         if (state.status == AuthStatus.authenticated && state.user != null) {
           context.read<RoleNavCubit>().updateRole(state.user!.role);
-          final route = state.user!.role == UserRoles.freelancer
-              ? AppRoutes.freelancerDashboard
-              : AppRoutes.dashboard;
+          final route = _routeForRole(state.user!.role);
           Navigator.of(context).pushNamedAndRemoveUntil(
             route,
             (route) => false,
-            arguments: RoleNavTarget.home,
           );
         }
       },
@@ -517,6 +514,18 @@ class _LoginViewState extends State<LoginView>
         ),
       ),
     );
+  }
+
+  String _routeForRole(String role) {
+    switch (role) {
+      case UserRoles.freelancer:
+        return AppRoutes.sellerDashboard;
+      case UserRoles.admin:
+        return AppRoutes.sellerDashboard;
+      case UserRoles.client:
+      default:
+        return AppRoutes.marketplaceHome;
+    }
   }
 }
 

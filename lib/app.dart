@@ -21,10 +21,13 @@ import 'models/job_list_type.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/bid_service.dart';
+import 'services/admin_service.dart';
 import 'services/chat_cache_service.dart';
 import 'services/chat_service.dart';
 import 'services/job_service.dart';
+import 'services/marketplace_service.dart';
 import 'services/notification_service.dart';
+import 'services/order_service.dart';
 import 'services/profile_service.dart';
 import 'services/role_guard.dart';
 import 'services/socket_service.dart';
@@ -142,6 +145,15 @@ class _FreetaskAppState extends State<FreetaskApp> {
         RepositoryProvider<WalletService>.value(value: widget.bootstrap.walletService),
         RepositoryProvider<NotificationService>.value(
           value: widget.bootstrap.notificationService,
+        ),
+        RepositoryProvider<MarketplaceService>.value(
+          value: widget.bootstrap.marketplaceService,
+        ),
+        RepositoryProvider<OrderService>.value(
+          value: widget.bootstrap.orderService,
+        ),
+        RepositoryProvider<AdminService>.value(
+          value: widget.bootstrap.adminService,
         ),
       ],
       child: MultiBlocProvider(
