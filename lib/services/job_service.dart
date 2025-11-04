@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 
+import '../auth/role_permission.dart';
 import '../models/job.dart';
 import '../models/review.dart';
 import '../utils/role_permissions.dart';

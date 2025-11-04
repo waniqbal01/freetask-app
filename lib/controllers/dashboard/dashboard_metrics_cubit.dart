@@ -5,8 +5,8 @@ import 'package:equatable/equatable.dart';
 
 import '../../models/job.dart';
 import '../../models/job_list_type.dart';
+import '../../models/user_roles.dart';
 import '../../services/storage_service.dart';
-import '../../utils/role_permissions.dart';
 import '../job/job_bloc.dart';
 import '../job/job_state.dart';
 
@@ -34,7 +34,7 @@ class DashboardMetricsCubit extends Cubit<DashboardMetricsState> {
     final resolvedRole = state.role ??
         _storage.role ??
         _storage.getUser()?.role ??
-        UserRoles.defaultRole;
+        kDefaultUserRoleName;
     _emitForRole(resolvedRole, jobState);
   }
 
@@ -80,9 +80,9 @@ class DashboardMetricsCubit extends Cubit<DashboardMetricsState> {
       ...allJobsFeed,
     }.toList();
 
-    if (role == UserRoles.admin ||
-        role == UserRoles.manager ||
-        role == UserRoles.support) {
+    if (role == UserRoles.admin.name ||
+        role == UserRoles.manager.name ||
+        role == UserRoles.support.name) {
       final users = <String>{};
       final revenue = allJobs
           .where((job) => job.status == JobStatus.completed)
@@ -124,7 +124,7 @@ class DashboardMetricsCubit extends Cubit<DashboardMetricsState> {
       ];
     }
 
-    if (role == UserRoles.client) {
+    if (role == UserRoles.client.name) {
       final clientId = user?.id ?? '';
       final activeJobs = myJobs
           .where((job) =>

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 
+import '../auth/role_permission.dart';
 import '../config/env.dart';
 import '../utils/role_permissions.dart';
 import 'role_guard.dart';

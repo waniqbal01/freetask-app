@@ -10,7 +10,8 @@ import '../../services/admin_service.dart';
 import '../../services/marketplace_service.dart';
 import '../../services/order_service.dart';
 import '../../services/storage_service.dart';
-import '../../utils/role_permissions.dart';
+import '../../auth/role_permission.dart';
+import '../../models/user_roles.dart';
 import '../../widgets/role_gate.dart';
 import '../marketplace/service_detail_view.dart';
 import '../orders/checkout_view.dart';
@@ -36,7 +37,10 @@ class _SellerDashboardViewState extends State<SellerDashboardView> {
 
   bool get _isAdmin {
     final role = _storage.role ?? _storage.getUser()?.role;
-    return role == UserRoles.admin;
+    final parsedRole = parseUserRole(role);
+    return parsedRole == UserRoles.admin ||
+        parsedRole == UserRoles.manager ||
+        parsedRole == UserRoles.support;
   }
 
   AdminService? get _adminService => _isAdmin ? RepositoryProvider.of<AdminService>(context) : null;

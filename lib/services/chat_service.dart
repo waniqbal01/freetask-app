@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 
+import '../auth/role_permission.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
 import '../models/pending_message.dart';
-import '../utils/role_permissions.dart';
 import 'api_client.dart';
 import 'chat_cache_service.dart';
 

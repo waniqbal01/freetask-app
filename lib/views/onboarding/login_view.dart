@@ -6,7 +6,7 @@ import '../../controllers/auth/auth_bloc.dart';
 import '../../controllers/auth/auth_event.dart';
 import '../../controllers/auth/auth_state.dart';
 import '../../controllers/nav/role_nav_cubit.dart';
-import '../../utils/role_permissions.dart';
+import '../../models/user_roles.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -33,7 +33,7 @@ class _LoginViewState extends State<LoginView>
   bool _loginPasswordVisible = false;
   bool _signupPasswordVisible = false;
   bool _signupConfirmPasswordVisible = false;
-  String _selectedRole = UserRoles.client;
+  String _selectedRole = UserRoles.client.name;
 
   static final _emailRegExp = RegExp(
     r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
@@ -476,11 +476,11 @@ class _LoginViewState extends State<LoginView>
                 ),
                 items: const [
                   DropdownMenuItem(
-                    value: UserRoles.client,
+                    value: UserRoles.client.name,
                     child: Text('Client'),
                   ),
                   DropdownMenuItem(
-                    value: UserRoles.freelancer,
+                    value: UserRoles.freelancer.name,
                     child: Text('Freelancer'),
                   ),
                 ],
@@ -517,10 +517,13 @@ class _LoginViewState extends State<LoginView>
   }
 
   String _routeForRole(String role) {
-    switch (role) {
+    switch (parseUserRole(role)) {
       case UserRoles.freelancer:
+      case UserRoles.seller:
         return AppRoutes.sellerDashboard;
       case UserRoles.admin:
+      case UserRoles.manager:
+      case UserRoles.support:
         return AppRoutes.sellerDashboard;
       case UserRoles.client:
       default:

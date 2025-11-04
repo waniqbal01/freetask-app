@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 
+import '../auth/role_permission.dart';
 import '../models/auth_response.dart';
 import '../models/user.dart';
+import '../models/user_roles.dart';
 import '../utils/role_permissions.dart';
 import 'api_client.dart';
 import 'storage_service.dart';
@@ -37,7 +39,7 @@ class AuthService {
     required String name,
     required String email,
     required String password,
-    String role = 'client',
+    String role = kDefaultUserRoleName,
   }) async {
     try {
       final response = await _apiClient.client.post<Map<String, dynamic>>(
@@ -154,7 +156,7 @@ class AuthService {
       var user = authResponse.user;
       if (user.id.isEmpty || user.email.isEmpty) {
         if (user.role.isNotEmpty) {
-          await _storage.saveRole(user.role);
+          await _storage.saveRole(ensureUserRoleName(user.role));
         }
         user = await fetchMe();
       }
