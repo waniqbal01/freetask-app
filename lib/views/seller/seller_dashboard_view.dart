@@ -14,6 +14,7 @@ import '../../auth/role_permission.dart';
 import '../../models/user_roles.dart';
 import '../../widgets/role_gate.dart';
 import '../marketplace/service_detail_view.dart';
+import '../orders/order_detail_view.dart';
 
 class SellerDashboardView extends StatefulWidget {
   const SellerDashboardView({super.key});
@@ -206,7 +207,10 @@ class _SellerDashboardViewState extends State<SellerDashboardView> {
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () => Navigator.of(context).pushNamed(
                               AppRoutes.orderDetail,
-                              arguments: OrderDetailViewArgs(orderId: order.id),
+                              arguments: OrderDetailViewArgs(
+                                orderId: order.id,
+                                clientId: order.client?.id,
+                              ),
                             ),
                           ),
                         ),

@@ -91,9 +91,17 @@ class AppRouter {
         );
       case AppRoutes.orderDetail:
         final orderArgs = settings.arguments;
-        final orderId = orderArgs is OrderDetailViewArgs
-            ? orderArgs.orderId
-            : orderArgs?.toString() ?? '';
+        if (orderArgs is OrderDetailViewArgs) {
+          return MaterialPageRoute<void>(
+            builder: (_) => OrderDetailView(
+              orderId: orderArgs.orderId,
+              clientId: orderArgs.clientId,
+              isEditable: orderArgs.isEditable,
+            ),
+            settings: settings,
+          );
+        }
+        final orderId = orderArgs?.toString() ?? '';
         return MaterialPageRoute<void>(
           builder: (_) => OrderDetailView(orderId: orderId),
           settings: settings,

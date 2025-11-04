@@ -7,10 +7,29 @@ import '../../models/service.dart';
 import '../../services/order_service.dart';
 import '../../widgets/role_gate.dart';
 
-class OrderDetailView extends StatefulWidget {
-  const OrderDetailView({super.key, required this.orderId});
+class OrderDetailViewArgs {
+  const OrderDetailViewArgs({
+    required this.orderId,
+    this.clientId,
+    this.isEditable = true,
+  });
 
   final String orderId;
+  final String? clientId;
+  final bool isEditable;
+}
+
+class OrderDetailView extends StatefulWidget {
+  const OrderDetailView({
+    super.key,
+    required this.orderId,
+    this.clientId,
+    this.isEditable = true,
+  });
+
+  final String orderId;
+  final String? clientId;
+  final bool isEditable;
 
   @override
   State<OrderDetailView> createState() => _OrderDetailViewState();
@@ -138,6 +157,7 @@ class _OrderDetailViewState extends State<OrderDetailView> {
                               onComplete: _complete,
                               onCancel: _cancel,
                               loading: _loading,
+                              isEditable: widget.isEditable,
                             ),
                           ],
                         ),
@@ -219,6 +239,7 @@ class _OrderActions extends StatelessWidget {
     required this.onComplete,
     required this.onCancel,
     required this.loading,
+    required this.isEditable,
   });
 
   final OrderModel order;
@@ -227,6 +248,7 @@ class _OrderActions extends StatelessWidget {
   final VoidCallback onComplete;
   final VoidCallback onCancel;
   final bool loading;
+  final bool isEditable;
 
   bool get _isPending => order.status == 'pending';
   bool get _isAccepted => order.status == 'accepted';
@@ -235,6 +257,9 @@ class _OrderActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!isEditable) {
+      return const SizedBox.shrink();
+    }
     final buttons = <Widget>[];
 
     buttons.add(

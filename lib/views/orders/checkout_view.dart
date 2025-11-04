@@ -6,7 +6,7 @@ import '../../config/routes.dart';
 import '../../models/service.dart';
 import '../../services/order_service.dart';
 import '../../widgets/role_gate.dart';
-import '../marketplace/service_detail_view.dart';
+import 'order_detail_view.dart';
 
 class CheckoutView extends StatefulWidget {
   const CheckoutView({super.key, this.service});
@@ -178,8 +178,3 @@ class _UnauthorizedCheckoutView extends StatelessWidget {
   }
 }
 
-class OrderDetailViewArgs {
-  const OrderDetailViewArgs({required this.orderId});
-
-  final String orderId;
-}
