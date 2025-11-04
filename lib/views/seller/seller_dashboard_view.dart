@@ -14,7 +14,6 @@ import '../../auth/role_permission.dart';
 import '../../models/user_roles.dart';
 import '../../widgets/role_gate.dart';
 import '../marketplace/service_detail_view.dart';
-import '../orders/checkout_view.dart';
 
 class SellerDashboardView extends StatefulWidget {
   const SellerDashboardView({super.key});

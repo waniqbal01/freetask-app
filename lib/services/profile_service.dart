@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import '../auth/role_permission.dart';
 import '../models/user.dart';
 import '../utils/logger.dart';
-import '../utils/role_permissions.dart';
 import 'api_client.dart';
 import 'storage_service.dart';
 

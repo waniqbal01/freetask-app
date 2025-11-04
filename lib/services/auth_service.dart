@@ -4,7 +4,6 @@ import '../auth/role_permission.dart';
 import '../models/auth_response.dart';
 import '../models/user.dart';
 import '../models/user_roles.dart';
-import '../utils/role_permissions.dart';
 import 'api_client.dart';
 import 'storage_service.dart';
 

@@ -6,7 +6,6 @@ import '../../models/order.dart';
 import '../../models/service.dart';
 import '../../services/order_service.dart';
 import '../../widgets/role_gate.dart';
-import 'checkout_view.dart';
 
 class OrderDetailView extends StatefulWidget {
   const OrderDetailView({super.key, required this.orderId});
@@ -111,7 +110,6 @@ class _OrderDetailViewState extends State<OrderDetailView> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return RoleGate(
       permission: RolePermission.viewOrders,
       fallback: const _UnauthorizedOrderView(),

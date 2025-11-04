@@ -474,14 +474,14 @@ class _LoginViewState extends State<LoginView>
                   labelText: 'Choose your role',
                   prefixIcon: Icon(Icons.badge_outlined),
                 ),
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: UserRoles.client.name,
-                    child: Text('Client'),
+                    child: const Text('Client'),
                   ),
                   DropdownMenuItem(
                     value: UserRoles.freelancer.name,
-                    child: Text('Freelancer'),
+                    child: const Text('Freelancer'),
                   ),
                 ],
                 onChanged: isLoading
@@ -520,13 +520,11 @@ class _LoginViewState extends State<LoginView>
     switch (parseUserRole(role)) {
       case UserRoles.freelancer:
       case UserRoles.seller:
-        return AppRoutes.sellerDashboard;
       case UserRoles.admin:
       case UserRoles.manager:
       case UserRoles.support:
         return AppRoutes.sellerDashboard;
       case UserRoles.client:
-      default:
         return AppRoutes.marketplaceHome;
     }
   }
