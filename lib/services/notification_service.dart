@@ -1,34 +1,56 @@
-import 'dart:async';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import '../config/env.dart';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
+import 'package:freetask_app/config/app_env.dart';
+import '../models/app_notification.dart';
 
 class NotificationService {
-  static bool _initialized = false;
-  static final _orderEvents = StreamController<String>.broadcast();
+  NotificationService({http.Client? client}) : _client = client ?? http.Client();
 
-  static Stream<String> get orderEvents => _orderEvents.stream;
+  final http.Client _client;
 
-  static Future<void> init() async {
-    if (_initialized) return;
-    await Firebase.initializeApp();
-    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-    await FirebaseCrashlytics.instance.setCustomKey('app_env', Env.appEnv);
-    await FirebaseCrashlytics.instance.setCustomKey('app_release', Env.appRelease);
+  Future<List<AppNotification>> fetchNotifications(
+    String userToken, {
+    NotificationCategory? category,
+  }) async {
+    final baseUri = Uri.parse('${AppEnv.apiBaseUrl}/notifications');
+    final queryParameters = <String, String>{};
+    if (category != null && category != NotificationCategory.all) {
+      queryParameters['category'] = category.value;
+    }
+    final uri = queryParameters.isEmpty
+        ? baseUri
+        : baseUri.replace(queryParameters: queryParameters);
+    final response = await _client.get(
+      uri,
+      headers: <String, String>{'Authorization': 'Bearer $userToken'},
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch notifications: ${response.statusCode}');
+    }
+    final dynamic decoded = json.decode(response.body);
+    final List<dynamic> rawList;
+    if (decoded is List) {
+      rawList = decoded;
+    } else if (decoded is Map<String, dynamic>) {
+      rawList = (decoded['data'] as List?) ?? const <dynamic>[];
+    } else {
+      rawList = const <dynamic>[];
+    }
+    return rawList
+        .whereType<Map<String, dynamic>>()
+        .map(AppNotification.fromJson)
+        .toList();
+  }
 
-    final notif = FirebaseMessaging.instance;
-    await notif.requestPermission();
-    final token = await notif.getToken();
-    // TODO: POST token to server for user binding.
-
-    FirebaseMessaging.onMessage.listen((msg) {
-      final t = msg.data['type'] ?? '';
-      if (t == 'order_update') {
-        _orderEvents.add(msg.data['orderId'] ?? '');
-      }
-    });
-
-    _initialized = true;
+  Future<void> markAsRead(String id, String userToken) async {
+    final response = await _client.post(
+      Uri.parse('${AppEnv.apiBaseUrl}/notifications/$id/read'),
+      headers: <String, String>{'Authorization': 'Bearer $userToken'},
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to mark as read: ${response.statusCode}');
+    }
   }
 }

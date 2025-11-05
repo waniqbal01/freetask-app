@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
-import '../config/env.dart';
+import 'package:freetask_app/config/app_env.dart';
 import '../models/message.dart';
 
 class TypingEvent extends Equatable {
@@ -72,7 +72,7 @@ class SocketService {
   void connect({required String token, required String userId}) {
     disconnect();
 
-    final uri = AppEnv.socketBase;
+    final uri = _socketBaseUrl;
     final options = io.OptionBuilder()
         .setTransports(['websocket'])
         .enableReconnection()
@@ -240,5 +240,14 @@ class SocketService {
     _presenceController.close();
     _statusController.close();
     _connectionController.close();
+  }
+
+  String get _socketBaseUrl {
+    final parsed = Uri.tryParse(AppEnv.apiBaseUrl);
+    if (parsed == null) {
+      return AppEnv.apiBaseUrl;
+    }
+    final scheme = parsed.scheme == 'https' ? 'wss' : 'ws';
+    return parsed.replace(scheme: scheme).toString();
   }
 }

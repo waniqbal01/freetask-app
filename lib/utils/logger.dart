@@ -19,7 +19,7 @@ class AppLogger {
     Object? error,
     StackTrace? stackTrace,
   }) {
-    MonitoringService.instance.log(
+    MonitoringService.log(
       '[$level] $message',
       error: error,
       stackTrace: stackTrace,
