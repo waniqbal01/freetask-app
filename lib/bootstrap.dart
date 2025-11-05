@@ -10,8 +10,8 @@ Future<void> bootstrap(Future<Widget> Function() builder) async {
       (options) {
         options.dsn = AppEnv.sentryDsn;
         options.tracesSampleRate = 1.0;
-        options.beforeSend = (SentryEvent event, {dynamic hint}) async {
-          return event; // return SentryEvent? via Future<SentryEvent?>
+        options.beforeSend = (SentryEvent event, {dynamic hint}) {
+          return event; // must return SentryEvent? directly
         };
       },
       appRunner: () async => runApp(await builder()),
