@@ -11,10 +11,9 @@ Future<void> bootstrap(Future<Widget> Function() builder) async {
         options.dsn = AppEnv.sentryDsn;
         options.tracesSampleRate = 1.0;
         // Define with the exact typedef from package:sentry
-        SentryEvent? beforeSend(SentryEvent event, {dynamic hint}) {
+        options.beforeSend = (SentryEvent event, {Hint? hint}) {
           return event;
-        }
-        options.beforeSend = beforeSend;
+        };
       },
       appRunner: () async => runApp(await builder()),
     );
