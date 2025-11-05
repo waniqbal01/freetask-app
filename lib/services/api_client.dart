@@ -1,19 +1,19 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:freetask_app/config/app_env.dart';
 
 import '../auth/role_permission.dart';
-import '../config/env.dart';
 import '../utils/role_permissions.dart';
+import 'monitoring_service.dart';
 import 'role_guard.dart';
 import 'storage_service.dart';
-import 'monitoring_service.dart';
 
 class ApiClient {
   ApiClient(Dio dio, this._storage, this._roleGuard)
       : _dio = dio
           ..options = BaseOptions(
-            baseUrl: AppEnv.apiBase,
+            baseUrl: AppEnv.apiBaseUrl,
             connectTimeout: const Duration(seconds: 20),
             receiveTimeout: const Duration(seconds: 20),
             sendTimeout: const Duration(seconds: 20),
@@ -69,7 +69,7 @@ class ApiClient {
         },
         onResponse: (response, handler) {
           final requestId = response.headers.value('x-request-id');
-          MonitoringService.instance.updateRequestContext(requestId);
+          MonitoringService.updateRequestContext(requestId);
           return handler.next(response);
         },
         onError: (error, handler) async {
@@ -77,9 +77,9 @@ class ApiClient {
           final statusCode = response?.statusCode;
           final headers = response?.headers;
           final requestId = headers?.value('x-request-id');
-          MonitoringService.instance.updateRequestContext(requestId);
+          MonitoringService.updateRequestContext(requestId);
           if ((statusCode ?? 0) >= 500) {
-            await MonitoringService.instance.recordError(
+            await MonitoringService.recordError(
               error,
               error.stackTrace,
             );

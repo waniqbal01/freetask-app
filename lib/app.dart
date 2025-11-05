@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'bootstrap.dart';
+import 'bootstrap/app_bootstrap.dart';
 import 'config/routes.dart';
 import 'config/theme.dart';
 import 'controllers/auth/auth_bloc.dart';
@@ -168,7 +168,8 @@ class _FreetaskAppState extends State<FreetaskApp> {
             create: (context) => WalletCubit(widget.bootstrap.walletService),
           ),
           BlocProvider<NotificationsCubit>(
-            create: (context) => NotificationsCubit(widget.bootstrap.notificationService),
+            create: (context) =>
+                NotificationsCubit(widget.bootstrap.notificationService, _storage),
           ),
         ],
         child: _AppView(

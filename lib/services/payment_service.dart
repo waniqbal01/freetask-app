@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
-import '../config/env.dart';
+import 'package:freetask_app/config/app_env.dart';
 
 class PaymentService {
-  final _dio = Dio(BaseOptions(baseUrl: Env.apiBase));
+  final _dio = Dio(BaseOptions(baseUrl: AppEnv.apiBaseUrl));
 
   Future<String> createBill({required String orderId, required int amountCents, required String email}) async {
     final res = await _dio.post('/payments/create', data: {
