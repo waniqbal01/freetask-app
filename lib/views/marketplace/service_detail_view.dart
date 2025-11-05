@@ -75,7 +75,10 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
       final order = await _orders.createOrder(serviceId: service.id);
       if (!mounted) return;
       final user = _storage.getUser();
-      final rawEmail = user?.email?.trim() ?? '';
+      String rawEmail = '';
+      if (user != null && user.email != null) {
+        rawEmail = user.email!.trim();
+      }
       final email = rawEmail.isNotEmpty ? rawEmail : 'client@example.com';
       Navigator.of(context).pushNamed(
         AppRoutes.checkout,
