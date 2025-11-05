@@ -76,8 +76,8 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
       if (!mounted) return;
       final user = _storage.getUser();
       String rawEmail = '';
-      if (user != null && user.email != null) {
-        rawEmail = user.email!.trim();
+      if (user != null) {
+        rawEmail = user.email.trim();
       }
       final email = rawEmail.isNotEmpty ? rawEmail : 'client@example.com';
       Navigator.of(context).pushNamed(
@@ -104,6 +104,8 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final role = resolveAppRole(context);
+    final service = _service;
+    final error = _error;
     return RoleGate(
       current: role,
       allow: const [AppRole.client, AppRole.seller, AppRole.admin],
@@ -112,7 +114,7 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
         appBar: AppBar(
           title: const Text('Service detail'),
           actions: [
-            if (_service != null)
+            if (service != null)
               RoleGate(
                 current: role,
                 allow: const [AppRole.seller, AppRole.admin],
@@ -121,7 +123,7 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
                   tooltip: 'Edit service',
                   onPressed: () => Navigator.of(context).pushNamed(
                     AppRoutes.createService,
-                    arguments: _service,
+                    arguments: service,
                   ),
                 ),
               ),
@@ -129,9 +131,9 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
-            : _error != null
-                ? _ErrorState(message: _error!, onRetry: _load)
-                : _service == null
+            : error != null
+                ? _ErrorState(message: error, onRetry: _load)
+                : service == null
                     ? const _EmptyState()
                     : SingleChildScrollView(
                         padding: const EdgeInsets.all(24),
@@ -139,16 +141,16 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _service!.title,
+                              service.title,
                               style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 12),
                             Chip(
-                              label: Text(_service!.category.isEmpty ? 'General' : _service!.category),
+                              label: Text(service.category.isEmpty ? 'General' : service.category),
                             ),
                             const SizedBox(height: 24),
                             Text(
-                              _service!.description,
+                              service.description,
                               style: theme.textTheme.bodyLarge,
                             ),
                             const SizedBox(height: 24),
@@ -162,7 +164,7 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
                                       'Delivery time',
                                       style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                                     ),
-                                    Text('${_service!.deliveryTime} day(s)'),
+                                    Text('${service.deliveryTime} day(s)'),
                                   ],
                                 ),
                                 Column(
@@ -173,7 +175,7 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
                                       style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                                     ),
                                     Text(
-                                      'USD ${_service!.price.toStringAsFixed(2)}',
+                                      'USD ${service.price.toStringAsFixed(2)}',
                                       style: theme.textTheme.titleLarge?.copyWith(
                                         color: theme.colorScheme.primary,
                                         fontWeight: FontWeight.bold,
@@ -190,7 +192,7 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
                               child: SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: _creatingOrder ? null : () => _startCheckout(_service!),
+                                  onPressed: _creatingOrder ? null : () => _startCheckout(service),
                                   child: Text(_creatingOrder ? 'Processing...' : 'Proceed to checkout'),
                                 ),
                               ),
