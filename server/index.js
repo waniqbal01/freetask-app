@@ -34,6 +34,11 @@ const shouldUseSecureCookies =
 const allowedOrigins = new Set(environmentConfig.cors.allowedOrigins || []);
 const allowOriginPattern = environmentConfig.cors.allowPattern || null;
 const localOriginPatterns = [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/];
+const envOrigins = (process.env.CLIENT_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter((origin) => origin.length > 0);
+envOrigins.forEach((origin) => allowedOrigins.add(origin));
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN || '',
@@ -43,6 +48,7 @@ Sentry.init({
 });
 
 const app = express();
+const payments = require('./routes/payments');
 
 app.use(
   cors({
@@ -72,10 +78,15 @@ app.use(
 
 app.use(express.json({ limit: '1mb' }));
 
+app.get('/health', (req, res) =>
+  res.json({ ok: true, env: process.env.APP_ENV || 'unknown' })
+);
+
 app.use(Sentry.Handlers.requestHandler());
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(compression());
 app.use(cookieParser());
+app.use('/payments', payments);
 app.use((req, res, next) => {
   const requestId = req.headers['x-request-id'] || uuidv4();
   req.requestId = requestId;

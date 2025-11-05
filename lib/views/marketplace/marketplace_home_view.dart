@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../config/routes.dart';
-import '../../auth/role_permission.dart';
 import '../../models/service.dart';
 import '../../services/marketplace_service.dart';
-import '../../widgets/role_gate.dart';
+import '../../utils/app_role.dart';
+import '../../utils/role_gate.dart';
 import 'service_detail_view.dart';
 
 class MarketplaceHomeView extends StatefulWidget {
@@ -47,15 +47,18 @@ class _MarketplaceHomeViewState extends State<MarketplaceHomeView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final role = resolveAppRole(context);
     return RoleGate(
-      permission: RolePermission.viewMarketplace,
+      current: role,
+      allow: const [AppRole.client, AppRole.seller, AppRole.admin],
       fallback: const _UnauthorizedMessage(),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Marketplace'),
           actions: [
             RoleGate(
-              permission: RolePermission.manageOwnServices,
+              current: role,
+              allow: const [AppRole.seller, AppRole.admin],
               child: IconButton(
                 tooltip: 'Create service',
                 icon: const Icon(Icons.add_box_outlined),

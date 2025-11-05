@@ -10,9 +10,9 @@ import '../../services/admin_service.dart';
 import '../../services/marketplace_service.dart';
 import '../../services/order_service.dart';
 import '../../services/storage_service.dart';
-import '../../auth/role_permission.dart';
 import '../../models/user_roles.dart';
-import '../../widgets/role_gate.dart';
+import '../../utils/app_role.dart';
+import '../../utils/role_gate.dart';
 import '../marketplace/service_detail_view.dart';
 import '../orders/order_detail_view.dart';
 
@@ -126,8 +126,10 @@ class _SellerDashboardViewState extends State<SellerDashboardView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final role = resolveAppRole(context);
     return RoleGate(
-      permission: RolePermission.accessSellerDashboard,
+      current: role,
+      allow: const [AppRole.seller, AppRole.admin],
       fallback: const _UnauthorizedSellerView(),
       child: Scaffold(
         appBar: AppBar(
