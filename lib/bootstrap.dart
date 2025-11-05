@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:sentry/sentry.dart' as sentry;
 import 'package:freetask_app/config/app_env.dart';
 
 Future<void> bootstrap(Future<Widget> Function() builder) async {
@@ -10,9 +11,9 @@ Future<void> bootstrap(Future<Widget> Function() builder) async {
       (options) {
         options.dsn = AppEnv.sentryDsn;
         options.tracesSampleRate = 1.0;
-        // Define with the exact typedef from package:sentry
-        options.beforeSend = (SentryEvent event, {Hint? hint}) {
-          return event;
+        // Use exact types from package:sentry to satisfy BeforeSendCallback
+        options.beforeSend = (sentry.SentryEvent event, {sentry.Hint? hint}) {
+          return event; // sentry.SentryEvent? (sync) matches sentry.BeforeSendCallback
         };
       },
       appRunner: () async => runApp(await builder()),
