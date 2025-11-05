@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../auth/role_permission.dart';
 import '../../models/service.dart';
 import '../../services/marketplace_service.dart';
-import '../../widgets/role_gate.dart';
+import '../../utils/app_role.dart';
+import '../../utils/role_gate.dart';
 
 class CreateServiceView extends StatefulWidget {
   const CreateServiceView({super.key, this.initialService});
@@ -86,8 +86,10 @@ class _CreateServiceViewState extends State<CreateServiceView> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final role = resolveAppRole(context);
     return RoleGate(
-      permission: RolePermission.manageOwnServices,
+      current: role,
+      allow: const [AppRole.seller, AppRole.admin],
       fallback: const _UnauthorizedCreateView(),
       child: Scaffold(
         appBar: AppBar(

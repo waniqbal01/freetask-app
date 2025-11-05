@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../auth/role_permission.dart';
 import '../../config/routes.dart';
 import '../../models/service.dart';
 import '../../services/marketplace_service.dart';
-import '../../widgets/role_gate.dart';
+import '../../services/order_service.dart';
+import '../../services/storage_service.dart';
+import '../../utils/app_role.dart';
+import '../../utils/role_gate.dart';
 
 class ServiceDetailViewArgs {
   const ServiceDetailViewArgs({
@@ -35,8 +37,11 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
   Service? _service;
   bool _loading = false;
   String? _error;
+  bool _creatingOrder = false;
 
   MarketplaceService get _serviceApi => RepositoryProvider.of<MarketplaceService>(context);
+  OrderService get _orders => RepositoryProvider.of<OrderService>(context);
+  StorageService get _storage => RepositoryProvider.of<StorageService>(context);
 
   @override
   void initState() {
@@ -64,18 +69,41 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
     }
   }
 
-  void _startCheckout(Service service) {
-    Navigator.of(context).pushNamed(
-      AppRoutes.checkout,
-      arguments: CheckoutViewArgs(service: service),
-    );
+  Future<void> _startCheckout(Service service) async {
+    setState(() => _creatingOrder = true);
+    try {
+      final order = await _orders.createOrder(serviceId: service.id);
+      if (!mounted) return;
+      final user = _storage.getUser();
+      final rawEmail = user?.email?.trim() ?? '';
+      final email = rawEmail.isNotEmpty ? rawEmail : 'client@example.com';
+      Navigator.of(context).pushNamed(
+        AppRoutes.checkout,
+        arguments: CheckoutViewArgs(
+          orderId: order.id,
+          amountCents: (order.totalAmount * 100).round(),
+          email: email,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to start checkout. Please try again.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _creatingOrder = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final role = resolveAppRole(context);
     return RoleGate(
-      permission: RolePermission.viewServiceDetail,
+      current: role,
+      allow: const [AppRole.client, AppRole.seller, AppRole.admin],
       fallback: const _UnauthorizedView(),
       child: Scaffold(
         appBar: AppBar(
@@ -83,7 +111,8 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
           actions: [
             if (_service != null)
               RoleGate(
-                permission: RolePermission.manageOwnServices,
+                current: role,
+                allow: const [AppRole.seller, AppRole.admin],
                 child: IconButton(
                   icon: const Icon(Icons.edit_outlined),
                   tooltip: 'Edit service',
@@ -153,12 +182,13 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
                             ),
                             const SizedBox(height: 32),
                             RoleGate(
-                              permission: RolePermission.purchaseServices,
+                              current: role,
+                              allow: const [AppRole.client],
                               child: SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: () => _startCheckout(_service!),
-                                  child: const Text('Proceed to checkout'),
+                                  onPressed: _creatingOrder ? null : () => _startCheckout(_service!),
+                                  child: Text(_creatingOrder ? 'Processing...' : 'Proceed to checkout'),
                                 ),
                               ),
                             ),
@@ -235,7 +265,13 @@ class _UnauthorizedView extends StatelessWidget {
 }
 
 class CheckoutViewArgs {
-  const CheckoutViewArgs({required this.service});
+  const CheckoutViewArgs({
+    required this.orderId,
+    required this.amountCents,
+    required this.email,
+  });
 
-  final Service service;
+  final String orderId;
+  final int amountCents;
+  final String email;
 }

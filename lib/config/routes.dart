@@ -10,7 +10,7 @@ import '../views/profile/profile_view.dart';
 import '../views/wallet/wallet_view.dart';
 import '../views/marketplace/marketplace_home_view.dart';
 import '../views/marketplace/service_detail_view.dart';
-import '../views/orders/checkout_view.dart';
+import '../views/checkout/checkout_view.dart';
 import '../views/orders/order_detail_view.dart';
 import '../views/seller/create_service_view.dart';
 import '../views/seller/seller_dashboard_view.dart';
@@ -81,14 +81,15 @@ class AppRouter {
         final checkoutArgs = settings.arguments;
         if (checkoutArgs is CheckoutViewArgs) {
           return MaterialPageRoute<void>(
-            builder: (_) => CheckoutView(service: checkoutArgs.service),
+            builder: (_) => CheckoutView(
+              orderId: checkoutArgs.orderId,
+              amountCents: checkoutArgs.amountCents,
+              email: checkoutArgs.email,
+            ),
             settings: settings,
           );
         }
-        return MaterialPageRoute<void>(
-          builder: (_) => const CheckoutView(),
-          settings: settings,
-        );
+        throw ArgumentError('CheckoutView requires CheckoutViewArgs');
       case AppRoutes.orderDetail:
         final orderArgs = settings.arguments;
         if (orderArgs is OrderDetailViewArgs) {

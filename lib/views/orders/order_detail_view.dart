@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../auth/role_permission.dart';
 import '../../models/order.dart';
 import '../../models/service.dart';
 import '../../services/order_service.dart';
-import '../../widgets/role_gate.dart';
+import '../../utils/app_role.dart';
+import '../../utils/role_gate.dart';
 
 class OrderDetailViewArgs {
   const OrderDetailViewArgs({
@@ -129,8 +129,10 @@ class _OrderDetailViewState extends State<OrderDetailView> {
 
   @override
   Widget build(BuildContext context) {
+    final role = resolveAppRole(context);
     return RoleGate(
-      permission: RolePermission.viewOrders,
+      current: role,
+      allow: const [AppRole.client, AppRole.seller, AppRole.admin],
       fallback: const _UnauthorizedOrderView(),
       child: Scaffold(
         appBar: AppBar(title: const Text('Order detail')),
@@ -158,6 +160,7 @@ class _OrderDetailViewState extends State<OrderDetailView> {
                               onCancel: _cancel,
                               loading: _loading,
                               isEditable: widget.isEditable,
+                              role: role,
                             ),
                           ],
                         ),
@@ -240,6 +243,7 @@ class _OrderActions extends StatelessWidget {
     required this.onCancel,
     required this.loading,
     required this.isEditable,
+    required this.role,
   });
 
   final OrderModel order;
@@ -249,6 +253,7 @@ class _OrderActions extends StatelessWidget {
   final VoidCallback onCancel;
   final bool loading;
   final bool isEditable;
+  final AppRole role;
 
   bool get _isPending => order.status == 'pending';
   bool get _isAccepted => order.status == 'accepted';
@@ -264,7 +269,8 @@ class _OrderActions extends StatelessWidget {
 
     buttons.add(
       RoleGate(
-        permission: RolePermission.manageBuyerOrders,
+        current: role,
+        allow: const [AppRole.client, AppRole.admin],
         child: ElevatedButton.icon(
           onPressed: loading ? null : onCancel,
           icon: const Icon(Icons.cancel_outlined),
@@ -276,7 +282,8 @@ class _OrderActions extends StatelessWidget {
     if (_isPending) {
       buttons.add(
         RoleGate(
-          permission: RolePermission.manageSellerOrders,
+          current: role,
+          allow: const [AppRole.seller, AppRole.admin],
           child: ElevatedButton.icon(
             onPressed: loading ? null : onAccept,
             icon: const Icon(Icons.play_arrow),
@@ -289,7 +296,8 @@ class _OrderActions extends StatelessWidget {
     if (_isAccepted || _isPending) {
       buttons.add(
         RoleGate(
-          permission: RolePermission.manageSellerOrders,
+          current: role,
+          allow: const [AppRole.seller, AppRole.admin],
           child: ElevatedButton.icon(
             onPressed: loading ? null : onDeliver,
             icon: const Icon(Icons.upload_file_outlined),
@@ -302,7 +310,8 @@ class _OrderActions extends StatelessWidget {
     if (_isDelivered) {
       buttons.add(
         RoleGate(
-          permission: RolePermission.manageBuyerOrders,
+          current: role,
+          allow: const [AppRole.client, AppRole.admin],
           child: ElevatedButton.icon(
             onPressed: loading ? null : onComplete,
             icon: const Icon(Icons.check_circle_outline),
