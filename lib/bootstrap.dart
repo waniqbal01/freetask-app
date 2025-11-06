@@ -1,7 +1,21 @@
 import 'package:flutter/widgets.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:sentry/sentry.dart' as sentry;
+
 import 'package:freetask_app/config/app_env.dart';
+
+SentryEvent? _beforeSend(SentryEvent event, {Hint? hint}) {
+  try {
+    final user = event.user;
+    if (user != null) {
+      final sanitizedUser = user.copyWith(
+        email: user.email != null ? '***@***' : null,
+        username: user.username != null ? '***' : null,
+      );
+      return event.copyWith(user: sanitizedUser);
+    }
+  } catch (_) {}
+  return event;
+}
 
 Future<void> bootstrap(Future<Widget> Function() builder) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,20 +25,7 @@ Future<void> bootstrap(Future<Widget> Function() builder) async {
       (options) {
         options.dsn = AppEnv.sentryDsn;
         options.tracesSampleRate = 1.0;
-        options.beforeSend = (sentry.SentryEvent event, {sentry.Hint? hint}) {
-          try {
-            final user = event.user;
-            if (user != null) {
-              event = event.copyWith(
-                user: user.copyWith(
-                  email: user.email != null ? '***@***' : null,
-                  username: user.username != null ? '***' : null,
-                ),
-              );
-            }
-          } catch (_) {}
-          return event;
-        };
+        options.beforeSend = _beforeSend;
       },
       appRunner: () async => runApp(await builder()),
     );
