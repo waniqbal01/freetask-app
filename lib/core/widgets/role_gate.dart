@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-enum AppRole { client, seller, admin }
+import '../../data/services/role_service.dart';
 
 class RoleGate extends StatelessWidget {
   final AppRole current;

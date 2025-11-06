@@ -1,4 +1,4 @@
-import 'user.dart';
+import '../../models/user.dart';
 
 class Service {
   const Service({

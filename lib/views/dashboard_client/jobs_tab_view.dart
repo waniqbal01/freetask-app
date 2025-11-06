@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../config/routes.dart';
+import '../../core/router/app_router.dart';
 import '../../controllers/job/job_bloc.dart';
 import '../../controllers/job/job_event.dart';
 import '../../controllers/job/job_state.dart';
 import '../../models/job.dart';
 import '../../models/job_list_type.dart';
-import '../../widgets/job_card.dart';
+import '../../core/widgets/job_card.dart';
 
 class JobsTabView extends StatefulWidget {
   const JobsTabView({super.key});

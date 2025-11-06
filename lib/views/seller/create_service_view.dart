@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../models/service.dart';
-import '../../services/marketplace_service.dart';
+import '../../core/widgets/role_gate.dart';
+import '../../data/models/service_model.dart';
+import '../../data/services/service_service.dart';
 import '../../utils/app_role.dart';
-import '../../utils/role_gate.dart';
 
 class CreateServiceView extends StatefulWidget {
   const CreateServiceView({super.key, this.initialService});
@@ -25,7 +25,7 @@ class _CreateServiceViewState extends State<CreateServiceView> {
   bool _submitting = false;
   String? _error;
 
-  MarketplaceService get _marketplace => RepositoryProvider.of<MarketplaceService>(context);
+  ServiceService get _marketplace => RepositoryProvider.of<ServiceService>(context);
 
   @override
   void initState() {

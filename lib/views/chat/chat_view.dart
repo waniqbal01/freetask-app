@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../config/routes.dart';
+import '../../core/router/app_router.dart';
 import '../../controllers/chat/chat_bloc.dart';
 import '../../controllers/chat/chat_event.dart';
 import '../../controllers/chat/chat_list_bloc.dart';
@@ -15,7 +15,7 @@ import '../../services/chat_cache_service.dart';
 import '../../services/chat_service.dart';
 import '../../services/socket_service.dart';
 import '../../services/storage_service.dart';
-import '../../widgets/chat_bubble.dart';
+import '../../core/widgets/chat_bubble.dart';
 
 class ChatView extends StatefulWidget {
   const ChatView({super.key});

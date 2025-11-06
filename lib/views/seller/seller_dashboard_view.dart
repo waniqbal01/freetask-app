@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../config/routes.dart';
-import '../../models/order.dart';
-import '../../models/service.dart';
+import '../../core/router/app_router.dart';
+import '../../core/widgets/role_gate.dart';
+import '../../data/models/order_model.dart';
+import '../../data/models/service_model.dart';
+import '../../data/services/order_service.dart';
+import '../../data/services/service_service.dart';
 import '../../models/payout.dart';
 import '../../models/transaction.dart';
 import '../../services/admin_service.dart';
-import '../../services/marketplace_service.dart';
-import '../../services/order_service.dart';
 import '../../services/storage_service.dart';
 import '../../models/user_roles.dart';
 import '../../utils/app_role.dart';
-import '../../utils/role_gate.dart';
-import '../marketplace/service_detail_view.dart';
+import '../../features/marketplace/views/service_detail_view.dart';
 import '../orders/order_detail_view.dart';
 
 class SellerDashboardView extends StatefulWidget {
@@ -31,7 +31,7 @@ class _SellerDashboardViewState extends State<SellerDashboardView> {
   Future<List<PayoutModel>>? _payoutsFuture;
   bool _checkedAdmin = false;
 
-  MarketplaceService get _marketplace => RepositoryProvider.of<MarketplaceService>(context);
+  ServiceService get _marketplace => RepositoryProvider.of<ServiceService>(context);
   OrderService get _orders => RepositoryProvider.of<OrderService>(context);
   StorageService get _storage => RepositoryProvider.of<StorageService>(context);
 

@@ -1,6 +1,6 @@
 import '../auth/role_permission.dart';
+import '../data/services/role_service.dart';
 import '../utils/role_permissions.dart';
-import 'storage_service.dart';
 
 class RoleUnauthorizedException implements Exception {
   RoleUnauthorizedException(this.message, {this.requiredRoles});
@@ -14,11 +14,11 @@ class RoleUnauthorizedException implements Exception {
 
 /// Provides reusable checks for enforcing role-based permissions.
 class RoleGuard {
-  RoleGuard(this._storage);
+  RoleGuard(this._roleService);
 
-  final StorageService _storage;
+  final RoleService _roleService;
 
-  String? get currentRole => _storage.role ?? _storage.getUser()?.role;
+  String? get currentRole => _roleService.persistedRole;
 
   void ensurePermission(RolePermission permission) {
     final config = RolePermissions.config(permission);

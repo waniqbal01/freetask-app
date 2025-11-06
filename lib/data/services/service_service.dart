@@ -1,14 +1,18 @@
-import '../auth/role_permission.dart';
-import '../models/order.dart';
-import '../models/service.dart';
-import 'api_client.dart';
+import '../../auth/role_permission.dart';
+import '../models/order_model.dart';
+import '../models/service_model.dart';
+import '../../services/api_client.dart';
 
-class MarketplaceService {
-  MarketplaceService(this._client);
+class ServiceService {
+  ServiceService(this._client);
 
   final ApiClient _client;
 
-  Future<List<Service>> listServices({String? category, String? freelancerId, String? status}) async {
+  Future<List<Service>> listServices({
+    String? category,
+    String? freelancerId,
+    String? status,
+  }) async {
     final response = await _client.client.get<Map<String, dynamic>>(
       '/api/services',
       queryParameters: <String, dynamic>{

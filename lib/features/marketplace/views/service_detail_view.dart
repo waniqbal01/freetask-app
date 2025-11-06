@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../config/routes.dart';
-import '../../models/service.dart';
-import '../../services/marketplace_service.dart';
-import '../../services/order_service.dart';
-import '../../services/storage_service.dart';
-import '../../utils/app_role.dart';
-import '../../utils/role_gate.dart';
+import '../../../core/router/app_router.dart';
+import '../../../core/widgets/role_gate.dart';
+import '../../../data/models/service_model.dart';
+import '../../../data/services/order_service.dart';
+import '../../../data/services/service_service.dart';
+import '../../../services/storage_service.dart';
+import '../../../utils/app_role.dart';
+import '../marketplace_controller.dart';
 
 class ServiceDetailViewArgs {
   const ServiceDetailViewArgs({
@@ -38,16 +39,23 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
   bool _loading = false;
   String? _error;
   bool _creatingOrder = false;
-
-  MarketplaceService get _serviceApi => RepositoryProvider.of<MarketplaceService>(context);
-  OrderService get _orders => RepositoryProvider.of<OrderService>(context);
-  StorageService get _storage => RepositoryProvider.of<StorageService>(context);
+  MarketplaceController? _controller;
 
   @override
   void initState() {
     super.initState();
     _service = widget.initialService;
-    if (_service == null) {
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _controller ??= MarketplaceController(
+      serviceService: RepositoryProvider.of<ServiceService>(context),
+      orderService: RepositoryProvider.of<OrderService>(context),
+      storageService: RepositoryProvider.of<StorageService>(context),
+    );
+    if (_service == null && !_loading) {
       _load();
     }
   }
@@ -58,7 +66,8 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
       _error = null;
     });
     try {
-      final result = await _serviceApi.getService(widget.serviceId);
+      final controller = _controller!;
+      final result = await controller.fetchService(widget.serviceId);
       setState(() => _service = result);
     } catch (error) {
       setState(() => _error = 'Failed to load service details.');
@@ -72,14 +81,10 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
   Future<void> _startCheckout(Service service) async {
     setState(() => _creatingOrder = true);
     try {
-      final order = await _orders.createOrder(serviceId: service.id);
+      final controller = _controller!;
+      final order = await controller.createOrder(serviceId: service.id);
       if (!mounted) return;
-      final user = _storage.getUser();
-      String rawEmail = '';
-      if (user != null) {
-        rawEmail = user.email.trim();
-      }
-      final email = rawEmail.isNotEmpty ? rawEmail : 'client@example.com';
+      final email = controller.resolveUserEmail() ?? 'client@example.com';
       Navigator.of(context).pushNamed(
         AppRoutes.checkout,
         arguments: CheckoutViewArgs(

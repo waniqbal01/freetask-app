@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:freetask_app/config/route_guard.dart';
-import 'package:freetask_app/config/routes.dart';
+import 'package:freetask_app/core/router/route_guard.dart';
+import 'package:freetask_app/core/router/app_router.dart';
+import 'package:freetask_app/data/services/role_service.dart';
 import 'package:freetask_app/models/user.dart';
 import 'package:freetask_app/models/user_roles.dart';
 import 'package:freetask_app/services/storage_service.dart';
@@ -20,7 +21,7 @@ void main() {
       const User(id: 'u1', name: 'Client', email: 'client@example.com', role: 'client'),
     );
 
-    final guard = RouteGuard(storage);
+    final guard = RouteGuard(RoleService(storage));
     final router = AppRouter(guard);
 
     await tester.pumpWidget(
@@ -40,7 +41,7 @@ void main() {
     when(() => storage.role).thenReturn('seller');
     when(() => storage.getUser()).thenReturn(null);
 
-    final guard = RouteGuard(storage);
+    final guard = RouteGuard(RoleService(storage));
     expect(guard.hasRole(UserRoles.seller), isTrue);
     expect(guard.hasRole(UserRoles.admin), isFalse);
   });
@@ -50,7 +51,7 @@ void main() {
     when(() => storage.role).thenReturn('admin');
     when(() => storage.getUser()).thenReturn(null);
 
-    final guard = RouteGuard(storage);
+    final guard = RouteGuard(RoleService(storage));
     expect(guard.hasRole(UserRoles.admin), isTrue);
     expect(guard.hasRole(UserRoles.seller), isFalse);
   });

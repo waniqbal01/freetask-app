@@ -9,7 +9,7 @@ import '../../controllers/job/job_state.dart';
 import '../../models/bid.dart';
 import '../../models/job.dart';
 import '../../services/bid_service.dart';
-import '../../widgets/job_card.dart';
+import '../../core/widgets/job_card.dart';
 
 class JobDetailView extends StatefulWidget {
   const JobDetailView({super.key, required this.jobId});

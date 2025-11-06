@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../config/routes.dart';
-import '../../models/service.dart';
-import '../../services/marketplace_service.dart';
-import '../../utils/app_role.dart';
-import '../../utils/role_gate.dart';
+import '../../../core/router/app_router.dart';
+import '../../../core/widgets/role_gate.dart';
+import '../../../data/models/service_model.dart';
+import '../../../data/services/order_service.dart';
+import '../../../data/services/service_service.dart';
+import '../../../services/storage_service.dart';
+import '../../../utils/app_role.dart';
+import '../marketplace_controller.dart';
 import 'service_detail_view.dart';
 
 class MarketplaceHomeView extends StatefulWidget {
@@ -17,22 +20,28 @@ class MarketplaceHomeView extends StatefulWidget {
 
 class _MarketplaceHomeViewState extends State<MarketplaceHomeView> {
   late Future<List<Service>> _servicesFuture;
-
-  MarketplaceService get _service => RepositoryProvider.of<MarketplaceService>(context);
+  late MarketplaceController _controller;
+  bool _initialized = false;
 
   @override
-  void initState() {
-    super.initState();
-    _servicesFuture = _loadServices();
-  }
-
-  Future<List<Service>> _loadServices() {
-    return _service.listServices();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+    final serviceService = RepositoryProvider.of<ServiceService>(context);
+    final orderService = RepositoryProvider.of<OrderService>(context);
+    final storageService = RepositoryProvider.of<StorageService>(context);
+    _controller = MarketplaceController(
+      serviceService: serviceService,
+      orderService: orderService,
+      storageService: storageService,
+    );
+    _servicesFuture = _controller.fetchServices();
+    _initialized = true;
   }
 
   Future<void> _refresh() async {
     setState(() {
-      _servicesFuture = _loadServices();
+      _servicesFuture = _controller.fetchServices();
     });
     await _servicesFuture;
   }
