@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -e
 flutter run \
-  --dart-define=API_BASE=http://10.0.2.2:4000 \
-  --dart-define=SOCKET_BASE=http://10.0.2.2:4000 \
-  --dart-define=SENTRY_DSN= \
-  --dart-define=APP_ENV=beta \
-  --dart-define=APP_RELEASE=freetask-app@1.0.0
+  --dart-define=API_BASE_URL=http://10.0.2.2:3000 \
+  --dart-define=ENABLE_SENTRY=false \
+  --dart-define=APP_NAME="Freetask Dev" \
+  --dart-define=SENTRY_DSN=""

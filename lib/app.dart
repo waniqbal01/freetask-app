@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'bootstrap/app_bootstrap.dart';
+import 'config/route_guard.dart';
 import 'config/routes.dart';
 import 'config/theme.dart';
 import 'controllers/auth/auth_bloc.dart';
@@ -182,8 +183,8 @@ class _FreetaskAppState extends State<FreetaskApp> {
   }
 }
 
-class _AppView extends StatelessWidget {
-  _AppView({
+class _AppView extends StatefulWidget {
+  const _AppView({
     required this.navigatorKey,
     required this.scaffoldMessengerKey,
     required this.theme,
@@ -192,14 +193,29 @@ class _AppView extends StatelessWidget {
   final GlobalKey<NavigatorState> navigatorKey;
   final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
   final ThemeData theme;
-  final AppRouter _router = AppRouter();
 
-  Route<dynamic> _onGenerateRoute(RouteSettings settings) {
-    return _router.onGenerateRoute(settings);
+  @override
+  State<_AppView> createState() => _AppViewState();
+}
+
+class _AppViewState extends State<_AppView> {
+  RouteGuard? _routeGuard;
+  AppRouter? _router;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_routeGuard == null) {
+      final storage = RepositoryProvider.of<StorageService>(context);
+      _routeGuard = RouteGuard(storage);
+      _router = AppRouter(_routeGuard!);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final router = _router!;
+    final routeGuard = _routeGuard!;
     return BlocListener<ProfileBloc, ProfileState>(
       listenWhen: (previous, current) =>
           previous.errorMessage != current.errorMessage ||
@@ -217,12 +233,13 @@ class _AppView extends StatelessWidget {
       },
       child: MaterialApp(
         title: 'Freetask',
-        theme: theme,
+        theme: widget.theme,
         debugShowCheckedModeBanner: false,
-        navigatorKey: navigatorKey,
-        scaffoldMessengerKey: scaffoldMessengerKey,
+        navigatorKey: widget.navigatorKey,
+        scaffoldMessengerKey: widget.scaffoldMessengerKey,
         initialRoute: AppRoutes.onboarding,
-        onGenerateRoute: _onGenerateRoute,
+        onGenerateRoute: router.onGenerateRoute,
+        navigatorObservers: [routeGuard],
       ),
     );
   }
