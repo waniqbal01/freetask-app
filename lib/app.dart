@@ -37,6 +37,9 @@ import 'services/storage_service.dart';
 import 'services/wallet_service.dart';
 import 'repositories/auth_repository.dart';
 
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
 class FreetaskApp extends StatefulWidget {
   const FreetaskApp({required this.bootstrap, super.key});
 
@@ -48,7 +51,6 @@ class FreetaskApp extends StatefulWidget {
 
 class _FreetaskAppState extends State<FreetaskApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
-  final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
   late final AuthBloc _authBloc;
   late final JobBloc _jobBloc;
@@ -77,7 +79,7 @@ class _FreetaskAppState extends State<FreetaskApp> {
     _logoutSubscription =
         widget.bootstrap.apiClient.logoutStream.listen((_) async {
       _authBloc.add(const LogoutRequested());
-      _scaffoldMessengerKey.currentState?.showSnackBar(
+      scaffoldMessengerKey.currentState?.showSnackBar(
         const SnackBar(
           content: Text('Session expired. Please log in again.'),
         ),
@@ -175,7 +177,6 @@ class _FreetaskAppState extends State<FreetaskApp> {
         ],
         child: _AppView(
           navigatorKey: _navigatorKey,
-          scaffoldMessengerKey: _scaffoldMessengerKey,
           theme: FreetaskTheme.build(),
         ),
       ),
@@ -186,12 +187,10 @@ class _FreetaskAppState extends State<FreetaskApp> {
 class _AppView extends StatefulWidget {
   const _AppView({
     required this.navigatorKey,
-    required this.scaffoldMessengerKey,
     required this.theme,
   });
 
   final GlobalKey<NavigatorState> navigatorKey;
-  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey;
   final ThemeData theme;
 
   @override
@@ -236,7 +235,7 @@ class _AppViewState extends State<_AppView> {
         theme: widget.theme,
         debugShowCheckedModeBanner: false,
         navigatorKey: widget.navigatorKey,
-        scaffoldMessengerKey: widget.scaffoldMessengerKey,
+        scaffoldMessengerKey: scaffoldMessengerKey,
         initialRoute: AppRoutes.onboarding,
         onGenerateRoute: router.onGenerateRoute,
         navigatorObservers: [routeGuard],
