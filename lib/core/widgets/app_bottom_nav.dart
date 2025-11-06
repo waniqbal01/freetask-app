@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../controllers/nav/role_nav_cubit.dart';
+import '../../controllers/nav/role_nav_cubit.dart';
 
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
