@@ -1,6 +1,6 @@
 class AppEnv {
   static const apiBaseUrl =
-      String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:3000');
+      String.fromEnvironment('API_BASE_URL', defaultValue: 'https://localhost:4000');
   static const sentryDsn =
       String.fromEnvironment('SENTRY_DSN', defaultValue: '');
   static const appName =

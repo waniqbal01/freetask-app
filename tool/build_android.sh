@@ -3,7 +3,7 @@ set -e
 FLAVOR=${1:-prod}
 case "$FLAVOR" in
   dev)
-    API_BASE_URL="http://10.0.2.2:3000"
+    API_BASE_URL="https://localhost:4000"
     ENABLE_SENTRY=false
     APP_NAME="Freetask Dev"
     SENTRY_DSN=""
