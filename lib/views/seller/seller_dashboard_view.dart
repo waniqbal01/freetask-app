@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:freetask_app/core/constants/app_roles.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/widgets/role_gate.dart';
@@ -127,9 +128,10 @@ class _SellerDashboardViewState extends State<SellerDashboardView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final role = resolveAppRole(context);
+    final allowedRoles = <AppRole>[AppRole.freelancer, AppRole.admin];
     return RoleGate(
       current: role,
-      allow: const [AppRole.seller, AppRole.admin],
+      allow: allowedRoles,
       fallback: const _UnauthorizedSellerView(),
       child: Scaffold(
         appBar: AppBar(

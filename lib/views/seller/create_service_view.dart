@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:freetask_app/core/constants/app_roles.dart';
 
 import '../../core/widgets/role_gate.dart';
 import '../../data/models/service_model.dart';
@@ -87,9 +88,10 @@ class _CreateServiceViewState extends State<CreateServiceView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final role = resolveAppRole(context);
+    final allowedRoles = <AppRole>[AppRole.freelancer, AppRole.admin];
     return RoleGate(
       current: role,
-      allow: const [AppRole.seller, AppRole.admin],
+      allow: allowedRoles,
       fallback: const _UnauthorizedCreateView(),
       child: Scaffold(
         appBar: AppBar(

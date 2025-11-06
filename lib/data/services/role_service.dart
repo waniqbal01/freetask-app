@@ -1,8 +1,8 @@
+import 'package:freetask_app/core/constants/app_roles.dart';
+
 import '../../controllers/auth/auth_state.dart';
 import '../../models/user_roles.dart';
 import '../../services/storage_service.dart';
-
-enum AppRole { client, seller, admin }
 
 class RoleService {
   RoleService(this._storage);
@@ -28,7 +28,7 @@ class RoleService {
     switch (normalized) {
       case 'seller':
       case 'freelancer':
-        return AppRole.seller;
+        return AppRole.freelancer;
       case 'admin':
       case 'manager':
       case 'support':
