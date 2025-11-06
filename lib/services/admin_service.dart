@@ -1,7 +1,7 @@
 import '../auth/role_permission.dart';
-import '../models/order.dart';
+import '../data/models/order_model.dart';
+import '../data/models/service_model.dart';
 import '../models/payout.dart';
-import '../models/service.dart';
 import '../models/transaction.dart';
 import 'api_client.dart';
 

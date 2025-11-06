@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'bootstrap/app_bootstrap.dart';
-import 'config/route_guard.dart';
-import 'config/routes.dart';
+import 'core/router/route_guard.dart';
+import 'core/router/app_router.dart';
 import 'config/theme.dart';
 import 'controllers/auth/auth_bloc.dart';
 import 'controllers/auth/auth_event.dart';
@@ -27,9 +27,10 @@ import 'services/admin_service.dart';
 import 'services/chat_cache_service.dart';
 import 'services/chat_service.dart';
 import 'services/job_service.dart';
-import 'services/marketplace_service.dart';
+import 'data/services/order_service.dart';
+import 'data/services/role_service.dart';
+import 'data/services/service_service.dart';
 import 'services/notification_service.dart';
-import 'services/order_service.dart';
 import 'services/profile_service.dart';
 import 'services/role_guard.dart';
 import 'services/socket_service.dart';
@@ -132,6 +133,7 @@ class _FreetaskAppState extends State<FreetaskApp> {
           value: widget.bootstrap.authRepository,
         ),
         RepositoryProvider<StorageService>.value(value: _storage),
+        RepositoryProvider<RoleService>.value(value: widget.bootstrap.roleService),
         RepositoryProvider<RoleGuard>.value(value: widget.bootstrap.roleGuard),
         RepositoryProvider<JobService>.value(value: widget.bootstrap.jobService),
         RepositoryProvider<ChatService>.value(value: widget.bootstrap.chatService),
@@ -149,12 +151,10 @@ class _FreetaskAppState extends State<FreetaskApp> {
         RepositoryProvider<NotificationService>.value(
           value: widget.bootstrap.notificationService,
         ),
-        RepositoryProvider<MarketplaceService>.value(
-          value: widget.bootstrap.marketplaceService,
+        RepositoryProvider<ServiceService>.value(
+          value: widget.bootstrap.serviceService,
         ),
-        RepositoryProvider<OrderService>.value(
-          value: widget.bootstrap.orderService,
-        ),
+        RepositoryProvider<OrderService>.value(value: widget.bootstrap.orderService),
         RepositoryProvider<AdminService>.value(
           value: widget.bootstrap.adminService,
         ),
@@ -205,8 +205,8 @@ class _AppViewState extends State<_AppView> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_routeGuard == null) {
-      final storage = RepositoryProvider.of<StorageService>(context);
-      _routeGuard = RouteGuard(storage);
+      final roleService = RepositoryProvider.of<RoleService>(context);
+      _routeGuard = RouteGuard(roleService);
       _router = AppRouter(_routeGuard!);
     }
   }

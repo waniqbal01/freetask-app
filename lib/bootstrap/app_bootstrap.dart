@@ -1,6 +1,9 @@
 import 'package:dio/dio.dart';
 
 import '../adapters/shared_prefs_store.dart';
+import '../data/services/order_service.dart';
+import '../data/services/role_service.dart';
+import '../data/services/service_service.dart';
 import '../repositories/auth_repository.dart';
 import '../services/admin_service.dart';
 import '../services/api_client.dart';
@@ -9,9 +12,7 @@ import '../services/bid_service.dart';
 import '../services/chat_cache_service.dart';
 import '../services/chat_service.dart';
 import '../services/job_service.dart';
-import '../services/marketplace_service.dart';
 import '../services/notification_service.dart';
-import '../services/order_service.dart';
 import '../services/profile_service.dart';
 import '../services/role_guard.dart';
 import '../services/socket_service.dart';
@@ -29,6 +30,7 @@ class AppBootstrap {
     required this.authRepository,
     required this.storageService,
     required this.roleGuard,
+    required this.roleService,
     required this.jobService,
     required this.chatService,
     required this.chatCacheService,
@@ -37,7 +39,7 @@ class AppBootstrap {
     required this.bidService,
     required this.walletService,
     required this.notificationService,
-    required this.marketplaceService,
+    required this.serviceService,
     required this.orderService,
     required this.adminService,
   });
@@ -46,7 +48,8 @@ class AppBootstrap {
   static Future<AppBootstrap> init() async {
     final store = await SharedPrefsStore.create();
     final storage = StorageService(store);
-    final roleGuard = RoleGuard(storage);
+    final roleService = RoleService(storage);
+    final roleGuard = RoleGuard(roleService);
     final apiClient = ApiClient(Dio(), storage, roleGuard);
     final authService = AuthService(apiClient, storage);
     final authRepository = AuthRepository(
@@ -61,7 +64,7 @@ class AppBootstrap {
     final bidService = BidService(apiClient);
     final walletService = WalletService(apiClient);
     final notificationService = NotificationService();
-    final marketplaceService = MarketplaceService(apiClient);
+    final serviceService = ServiceService(apiClient);
     final orderService = OrderService(apiClient);
     final adminService = AdminService(apiClient);
 
@@ -73,6 +76,7 @@ class AppBootstrap {
       authRepository: authRepository,
       storageService: storage,
       roleGuard: roleGuard,
+      roleService: roleService,
       jobService: jobService,
       chatService: chatService,
       chatCacheService: chatCacheService,
@@ -81,7 +85,7 @@ class AppBootstrap {
       bidService: bidService,
       walletService: walletService,
       notificationService: notificationService,
-      marketplaceService: marketplaceService,
+      serviceService: serviceService,
       orderService: orderService,
       adminService: adminService,
     );
@@ -92,6 +96,7 @@ class AppBootstrap {
   final AuthRepository authRepository;
   final StorageService storageService;
   final RoleGuard roleGuard;
+  final RoleService roleService;
   final JobService jobService;
   final ChatService chatService;
   final ChatCacheService chatCacheService;
@@ -100,7 +105,7 @@ class AppBootstrap {
   final BidService bidService;
   final WalletService walletService;
   final NotificationService notificationService;
-  final MarketplaceService marketplaceService;
+  final ServiceService serviceService;
   final OrderService orderService;
   final AdminService adminService;
 }

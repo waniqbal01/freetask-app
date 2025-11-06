@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../config/routes.dart';
+import '../../core/router/app_router.dart';
 import '../../controllers/auth/auth_bloc.dart';
 import '../../controllers/auth/auth_event.dart';
 import '../../controllers/profile/profile_bloc.dart';
 import '../../models/user.dart';
-import '../../widgets/custom_button.dart';
+import '../../core/widgets/custom_button.dart';
 import '../onboarding/login_view.dart';
 
 class ProfileView extends StatefulWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../config/routes.dart';
+import '../../core/router/app_router.dart';
 import '../../controllers/auth/auth_bloc.dart';
 import '../../controllers/auth/auth_state.dart';
 import '../../controllers/chat/chat_list_bloc.dart';
@@ -15,7 +15,7 @@ import '../../controllers/profile/profile_bloc.dart';
 import '../../models/job_list_type.dart';
 import '../../services/storage_service.dart';
 import '../../utils/role_permissions.dart';
-import '../../widgets/app_bottom_nav.dart';
+import '../../core/widgets/app_bottom_nav.dart';
 import '../chat/chat_view.dart';
 import '../profile/profile_view.dart';
 import 'jobs_tab_view.dart';

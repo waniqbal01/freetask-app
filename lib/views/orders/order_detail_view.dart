@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../models/order.dart';
-import '../../models/service.dart';
-import '../../services/order_service.dart';
+import '../../core/widgets/role_gate.dart';
+import '../../data/models/order_model.dart';
+import '../../data/models/service_model.dart';
+import '../../data/services/order_service.dart';
 import '../../utils/app_role.dart';
-import '../../utils/role_gate.dart';
 
 class OrderDetailViewArgs {
   const OrderDetailViewArgs({

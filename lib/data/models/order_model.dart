@@ -1,5 +1,5 @@
-import 'service.dart';
-import 'user.dart';
+import 'service_model.dart';
+import '../../models/user.dart';
 
 class OrderModel {
   const OrderModel({

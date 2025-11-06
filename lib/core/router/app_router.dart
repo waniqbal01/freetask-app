@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 
-import '../models/user_roles.dart';
-import '../views/chat/chat_view.dart';
-import '../views/checkout/checkout_view.dart';
-import '../views/common/forbidden_view.dart';
-import '../views/job_detail/job_detail_view.dart';
-import '../views/marketplace/marketplace_home_view.dart';
-import '../views/marketplace/service_detail_view.dart';
-import '../views/notification/notifications_view.dart';
-import '../views/onboarding/forgot_password_view.dart';
-import '../views/onboarding/login_view.dart';
-import '../views/onboarding/splash_view.dart';
-import '../views/orders/order_detail_view.dart';
-import '../views/profile/profile_view.dart';
-import '../views/seller/create_service_view.dart';
-import '../views/seller/seller_dashboard_view.dart';
-import '../views/wallet/wallet_view.dart';
-import '../models/service.dart';
+import '../../data/models/service_model.dart';
+import '../../features/marketplace/views/marketplace_home_view.dart';
+import '../../features/marketplace/views/service_detail_view.dart';
+import '../../models/user_roles.dart';
+import '../../views/chat/chat_view.dart';
+import '../../views/checkout/checkout_view.dart';
+import '../../views/common/forbidden_view.dart';
+import '../../views/job_detail/job_detail_view.dart';
+import '../../views/notification/notifications_view.dart';
+import '../../views/onboarding/forgot_password_view.dart';
+import '../../views/onboarding/login_view.dart';
+import '../../views/onboarding/splash_view.dart';
+import '../../views/orders/order_detail_view.dart';
+import '../../views/profile/profile_view.dart';
+import '../../views/seller/create_service_view.dart';
+import '../../views/seller/seller_dashboard_view.dart';
+import '../../views/wallet/wallet_view.dart';
 import 'route_guard.dart';
 
 class AppRoutes {

@@ -1,6 +1,6 @@
-import '../auth/role_permission.dart';
-import '../models/order.dart';
-import 'api_client.dart';
+import '../../auth/role_permission.dart';
+import '../models/order_model.dart';
+import '../../services/api_client.dart';
 
 class OrderService {
   OrderService(this._client);
