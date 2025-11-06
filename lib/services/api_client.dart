@@ -87,7 +87,7 @@ class ApiClient {
                   error.type == DioExceptionType.receiveTimeout) &&
               ((options.extra['__retry__'] as int?) ?? 0) < 2) {
             final retries = ((options.extra['__retry__'] as int?) ?? 0) + 1;
-            final extra = Map<String, dynamic>.from(options.extra ?? const {});
+            final extra = Map<String, dynamic>.from(options.extra);
             extra['__retry__'] = retries;
             options.extra = extra;
             AppLogger.w(
