@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:freetask_app/config/app_env.dart';
 
 import '../auth/role_permission.dart';
+import '../core/app_logger.dart';
 import '../utils/role_permissions.dart';
 import 'monitoring_service.dart';
 import 'role_guard.dart';
@@ -14,7 +15,7 @@ class ApiClient {
       : _dio = dio
           ..options = BaseOptions(
             baseUrl: AppEnv.apiBaseUrl,
-            connectTimeout: const Duration(seconds: 20),
+            connectTimeout: const Duration(seconds: 10),
             receiveTimeout: const Duration(seconds: 20),
             sendTimeout: const Duration(seconds: 20),
             headers: const {'Content-Type': 'application/json'},
@@ -23,6 +24,7 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
+          AppLogger.d('→ ${options.method} ${options.uri}');
           final token = _storage.token;
           final requiresAuth = (options.extra['requiresAuth'] as bool?) ?? true;
           if (requiresAuth && token != null && token.isNotEmpty) {
@@ -68,11 +70,35 @@ class ApiClient {
           return handler.next(options);
         },
         onResponse: (response, handler) {
+          AppLogger.d('← ${response.statusCode} ${response.requestOptions.method} ${response.requestOptions.uri}');
           final requestId = response.headers.value('x-request-id');
           MonitoringService.updateRequestContext(requestId);
           return handler.next(response);
         },
         onError: (error, handler) async {
+          AppLogger.e(
+            '✖ ${error.requestOptions.method} ${error.requestOptions.uri}: ${error.message}',
+            error,
+            error.stackTrace,
+          );
+          final options = error.requestOptions;
+          if ((error.type == DioExceptionType.connectionError ||
+                  error.type == DioExceptionType.connectionTimeout ||
+                  error.type == DioExceptionType.receiveTimeout) &&
+              ((options.extra['__retry__'] as int?) ?? 0) < 2) {
+            final retries = ((options.extra['__retry__'] as int?) ?? 0) + 1;
+            final extra = Map<String, dynamic>.from(options.extra ?? const {});
+            extra['__retry__'] = retries;
+            options.extra = extra;
+            AppLogger.w(
+                'Retrying ${options.method} ${options.uri} (attempt $retries) due to ${error.type}');
+            try {
+              final response = await _dio.fetch<dynamic>(options);
+              return handler.resolve(response);
+            } on DioException catch (retryError) {
+              return handler.next(retryError);
+            }
+          }
           final response = error.response;
           final statusCode = response?.statusCode;
           final headers = response?.headers;

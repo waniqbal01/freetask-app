@@ -13,27 +13,33 @@ Node.js/Express backend.
    ```bash
    flutter pub get
    ```
-2. (Optional) keep the code style consistent
+2. Run the automated checks
    ```bash
-   dart format .
+   flutter analyze
+   flutter test
    ```
-3. Run the automated tests
+3. Launch the Flutter app with the development flavor
    ```bash
-   dart test
+   ./tool/dev_run.sh
    ```
-4. Launch the Flutter app with explicit environment configuration
+4. Build Android APKs for any flavor (`dev`, `stg`, or `prod`)
    ```bash
-   flutter run --dart-define=API_BASE=https://your-api.example.com/api \
-              --dart-define=SOCKET_BASE=https://your-api.example.com
+   ./tool/build_android.sh dev
+   ./tool/build_android.sh stg
+   ./tool/build_android.sh prod
    ```
-   The local Express API bundled with this repo listens on
-   `http://localhost:4000`, so omitting the defines during development will
-   now fall back to those defaults.
-5. Build release binaries with the same environment values
-   ```bash
-   flutter build apk --dart-define=API_BASE=https://your-api.example.com/api \
-                     --dart-define=SOCKET_BASE=https://your-api.example.com
-   ```
+
+All builds rely on the following `--dart-define` values which are injected by
+the scripts above:
+
+| Key | Description |
+| --- | --- |
+| `API_BASE_URL` | REST API base URL |
+| `ENABLE_SENTRY` | Toggle Sentry crash/error reporting |
+| `SENTRY_DSN` | Project DSN for Sentry |
+| `APP_NAME` | Display name used by Flutter |
+
+Refer to `.env.example` for example values when wiring CI pipelines.
 
 ### Express API
 

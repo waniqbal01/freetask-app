@@ -1,13 +1,21 @@
+import 'dart:async';
 import 'dart:convert';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../models/app_theme_mode.dart';
 import '../models/user.dart';
 import 'key_value_store.dart';
 
 class StorageService {
-  StorageService(this._store);
+  StorageService(this._store, {FlutterSecureStorage? secure})
+      : _secure = secure ?? const FlutterSecureStorage() {
+    _hydrateFromStore();
+    unawaited(_loadSecureValues());
+  }
 
   final KeyValueStore _store;
+  final FlutterSecureStorage _secure;
 
   static const _tokenKey = 'auth_token';
   static const _userKey = 'auth_user';
@@ -17,55 +25,135 @@ class StorageService {
   static const _themeModeKey = 'app_theme_mode';
   static const _jobFeedPrefix = 'cache:job_feed:';
 
-  Future<void> saveToken(String token) async {
-    await _store.setString(_tokenKey, token);
+  String? _tokenCache;
+  String? _refreshTokenCache;
+  DateTime? _tokenExpiryCache;
+  String? _userCache;
+  String? _roleCache;
+
+  void _hydrateFromStore() {
+    _tokenCache = _store.getString(_tokenKey);
+    _refreshTokenCache = _store.getString(_refreshTokenKey);
+    final expiryRaw = _store.getString(_tokenExpiryKey);
+    if (expiryRaw != null) {
+      try {
+        _tokenExpiryCache = DateTime.parse(expiryRaw).toLocal();
+      } catch (_) {
+        _tokenExpiryCache = null;
+      }
+    }
+    _userCache = _store.getString(_userKey);
+    _roleCache = _store.getString(_roleKey);
   }
 
-  String? get token => _store.getString(_tokenKey);
+  Future<void> _loadSecureValues() async {
+    try {
+      final token = await _secure.read(key: _tokenKey);
+      if (token != null) {
+        _tokenCache = token;
+      }
+      final refreshToken = await _secure.read(key: _refreshTokenKey);
+      if (refreshToken != null) {
+        _refreshTokenCache = refreshToken;
+      }
+      final expiry = await _secure.read(key: _tokenExpiryKey);
+      if (expiry != null) {
+        try {
+          _tokenExpiryCache = DateTime.parse(expiry).toLocal();
+        } catch (_) {
+          _tokenExpiryCache = null;
+        }
+      }
+      final user = await _secure.read(key: _userKey);
+      if (user != null) {
+        _userCache = user;
+      }
+      final role = await _secure.read(key: _roleKey);
+      if (role != null) {
+        _roleCache = role;
+      }
+    } catch (_) {}
 
-  Future<void> clearToken() async {
+    await Future.wait([
+      _store.remove(_tokenKey),
+      _store.remove(_refreshTokenKey),
+      _store.remove(_tokenExpiryKey),
+      _store.remove(_userKey),
+      _store.remove(_roleKey),
+    ]);
+  }
+
+  Future<void> saveToken(String token) async {
+    _tokenCache = token;
+    await _secure.write(key: _tokenKey, value: token);
     await _store.remove(_tokenKey);
   }
 
-  Future<void> saveRefreshToken(String refreshToken) async {
-    await _store.setString(_refreshTokenKey, refreshToken);
+  String? get token => _tokenCache;
+
+  Future<void> clearToken() async {
+    _tokenCache = null;
+    await Future.wait([
+      _secure.delete(key: _tokenKey),
+      _store.remove(_tokenKey),
+    ]);
   }
 
-  String? get refreshToken => _store.getString(_refreshTokenKey);
+  Future<void> saveRefreshToken(String refreshToken) async {
+    _refreshTokenCache = refreshToken;
+    await _secure.write(key: _refreshTokenKey, value: refreshToken);
+    await _store.remove(_refreshTokenKey);
+  }
+
+  String? get refreshToken => _refreshTokenCache;
 
   Future<void> clearRefreshToken() async {
-    await _store.remove(_refreshTokenKey);
+    _refreshTokenCache = null;
+    await Future.wait([
+      _secure.delete(key: _refreshTokenKey),
+      _store.remove(_refreshTokenKey),
+    ]);
   }
 
   Future<void> saveTokenExpiry(DateTime? expiry) async {
     if (expiry == null) {
-      await _store.remove(_tokenExpiryKey);
+      _tokenExpiryCache = null;
+      await Future.wait([
+        _secure.delete(key: _tokenExpiryKey),
+        _store.remove(_tokenExpiryKey),
+      ]);
       return;
     }
-    await _store.setString(_tokenExpiryKey, expiry.toIso8601String());
-  }
-
-  DateTime? get tokenExpiry {
-    final value = _store.getString(_tokenExpiryKey);
-    if (value == null) return null;
-    try {
-      return DateTime.parse(value).toLocal();
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<void> clearTokenExpiry() async {
+    _tokenExpiryCache = expiry.toLocal();
+    await _secure.write(
+      key: _tokenExpiryKey,
+      value: expiry.toUtc().toIso8601String(),
+    );
     await _store.remove(_tokenExpiryKey);
   }
 
+  DateTime? get tokenExpiry {
+    return _tokenExpiryCache;
+  }
+
+  Future<void> clearTokenExpiry() async {
+    _tokenExpiryCache = null;
+    await Future.wait([
+      _secure.delete(key: _tokenExpiryKey),
+      _store.remove(_tokenExpiryKey),
+    ]);
+  }
+
   Future<void> saveUser(User user) async {
-    await _store.setString(_userKey, jsonEncode(user.toJson()));
+    final encoded = jsonEncode(user.toJson());
+    _userCache = encoded;
+    await _secure.write(key: _userKey, value: encoded);
+    await _store.remove(_userKey);
     await saveRole(user.role);
   }
 
   User? getUser() {
-    final data = _store.getString(_userKey);
+    final data = _userCache;
     if (data == null) return null;
     try {
       final Map<String, dynamic> json = jsonDecode(data) as Map<String, dynamic>;
@@ -76,22 +164,42 @@ class StorageService {
   }
 
   Future<void> clearUser() async {
-    await _store.remove(_userKey);
+    _userCache = null;
+    await Future.wait([
+      _secure.delete(key: _userKey),
+      _store.remove(_userKey),
+    ]);
     await clearRole();
   }
 
   Future<void> saveRole(String role) async {
-    await _store.setString(_roleKey, role);
-  }
-
-  String? get role => _store.getString(_roleKey);
-
-  Future<void> clearRole() async {
+    _roleCache = role;
+    await _secure.write(key: _roleKey, value: role);
     await _store.remove(_roleKey);
   }
 
-  Future<void> clearAll() async {
+  String? get role => _roleCache;
+
+  Future<void> clearRole() async {
+    _roleCache = null;
     await Future.wait([
+      _secure.delete(key: _roleKey),
+      _store.remove(_roleKey),
+    ]);
+  }
+
+  Future<void> clearAll() async {
+    _tokenCache = null;
+    _refreshTokenCache = null;
+    _tokenExpiryCache = null;
+    _userCache = null;
+    _roleCache = null;
+    await Future.wait([
+      _secure.delete(key: _tokenKey),
+      _secure.delete(key: _userKey),
+      _secure.delete(key: _refreshTokenKey),
+      _secure.delete(key: _tokenExpiryKey),
+      _secure.delete(key: _roleKey),
       _store.remove(_tokenKey),
       _store.remove(_userKey),
       _store.remove(_refreshTokenKey),
