@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:freetask_app/core/constants/app_roles.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/widgets/role_gate.dart';
@@ -111,9 +112,12 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
     final role = resolveAppRole(context);
     final service = _service;
     final error = _error;
+    final viewerRoles = <AppRole>[AppRole.client, AppRole.freelancer, AppRole.admin];
+    final editorRoles = <AppRole>[AppRole.freelancer, AppRole.admin];
+    final clientOnly = <AppRole>[AppRole.client];
     return RoleGate(
       current: role,
-      allow: const [AppRole.client, AppRole.seller, AppRole.admin],
+      allow: viewerRoles,
       fallback: const _UnauthorizedView(),
       child: Scaffold(
         appBar: AppBar(
@@ -122,7 +126,7 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
             if (service != null)
               RoleGate(
                 current: role,
-                allow: const [AppRole.seller, AppRole.admin],
+                allow: editorRoles,
                 child: IconButton(
                   icon: const Icon(Icons.edit_outlined),
                   tooltip: 'Edit service',
@@ -193,7 +197,7 @@ class _ServiceDetailViewState extends State<ServiceDetailView> {
                             const SizedBox(height: 32),
                             RoleGate(
                               current: role,
-                              allow: const [AppRole.client],
+                              allow: clientOnly,
                               child: SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(

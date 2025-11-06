@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
-
-import '../../data/services/role_service.dart';
+import 'package:freetask_app/core/constants/app_roles.dart';
 
 class RoleGate extends StatelessWidget {
   final AppRole current;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:freetask_app/core/constants/app_roles.dart';
 
 import '../../core/widgets/role_gate.dart';
 import '../../data/models/order_model.dart';
@@ -130,9 +131,10 @@ class _OrderDetailViewState extends State<OrderDetailView> {
   @override
   Widget build(BuildContext context) {
     final role = resolveAppRole(context);
+    final allowedRoles = <AppRole>[AppRole.client, AppRole.freelancer, AppRole.admin];
     return RoleGate(
       current: role,
-      allow: const [AppRole.client, AppRole.seller, AppRole.admin],
+      allow: allowedRoles,
       fallback: const _UnauthorizedOrderView(),
       child: Scaffold(
         appBar: AppBar(title: const Text('Order detail')),
@@ -266,11 +268,13 @@ class _OrderActions extends StatelessWidget {
       return const SizedBox.shrink();
     }
     final buttons = <Widget>[];
+    final clientRoles = <AppRole>[AppRole.client, AppRole.admin];
+    final freelancerRoles = <AppRole>[AppRole.freelancer, AppRole.admin];
 
     buttons.add(
       RoleGate(
         current: role,
-        allow: const [AppRole.client, AppRole.admin],
+        allow: clientRoles,
         child: ElevatedButton.icon(
           onPressed: loading ? null : onCancel,
           icon: const Icon(Icons.cancel_outlined),
@@ -283,7 +287,7 @@ class _OrderActions extends StatelessWidget {
       buttons.add(
         RoleGate(
           current: role,
-          allow: const [AppRole.seller, AppRole.admin],
+          allow: freelancerRoles,
           child: ElevatedButton.icon(
             onPressed: loading ? null : onAccept,
             icon: const Icon(Icons.play_arrow),
@@ -297,7 +301,7 @@ class _OrderActions extends StatelessWidget {
       buttons.add(
         RoleGate(
           current: role,
-          allow: const [AppRole.seller, AppRole.admin],
+          allow: freelancerRoles,
           child: ElevatedButton.icon(
             onPressed: loading ? null : onDeliver,
             icon: const Icon(Icons.upload_file_outlined),
@@ -311,7 +315,7 @@ class _OrderActions extends StatelessWidget {
       buttons.add(
         RoleGate(
           current: role,
-          allow: const [AppRole.client, AppRole.admin],
+          allow: clientRoles,
           child: ElevatedButton.icon(
             onPressed: loading ? null : onComplete,
             icon: const Icon(Icons.check_circle_outline),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:freetask_app/core/constants/app_roles.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/widgets/role_gate.dart';
@@ -57,9 +58,11 @@ class _MarketplaceHomeViewState extends State<MarketplaceHomeView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final role = resolveAppRole(context);
+    final viewerRoles = <AppRole>[AppRole.client, AppRole.freelancer, AppRole.admin];
+    final creatorRoles = <AppRole>[AppRole.freelancer, AppRole.admin];
     return RoleGate(
       current: role,
-      allow: const [AppRole.client, AppRole.seller, AppRole.admin],
+      allow: viewerRoles,
       fallback: const _UnauthorizedMessage(),
       child: Scaffold(
         appBar: AppBar(
@@ -67,7 +70,7 @@ class _MarketplaceHomeViewState extends State<MarketplaceHomeView> {
           actions: [
             RoleGate(
               current: role,
-              allow: const [AppRole.seller, AppRole.admin],
+              allow: creatorRoles,
               child: IconButton(
                 tooltip: 'Create service',
                 icon: const Icon(Icons.add_box_outlined),
