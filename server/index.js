@@ -31,14 +31,26 @@ const shouldUseSecureCookies =
   typeof environmentConfig.cookies?.secure === 'boolean'
     ? environmentConfig.cookies.secure
     : APP_ENV === 'production';
-const allowedOrigins = new Set(environmentConfig.cors.allowedOrigins || []);
-const allowOriginPattern = environmentConfig.cors.allowPattern || null;
-const localOriginPatterns = [/^http:\/\/localhost:\d+$/, /^http:\/\/127\.0\.0\.1:\d+$/];
+const devCorsOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:8080',
+  'http://127.0.0.1:8080',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4200',
+  'http://127.0.0.1:4200',
+];
+const allowedOrigins = new Set([
+  ...devCorsOrigins,
+  ...(environmentConfig.cors.allowedOrigins || []),
+]);
 const envOrigins = (process.env.CLIENT_ORIGINS || '')
   .split(',')
   .map((origin) => origin.trim())
   .filter((origin) => origin.length > 0);
 envOrigins.forEach((origin) => allowedOrigins.add(origin));
+const corsOrigins = Array.from(allowedOrigins);
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN || '',
@@ -52,31 +64,20 @@ const payments = require('./routes/payments');
 
 app.use(
   cors({
-    origin(origin, callback) {
-      if (!origin) {
-        return callback(null, true);
-      }
-      if (localOriginPatterns.some((pattern) => pattern.test(origin))) {
-        return callback(null, true);
-      }
-      if (allowedOrigins.has(origin)) {
-        return callback(null, true);
-      }
-      if (allowOriginPattern && allowOriginPattern.test(origin)) {
-        return callback(null, true);
-      }
-      const corsError = new Error('Origin is not allowed by CORS policy');
-      corsError.type = 'cors';
-      return callback(corsError);
-    },
-    credentials: true,
+    origin: corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
     exposedHeaders: ['X-Request-Id'],
   }),
 );
+app.options('*', cors());
 
 app.use(express.json({ limit: '1mb' }));
+
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ ok: true, ts: Date.now() });
+});
 
 app.get('/health', (req, res) =>
   res.json({ ok: true, env: process.env.APP_ENV || 'unknown' })
@@ -1864,7 +1865,10 @@ async function bootstrap() {
     });
 
     const port = process.env.PORT || 4000;
-    app.listen(port, () => console.log(`[API] running on ${port}`));
+    const host = process.env.HOST || '0.0.0.0';
+    app.listen(port, host, () =>
+      console.log(`API listening on http://${host}:${port}`),
+    );
   } catch (e) {
     Sentry.captureException(e);
     console.error('[Boot] Failed:', e);

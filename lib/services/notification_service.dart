@@ -1,8 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-
-import 'package:freetask_app/config/app_env.dart';
+import 'package:freetask_app/config/env.dart';
 import '../models/app_notification.dart';
 
 class NotificationService {
@@ -14,7 +13,7 @@ class NotificationService {
     String userToken, {
     NotificationCategory? category,
   }) async {
-    final baseUri = Uri.parse('${AppEnv.apiBaseUrl}/notifications');
+    final baseUri = Uri.parse('${Env.apiBaseUrl}/notifications');
     final queryParameters = <String, String>{};
     if (category != null && category != NotificationCategory.all) {
       queryParameters['category'] = category.value;
@@ -46,7 +45,7 @@ class NotificationService {
 
   Future<void> markAsRead(String id, String userToken) async {
     final response = await _client.post(
-      Uri.parse('${AppEnv.apiBaseUrl}/notifications/$id/read'),
+      Uri.parse('${Env.apiBaseUrl}/notifications/$id/read'),
       headers: <String, String>{'Authorization': 'Bearer $userToken'},
     );
     if (response.statusCode != 200) {

@@ -30,6 +30,7 @@ class AuthService {
       final authResponse = AuthResponse.fromJson(data);
       return _persistAndHydrateSession(authResponse);
     } on DioException catch (error) {
+      _logDioException(error);
       throw AuthException(_mapError(error));
     }
   }
@@ -55,6 +56,7 @@ class AuthService {
       final authResponse = AuthResponse.fromJson(data);
       return _persistAndHydrateSession(authResponse);
     } on DioException catch (error) {
+      _logDioException(error);
       throw AuthException(_mapError(error));
     }
   }
@@ -73,6 +75,7 @@ class AuthService {
       await _storage.saveUser(user);
       return user;
     } on DioException catch (error) {
+      _logDioException(error);
       throw AuthException(_mapError(error));
     }
   }
@@ -89,6 +92,7 @@ class AuthService {
         options: _apiClient.guard(permission: RolePermission.viewDashboard),
       );
     } on DioException catch (error) {
+      _logDioException(error);
       if (error.response?.statusCode != 401) {
         rethrow;
       }
@@ -134,6 +138,7 @@ class AuthService {
       await _storage.saveTokenExpiry(expiresAt);
       return newToken;
     } on DioException catch (error) {
+      _logDioException(error);
       await _storage.clearAll();
       throw AuthException(_mapError(error));
     }
@@ -180,6 +185,7 @@ class AuthService {
         options: _apiClient.guard(requiresAuth: false),
       );
     } on DioException catch (error) {
+      _logDioException(error);
       throw AuthException(_mapError(error));
     }
   }
@@ -200,6 +206,7 @@ class AuthService {
         options: _apiClient.guard(requiresAuth: false),
       );
     } on DioException catch (error) {
+      _logDioException(error);
       throw AuthException(_mapError(error));
     }
   }
@@ -218,8 +225,16 @@ class AuthService {
         options: _apiClient.guard(requiresAuth: false),
       );
     } on DioException catch (error) {
+      _logDioException(error);
       throw AuthException(_mapError(error));
     }
+  }
+
+  void _logDioException(DioException error) {
+    // ignore: avoid_print
+    print(
+      '[DIO][TYPE]=${error.type} | [MSG]=${error.message} | [CODE]=${error.response?.statusCode}',
+    );
   }
 
   String _mapError(DioException error) {

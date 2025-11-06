@@ -1,5 +1,3 @@
-import 'package:dio/dio.dart';
-
 import '../adapters/shared_prefs_store.dart';
 import '../data/services/order_service.dart';
 import '../data/services/role_service.dart';
@@ -19,6 +17,7 @@ import '../services/role_storage_service.dart';
 import '../services/socket_service.dart';
 import '../services/storage_service.dart';
 import '../services/wallet_service.dart';
+import 'package:freetask_app/services/http.dart';
 
 /// Provides a convenient entry point for Flutter applications to configure the
 /// pure Dart services used by the package. The bootstrap ensures that the
@@ -51,7 +50,7 @@ class AppBootstrap {
     final storage = StorageService(store);
     final roleService = RoleStorageService(storage);
     final roleGuard = RoleGuard(roleService);
-    final apiClient = ApiClient(Dio(), storage, roleGuard);
+    final apiClient = ApiClient(createDio(), storage, roleGuard);
     final authService = AuthService(apiClient, storage);
     final authRepository = AuthRepository(
       authService: authService,

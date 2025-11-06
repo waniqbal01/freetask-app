@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:freetask_app/config/app_env.dart';
+import 'package:freetask_app/config/env.dart';
 
 import '../auth/role_permission.dart';
 import '../core/app_logger.dart';
@@ -14,13 +14,12 @@ class ApiClient {
   ApiClient(Dio dio, this._storage, this._roleGuard)
       : _dio = dio
           ..options = BaseOptions(
-            baseUrl: AppEnv.apiBaseUrl,
+            baseUrl: Env.apiBaseUrl,
             connectTimeout: const Duration(seconds: 10),
             receiveTimeout: const Duration(seconds: 20),
             sendTimeout: const Duration(seconds: 20),
             headers: const {'Content-Type': 'application/json'},
           ) {
-    _dio.interceptors.clear();
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
