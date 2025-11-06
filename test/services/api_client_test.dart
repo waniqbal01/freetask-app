@@ -9,6 +9,7 @@ import 'package:freetask_app/services/api_client.dart';
 import 'package:freetask_app/services/auth_service.dart';
 import 'package:freetask_app/services/key_value_store.dart';
 import 'package:freetask_app/services/role_guard.dart';
+import 'package:freetask_app/services/role_storage_service.dart';
 import 'package:freetask_app/services/storage_service.dart';
 
 class _SequenceAdapter implements HttpClientAdapter {
@@ -40,10 +41,12 @@ void main() {
     late StorageService storage;
     late Dio dio;
     late RoleGuard roleGuard;
+    late RoleStorageService roleService;
 
     setUp(() {
       storage = StorageService(InMemoryKeyValueStore());
-      roleGuard = RoleGuard(storage);
+      roleService = RoleStorageService(storage);
+      roleGuard = RoleGuard(roleService);
       dio = Dio();
     });
 
@@ -151,7 +154,7 @@ void main() {
   group('RoleGuard.ensureRoleIn', () {
     test('throws when current role not in allowed set', () async {
       final storage = StorageService(InMemoryKeyValueStore());
-      final guard = RoleGuard(storage);
+      final guard = RoleGuard(RoleStorageService(storage));
 
       expect(
         () => guard.ensureRoleIn({'admin', 'manager'}),

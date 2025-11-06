@@ -15,6 +15,7 @@ import '../services/job_service.dart';
 import '../services/notification_service.dart';
 import '../services/profile_service.dart';
 import '../services/role_guard.dart';
+import '../services/role_storage_service.dart';
 import '../services/socket_service.dart';
 import '../services/storage_service.dart';
 import '../services/wallet_service.dart';
@@ -48,7 +49,7 @@ class AppBootstrap {
   static Future<AppBootstrap> init() async {
     final store = await SharedPrefsStore.create();
     final storage = StorageService(store);
-    final roleService = RoleService(storage);
+    final roleService = RoleStorageService(storage);
     final roleGuard = RoleGuard(roleService);
     final apiClient = ApiClient(Dio(), storage, roleGuard);
     final authService = AuthService(apiClient, storage);
