@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+// ignore: depend_on_referenced_packages
 import 'package:sentry/sentry.dart' as sentry;
 import 'package:freetask_app/config/app_env.dart';
 
@@ -14,7 +15,7 @@ Future<void> bootstrap(Future<Widget> Function() builder) async {
         // Use exact types from package:sentry to satisfy BeforeSendCallback
         options.beforeSend = (sentry.SentryEvent event, {sentry.Hint? hint}) {
           return event; // sentry.SentryEvent? (sync) matches sentry.BeforeSendCallback
-        };
+        } as BeforeSendCallback?;
       },
       appRunner: () async => runApp(await builder()),
     );
