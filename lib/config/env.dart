@@ -1,9 +1,23 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
+
 class Env {
-  static const String apiBase =
-      String.fromEnvironment('API_BASE', defaultValue: 'https://api.freetask.my');
-  static const String socketBase =
-      String.fromEnvironment('SOCKET_BASE', defaultValue: 'https://api.freetask.my');
-  static const String sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
-  static const String appEnv = String.fromEnvironment('APP_ENV', defaultValue: 'beta');
-  static const String appRelease = String.fromEnvironment('APP_RELEASE', defaultValue: 'freetask-app@dev');
+  static String get apiBaseUrl {
+    // Allow override via --dart-define=API_BASE_URL=...
+    // Default per platform for local dev.
+    if (kIsWeb) {
+      return const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://127.0.0.1:4000');
+    }
+    try {
+      if (Platform.isAndroid) {
+        return const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:4000');
+      }
+      if (Platform.isIOS || Platform.isMacOS) {
+        return const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://127.0.0.1:4000');
+      }
+    } catch (_) {
+      // Platform not available (e.g., web); already handled above.
+    }
+    return const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://127.0.0.1:4000');
+  }
 }

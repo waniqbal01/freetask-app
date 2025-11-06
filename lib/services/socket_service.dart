@@ -2,8 +2,7 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
-
-import 'package:freetask_app/config/app_env.dart';
+import 'package:freetask_app/config/env.dart';
 import '../models/message.dart';
 
 class TypingEvent extends Equatable {
@@ -243,9 +242,9 @@ class SocketService {
   }
 
   String get _socketBaseUrl {
-    final parsed = Uri.tryParse(AppEnv.apiBaseUrl);
+    final parsed = Uri.tryParse(Env.apiBaseUrl);
     if (parsed == null) {
-      return AppEnv.apiBaseUrl;
+      return Env.apiBaseUrl;
     }
     final scheme = parsed.scheme == 'https' ? 'wss' : 'ws';
     return parsed.replace(scheme: scheme).toString();
