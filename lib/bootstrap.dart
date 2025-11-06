@@ -11,9 +11,19 @@ Future<void> bootstrap(Future<Widget> Function() builder) async {
       (options) {
         options.dsn = AppEnv.sentryDsn;
         options.tracesSampleRate = 1.0;
-        // Use exact types from package:sentry to satisfy BeforeSendCallback
         options.beforeSend = (sentry.SentryEvent event, {sentry.Hint? hint}) {
-          return event; // sentry.SentryEvent? (sync) matches sentry.BeforeSendCallback
+          try {
+            final user = event.user;
+            if (user != null) {
+              event = event.copyWith(
+                user: user.copyWith(
+                  email: user.email != null ? '***@***' : null,
+                  username: user.username != null ? '***' : null,
+                ),
+              );
+            }
+          } catch (_) {}
+          return event;
         };
       },
       appRunner: () async => runApp(await builder()),
