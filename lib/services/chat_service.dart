@@ -6,13 +6,13 @@ import '../auth/role_permission.dart';
 import '../models/chat.dart';
 import '../models/message.dart';
 import '../models/pending_message.dart';
-import 'api_client.dart';
+import 'session_api_client.dart';
 import 'chat_cache_service.dart';
 
 class ChatService {
   ChatService(this._apiClient, this._cacheService);
 
-  final ApiClient _apiClient;
+  final SessionApiClient _apiClient;
   final ChatCacheService _cacheService;
 
   Future<List<ChatThread>> fetchThreads() async {

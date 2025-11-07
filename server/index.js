@@ -31,13 +31,14 @@ const shouldUseSecureCookies =
   typeof environmentConfig.cookies?.secure === 'boolean'
     ? environmentConfig.cookies.secure
     : APP_ENV === 'production';
-const DEV_ORIGIN = process.env.WEB_ORIGIN ?? 'http://127.0.0.1:54879';
+const WEB_ORIGIN = process.env.WEB_ORIGIN || 'http://localhost:5555';
 const corsOptions = {
-  origin: DEV_ORIGIN,
-  credentials: false,
+  origin: [WEB_ORIGIN, 'http://localhost:4000', 'http://127.0.0.1:4000'],
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   exposedHeaders: ['X-Request-Id'],
+  optionsSuccessStatus: 204,
 };
 
 Sentry.init({
@@ -60,7 +61,7 @@ app.get('/healthz', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.json({ ok: true });
+  res.status(200).json({ ok: true });
 });
 
 app.use(Sentry.Handlers.requestHandler());

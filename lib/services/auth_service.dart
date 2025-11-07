@@ -4,13 +4,13 @@ import '../auth/role_permission.dart';
 import '../models/auth_response.dart';
 import '../models/user.dart';
 import '../models/user_roles.dart';
-import 'api_client.dart';
+import 'session_api_client.dart';
 import 'storage_service.dart';
 
 class AuthService {
   AuthService(this._apiClient, this._storage);
 
-  final ApiClient _apiClient;
+  final SessionApiClient _apiClient;
   final StorageService _storage;
 
   Future<AuthResponse> login({

@@ -3,12 +3,12 @@ import '../data/models/order_model.dart';
 import '../data/models/service_model.dart';
 import '../models/payout.dart';
 import '../models/transaction.dart';
-import 'api_client.dart';
+import 'session_api_client.dart';
 
 class AdminService {
   AdminService(this._client);
 
-  final ApiClient _client;
+  final SessionApiClient _client;
 
   Future<List<Service>> listServices() async {
     final response = await _client.client.get<Map<String, dynamic>>(

@@ -6,7 +6,7 @@ import 'package:dio/dio.dart';
 import '../auth/role_permission.dart';
 import '../models/job.dart';
 import '../models/review.dart';
-import 'api_client.dart';
+import 'session_api_client.dart';
 import 'role_guard.dart';
 import 'storage_service.dart';
 
@@ -29,7 +29,7 @@ class JobPaginationResult {
 class JobService {
   JobService(this._apiClient, this._roleGuard, this._storage);
 
-  final ApiClient _apiClient;
+  final SessionApiClient _apiClient;
   final RoleGuard _roleGuard;
   final StorageService _storage;
 
