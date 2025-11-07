@@ -69,7 +69,7 @@ flutter run -d chrome --web-hostname=127.0.0.1 --web-port=54879 --dart-define=AP
 ## Flutter authentication architecture
 
 The Flutter client bootstraps all services with `AppBootstrap.init()`. The
-bootstrap wires the `AuthRepository`, `AuthService`, `ApiClient`, storage, and
+bootstrap wires the `AuthRepository`, `AuthService`, `SessionApiClient`, storage, and
 role guard so the app can transparently refresh expired tokens.
 
 ```dart
@@ -154,7 +154,7 @@ BlocConsumer<AuthBloc, AuthState>(
 );
 ```
 
-`ApiClient` continues to enforce role permissions. Always wrap requests with
+`SessionApiClient` continues to enforce role permissions. Always wrap requests with
 `guard` to keep Role Based Access Control in sync:
 
 ```dart
@@ -167,7 +167,7 @@ await apiClient.client.post(
 
 ### Refresh logic
 
-* Any response with status `401` triggers the `ApiClient` refresh flow.
+* Any response with status `401` triggers the `SessionApiClient` refresh flow.
 * The client attempts a single refresh `POST /auth/refresh` call.
 * On success the original request is retried transparently.
 * If refresh fails, the storage is wiped via `StorageService.clearAll()` and

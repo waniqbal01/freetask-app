@@ -5,13 +5,13 @@ import 'package:dio/dio.dart';
 import '../auth/role_permission.dart';
 import '../models/user.dart';
 import '../utils/logger.dart';
-import 'api_client.dart';
+import 'session_api_client.dart';
 import 'storage_service.dart';
 
 class ProfileService {
   ProfileService(this._apiClient, this._storage);
 
-  final ApiClient _apiClient;
+  final SessionApiClient _apiClient;
   final StorageService _storage;
 
   Future<User> fetchCurrentUser() async {

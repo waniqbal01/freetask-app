@@ -1,6 +1,6 @@
 import '../auth/role_permission.dart';
 import '../models/payment.dart';
-import 'api_client.dart';
+import 'session_api_client.dart';
 
 class WalletSummary {
   const WalletSummary({
@@ -30,7 +30,7 @@ class WalletSummary {
 class WalletService {
   WalletService(this._apiClient);
 
-  final ApiClient _apiClient;
+  final SessionApiClient _apiClient;
 
   Future<WalletSummary> fetchSummary() async {
     final response = await _apiClient.client.get<Map<String, dynamic>>(

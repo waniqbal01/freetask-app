@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 
-import 'api_client.dart';
+import 'session_api_client.dart';
 
 class PaymentService {
   PaymentService(this._apiClient);
 
-  final ApiClient _apiClient;
+  final SessionApiClient _apiClient;
 
   Future<String> createBill({required String orderId, required int amountCents, required String email}) async {
     final response = await _apiClient.client.post<Map<String, dynamic>>(

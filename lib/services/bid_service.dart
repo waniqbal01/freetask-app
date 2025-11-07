@@ -1,11 +1,11 @@
 import '../auth/role_permission.dart';
 import '../models/bid.dart';
-import 'api_client.dart';
+import 'session_api_client.dart';
 
 class BidService {
   BidService(this._apiClient);
 
-  final ApiClient _apiClient;
+  final SessionApiClient _apiClient;
 
   Future<List<Bid>> fetchBids(String jobId) async {
     final response = await _apiClient.client.get<List<dynamic>>(
