@@ -10,11 +10,12 @@ class AppEnv {
 
   // Use runtime values if provided, else sensible defaults per platform
   static const String apiBaseUrl =
-      String.fromEnvironment('API_BASE_URL', defaultValue: '').trim();
+      String.fromEnvironment('API_BASE_URL', defaultValue: '');
 
   static String resolvedApiBaseUrl() {
     // If provided by --dart-define, use it.
-    if (apiBaseUrl.isNotEmpty) return apiBaseUrl;
+    final envUrl = apiBaseUrl.trim();
+    if (envUrl.isNotEmpty) return envUrl;
 
     // Defaults when not provided:
     // Web dev uses host machine localhost; Android emulator uses 10.0.2.2
