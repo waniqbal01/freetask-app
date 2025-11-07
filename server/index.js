@@ -31,26 +31,14 @@ const shouldUseSecureCookies =
   typeof environmentConfig.cookies?.secure === 'boolean'
     ? environmentConfig.cookies.secure
     : APP_ENV === 'production';
-const devCorsOrigins = [
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'http://localhost:8080',
-  'http://127.0.0.1:8080',
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:4200',
-  'http://127.0.0.1:4200',
-];
-const allowedOrigins = new Set([
-  ...devCorsOrigins,
-  ...(environmentConfig.cors.allowedOrigins || []),
-]);
-const envOrigins = (process.env.CLIENT_ORIGINS || '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter((origin) => origin.length > 0);
-envOrigins.forEach((origin) => allowedOrigins.add(origin));
-const corsOrigins = Array.from(allowedOrigins);
+const DEV_ORIGIN = process.env.WEB_ORIGIN ?? 'http://127.0.0.1:64081';
+const corsOptions = {
+  origin: DEV_ORIGIN,
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['X-Request-Id'],
+};
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN || '',
@@ -62,16 +50,8 @@ Sentry.init({
 const app = express();
 const payments = require('./routes/payments');
 
-app.use(
-  cors({
-    origin: corsOrigins,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-    exposedHeaders: ['X-Request-Id'],
-  }),
-);
-app.options('*', cors());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '1mb' }));
 
@@ -79,9 +59,9 @@ app.get('/healthz', (req, res) => {
   res.status(200).json({ ok: true, ts: Date.now() });
 });
 
-app.get('/health', (req, res) =>
-  res.json({ ok: true, env: process.env.APP_ENV || 'unknown' })
-);
+app.get('/health', (req, res) => {
+  res.json({ ok: true });
+});
 
 app.use(Sentry.Handlers.requestHandler());
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
