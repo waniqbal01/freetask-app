@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../config/routes.dart';
 import '../auth/role_permission.dart';
 import '../models/auth_response.dart';
 import '../models/user.dart';
@@ -19,7 +20,7 @@ class AuthService {
   }) async {
     try {
       final response = await _apiClient.client.post<Map<String, dynamic>>(
-        '/auth/login',
+        ApiRoutes.login,
         data: {
           'email': email,
           'password': password,
@@ -43,7 +44,7 @@ class AuthService {
   }) async {
     try {
       final response = await _apiClient.client.post<Map<String, dynamic>>(
-        '/auth/signup',
+        ApiRoutes.register,
         data: {
           'name': name,
           'email': email,
@@ -110,7 +111,7 @@ class AuthService {
 
     try {
       final response = await _apiClient.client.post<Map<String, dynamic>>(
-        '/auth/refresh',
+        ApiRoutes.refresh,
         data: {'refreshToken': refreshToken},
         options: _apiClient.guard(requiresAuth: false),
       );

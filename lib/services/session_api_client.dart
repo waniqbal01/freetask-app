@@ -15,7 +15,7 @@ class SessionApiClient {
     Dio? dio,
     required StorageService storage,
     required RoleGuard roleGuard,
-  })  : _dio = dio ?? ApiClient().dio,
+  })  : _dio = dio ?? ApiClient.instance,
         _storage = storage,
         _roleGuard = roleGuard {
     final existingHeaders = Map<String, dynamic>.from(
