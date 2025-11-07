@@ -19,7 +19,7 @@ class SessionApiClient {
         _storage = storage,
         _roleGuard = roleGuard {
     final existingHeaders = Map<String, dynamic>.from(
-      _dio.options.headers ?? const <String, dynamic>{},
+      _dio.options.headers,
     );
     existingHeaders['Content-Type'] =
         existingHeaders['Content-Type'] ?? 'application/json';
