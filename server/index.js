@@ -31,7 +31,7 @@ const shouldUseSecureCookies =
   typeof environmentConfig.cookies?.secure === 'boolean'
     ? environmentConfig.cookies.secure
     : APP_ENV === 'production';
-const DEV_ORIGIN = process.env.WEB_ORIGIN ?? 'http://127.0.0.1:54040';
+const DEV_ORIGIN = process.env.WEB_ORIGIN ?? 'http://127.0.0.1:54879';
 const corsOptions = {
   origin: DEV_ORIGIN,
   credentials: false,

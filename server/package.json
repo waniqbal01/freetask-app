@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "dev": "HOST=0.0.0.0 PORT=4000 node index.js",
-    "dev:check": "node -e \"console.log('Preflight:');\" && curl -i -X OPTIONS http://127.0.0.1:4000/auth/login || true && node -e \"console.log('\\nHealth:');\" && curl -i http://127.0.0.1:4000/health || true",
+    "dev:mock": "ts-node mock-api.ts",
+    "dev:check": "node -e \"console.log('Preflight:')\" && curl -i -X OPTIONS http://127.0.0.1:4000/auth/login || true && node -e \"console.log('\\nHealth:')\" && curl -i http://127.0.0.1:4000/health || true",
     "postman:test": "newman run ../postman/freetask-e2e.postman_collection.json -e ../postman/environments/local.postman_environment.json --reporters cli,html --reporter-html-export ../postman/reports/newman-report.html"
   },
   "keywords": [],
@@ -30,6 +31,10 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "newman": "^6.1.1"
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.12.7",
+    "newman": "^6.1.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0"
   }
 }
