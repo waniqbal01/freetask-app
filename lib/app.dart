@@ -31,6 +31,7 @@ import 'data/services/order_service.dart';
 import 'data/services/role_service.dart';
 import 'data/services/service_service.dart';
 import 'services/notification_service.dart';
+import 'services/payment_service.dart';
 import 'services/profile_service.dart';
 import 'services/role_guard.dart';
 import 'services/socket_service.dart';
@@ -142,6 +143,9 @@ class _FreetaskAppState extends State<FreetaskApp> {
         ),
         RepositoryProvider<ProfileService>.value(
           value: widget.bootstrap.profileService,
+        ),
+        RepositoryProvider<PaymentService>.value(
+          value: widget.bootstrap.paymentService,
         ),
         RepositoryProvider<SocketService>.value(
           value: widget.bootstrap.socketService,
