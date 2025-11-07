@@ -1844,10 +1844,10 @@ async function bootstrap() {
       UserModel: connectedToMongo ? User : null,
     });
 
-    const port = process.env.PORT || 4000;
-    const host = process.env.HOST || '0.0.0.0';
-    app.listen(port, host, () =>
-      console.log(`API listening on http://${host}:${port}`),
+    const PORT = process.env.PORT ?? 4000;
+    const HOST = '0.0.0.0';
+    app.listen(PORT, HOST, () =>
+      console.log(`API listening on http://${HOST}:${PORT}`),
     );
   } catch (e) {
     Sentry.captureException(e);
