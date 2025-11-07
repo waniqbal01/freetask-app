@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-import 'package:freetask_app/config/app_env.dart';
+import 'package:freetask_app/config/env.dart';
 
 SentryEvent? _beforeSend(SentryEvent event, {Hint? hint}) {
   try {

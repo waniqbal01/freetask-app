@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-import 'package:freetask_app/config/app_env.dart';
+import 'package:freetask_app/config/env.dart';
 
 class MonitoringService {
   MonitoringService._();

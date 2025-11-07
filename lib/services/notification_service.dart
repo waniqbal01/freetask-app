@@ -13,7 +13,7 @@ class NotificationService {
     String userToken, {
     NotificationCategory? category,
   }) async {
-    final baseUri = Uri.parse('${Env.apiBaseUrl}/notifications');
+    final baseUri = Uri.parse('${AppEnv.resolvedApiBaseUrl()}/notifications');
     final queryParameters = <String, String>{};
     if (category != null && category != NotificationCategory.all) {
       queryParameters['category'] = category.value;
@@ -45,7 +45,7 @@ class NotificationService {
 
   Future<void> markAsRead(String id, String userToken) async {
     final response = await _client.post(
-      Uri.parse('${Env.apiBaseUrl}/notifications/$id/read'),
+      Uri.parse('${AppEnv.resolvedApiBaseUrl()}/notifications/$id/read'),
       headers: <String, String>{'Authorization': 'Bearer $userToken'},
     );
     if (response.statusCode != 200) {
