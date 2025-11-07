@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/payment_service.dart';
@@ -30,7 +31,7 @@ class _CheckoutViewState extends State<CheckoutView> {
   @override
   void initState() {
     super.initState();
-    _svc = widget.paymentService ?? PaymentService();
+    _svc = widget.paymentService ?? context.read<PaymentService>();
   }
 
   @override

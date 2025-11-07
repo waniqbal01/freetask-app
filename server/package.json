@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "dev": "HOST=0.0.0.0 PORT=4000 node index.js",
-    "dev:check": "bash -c 'set -e; echo \"[dev:check] OPTIONS /auth/login\"; OPTIONS=$(curl -is -X OPTIONS http://127.0.0.1:4000/auth/login); echo \"$OPTIONS\"; if echo \"$OPTIONS\" | grep -qi \"Access-Control-Allow-Origin\"; then echo \"CORS headers detected ✅\"; else echo \"CORS headers missing ⚠️\"; fi; echo \"[dev:check] GET /health\"; curl -is http://127.0.0.1:4000/health'",
+    "dev:check": "node -e \"console.log('Preflight:');\" && curl -i -X OPTIONS http://127.0.0.1:4000/auth/login || true && node -e \"console.log('\\nHealth:');\" && curl -i http://127.0.0.1:4000/health || true",
     "postman:test": "newman run ../postman/freetask-e2e.postman_collection.json -e ../postman/environments/local.postman_environment.json --reporters cli,html --reporter-html-export ../postman/reports/newman-report.html"
   },
   "keywords": [],

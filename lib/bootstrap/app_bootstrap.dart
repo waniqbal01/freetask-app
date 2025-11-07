@@ -11,6 +11,7 @@ import '../services/chat_cache_service.dart';
 import '../services/chat_service.dart';
 import '../services/job_service.dart';
 import '../services/notification_service.dart';
+import '../services/payment_service.dart';
 import '../services/profile_service.dart';
 import '../services/role_guard.dart';
 import '../services/role_storage_service.dart';
@@ -35,6 +36,7 @@ class AppBootstrap {
     required this.chatService,
     required this.chatCacheService,
     required this.profileService,
+    required this.paymentService,
     required this.socketService,
     required this.bidService,
     required this.walletService,
@@ -60,6 +62,7 @@ class AppBootstrap {
     final jobService = JobService(apiClient, roleGuard, storage);
     final chatService = ChatService(apiClient, chatCacheService);
     final profileService = ProfileService(apiClient, storage);
+    final paymentService = PaymentService(apiClient);
     final socketService = SocketService();
     final bidService = BidService(apiClient);
     final walletService = WalletService(apiClient);
@@ -81,6 +84,7 @@ class AppBootstrap {
       chatService: chatService,
       chatCacheService: chatCacheService,
       profileService: profileService,
+      paymentService: paymentService,
       socketService: socketService,
       bidService: bidService,
       walletService: walletService,
@@ -101,6 +105,7 @@ class AppBootstrap {
   final ChatService chatService;
   final ChatCacheService chatCacheService;
   final ProfileService profileService;
+  final PaymentService paymentService;
   final SocketService socketService;
   final BidService bidService;
   final WalletService walletService;
