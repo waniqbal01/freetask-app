@@ -13,9 +13,10 @@ import 'storage_service.dart';
 class ApiClient {
   ApiClient(Dio dio, this._storage, this._roleGuard) : _dio = dio {
     final existingHeaders = Map<String, dynamic>.from(
-      _dio.options.headers ?? const <String, dynamic>{},
+      _dio.options.headers,
     );
-    existingHeaders['Content-Type'] = existingHeaders['Content-Type'] ?? 'application/json';
+    existingHeaders['Content-Type'] =
+        existingHeaders['Content-Type'] ?? 'application/json';
 
     _dio.options = _dio.options.copyWith(
       baseUrl: Env.apiBaseUrl,
@@ -74,7 +75,8 @@ class ApiClient {
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          AppLogger.d('← ${response.statusCode} ${response.requestOptions.method} ${response.requestOptions.uri}');
+          AppLogger.d(
+              '← ${response.statusCode} ${response.requestOptions.method} ${response.requestOptions.uri}');
           final requestId = response.headers.value('x-request-id');
           MonitoringService.updateRequestContext(requestId);
           return handler.next(response);
