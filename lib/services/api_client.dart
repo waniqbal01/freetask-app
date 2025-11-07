@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:freetask_app/config/env.dart';
 
 import '../auth/role_permission.dart';
 import '../core/app_logger.dart';
@@ -18,11 +17,11 @@ class ApiClient {
     existingHeaders['Content-Type'] =
         existingHeaders['Content-Type'] ?? 'application/json';
 
-    _dio.options = _dio.options.copyWith(
-      baseUrl: Env.apiBaseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 20),
-      sendTimeout: const Duration(seconds: 20),
+    final options = _dio.options;
+    _dio.options = options.copyWith(
+      connectTimeout: options.connectTimeout ?? const Duration(seconds: 10),
+      receiveTimeout: options.receiveTimeout ?? const Duration(seconds: 20),
+      sendTimeout: options.sendTimeout ?? const Duration(seconds: 20),
       headers: existingHeaders,
     );
 
