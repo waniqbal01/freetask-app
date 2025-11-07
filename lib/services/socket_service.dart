@@ -242,9 +242,9 @@ class SocketService {
   }
 
   String get _socketBaseUrl {
-    final parsed = Uri.tryParse(Env.apiBaseUrl);
+    final parsed = Uri.tryParse(AppEnv.resolvedApiBaseUrl());
     if (parsed == null) {
-      return Env.apiBaseUrl;
+      return AppEnv.resolvedApiBaseUrl();
     }
     final scheme = parsed.scheme == 'https' ? 'wss' : 'ws';
     return parsed.replace(scheme: scheme).toString();

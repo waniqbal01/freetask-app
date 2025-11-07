@@ -1,26 +1,24 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
-class Env {
-  static String get apiBaseUrl {
-    const envUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
-    if (envUrl.isNotEmpty) {
-      return envUrl;
-    }
+class AppEnv {
+  static const String sentryDsn =
+      String.fromEnvironment('SENTRY_DSN', defaultValue: '');
+  static const String appName =
+      String.fromEnvironment('APP_NAME', defaultValue: 'Freetask');
+  static const bool enableSentry =
+      bool.fromEnvironment('ENABLE_SENTRY', defaultValue: false);
 
-    if (kIsWeb) {
-      final origin = Uri.base.origin;
-      return '$origin/api';
-    }
+  // Use runtime values if provided, else sensible defaults per platform
+  static const String apiBaseUrl =
+      String.fromEnvironment('API_BASE_URL', defaultValue: '').trim();
 
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-      case TargetPlatform.fuchsia:
-        return 'http://10.0.2.2:4000';
-      case TargetPlatform.iOS:
-      case TargetPlatform.macOS:
-      case TargetPlatform.windows:
-      case TargetPlatform.linux:
-        return 'http://localhost:4000';
-    }
+  static String resolvedApiBaseUrl() {
+    // If provided by --dart-define, use it.
+    if (apiBaseUrl.isNotEmpty) return apiBaseUrl;
+
+    // Defaults when not provided:
+    // Web dev uses host machine localhost; Android emulator uses 10.0.2.2
+    if (kIsWeb) return 'http://localhost:4000';
+    return 'http://10.0.2.2:4000';
   }
 }

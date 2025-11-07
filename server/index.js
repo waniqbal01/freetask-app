@@ -32,13 +32,25 @@ const shouldUseSecureCookies =
     ? environmentConfig.cookies.secure
     : APP_ENV === 'production';
 const WEB_ORIGIN = process.env.WEB_ORIGIN || 'http://localhost:5555';
+const LOCALHOST_REGEX = /http:\/\/localhost:\d+$/;
+const allowedOrigins = new Set([
+  WEB_ORIGIN,
+  'http://localhost:4000',
+  'http://127.0.0.1:4000',
+  'http://localhost:5000',
+  'http://localhost:3000',
+]);
 const corsOptions = {
-  origin: [WEB_ORIGIN, 'http://localhost:4000', 'http://127.0.0.1:4000'],
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (LOCALHOST_REGEX.test(origin)) return callback(null, true);
+    if (allowedOrigins.has(origin)) return callback(null, true);
+    return callback(null, false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   exposedHeaders: ['X-Request-Id'],
-  optionsSuccessStatus: 204,
 };
 
 Sentry.init({
@@ -772,41 +784,55 @@ async function formatPayoutRecord(payout) {
   };
 }
 
+const signupValidators = [
+  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('email').isEmail().withMessage('A valid email is required').normalizeEmail(),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('role')
+    .optional()
+    .isString()
+    .custom((value) => allowedRoles.has(value))
+    .withMessage('Invalid role provided'),
+];
+
+async function handleSignup(req, res) {
+  try {
+    const { name, email, password, role } = req.body;
+    if (await findUserByEmail(email)) {
+      return res.status(409).json({ message: 'Email already exists' });
+    }
+    const user = await createUserRecord({
+      name,
+      email,
+      password,
+      role: allowedRoles.has(role) ? role : 'client',
+    });
+    const code = crypto.randomInt(100000, 999999).toString();
+    req.app.locals.emailCodes ??= new Map();
+    req.app.locals.emailCodes.set(email, { code, exp: Date.now() + 15 * 60 * 1000 });
+    return res
+      .status(201)
+      .json({ message: 'Signup success. Verify email.', verificationCode: code });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: 'Signup failed' });
+  }
+}
+
 app.post(
   '/auth/signup',
   signupLimiter,
-  [
-    body('name').trim().notEmpty().withMessage('Name is required'),
-    body('email').isEmail().withMessage('A valid email is required').normalizeEmail(),
-    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-    body('role')
-      .optional()
-      .isString()
-      .custom((value) => allowedRoles.has(value))
-      .withMessage('Invalid role provided'),
-  ],
+  signupValidators,
   handleValidationResult,
-  async (req, res) => {
-    try {
-      const { name, email, password, role } = req.body;
-      if (await findUserByEmail(email)) {
-        return res.status(409).json({ message: 'Email already exists' });
-      }
-      const user = await createUserRecord({
-        name,
-        email,
-        password,
-        role: allowedRoles.has(role) ? role : 'client',
-      });
-      const code = crypto.randomInt(100000, 999999).toString();
-      req.app.locals.emailCodes ??= new Map();
-      req.app.locals.emailCodes.set(email, { code, exp: Date.now() + 15 * 60 * 1000 });
-      return res.status(201).json({ message: 'Signup success. Verify email.', verificationCode: code });
-    } catch (e) {
-      console.error(e);
-      return res.status(500).json({ message: 'Signup failed' });
-    }
-  },
+  handleSignup,
+);
+
+app.post(
+  '/auth/register',
+  signupLimiter,
+  signupValidators,
+  handleValidationResult,
+  handleSignup,
 );
 
 const privilegedAccounts = [
