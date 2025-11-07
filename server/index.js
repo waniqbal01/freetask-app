@@ -864,7 +864,16 @@ app.post(
       const normalizedEmail = String(email).toLowerCase();
       const user = await findUserByEmail(normalizedEmail);
       if (!user || !(await verifyUserPassword(user, password))) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+        audit({
+          userId: user ? getUserId(user) : null,
+          action: 'LOGIN_FAILED',
+          metadata: { email: normalizedEmail },
+          requestId: req.requestId,
+        });
+        return res.status(401).json({
+          error: { message: 'Invalid credentials' },
+          requestId: req.requestId,
+        });
       }
 
       const bypassAccount = bypassVerificationAccounts.get(normalizedEmail);
@@ -875,8 +884,8 @@ app.post(
           req.app.locals.emailCodes ??= new Map();
           req.app.locals.emailCodes.set(normalizedEmail, { code, exp: Date.now() + 15 * 60 * 1000 });
           return res.status(403).json({
-            message: 'Email verification required',
-            details: { verificationCode: code },
+            error: { message: 'Email verification required', verificationCode: code },
+            requestId: req.requestId,
           });
         }
 
@@ -912,19 +921,22 @@ app.post(
         }
       }
 
-      const userId = getUserId(user);
-      return res.json({
-        user: {
-          id: userId,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-        accessToken: signAccessToken(user),
+      const tokens = buildTokens(user);
+      setRefreshCookie(res, tokens.refreshToken);
+      audit({
+        userId: getUserId(user),
+        action: 'LOGIN_SUCCESS',
+        metadata: { email: normalizedEmail },
+        requestId: req.requestId,
       });
+      return respondWithAuth(res, user, tokens, 'Login successful');
     } catch (e) {
       console.error(e);
-      res.status(500).json({ message: 'Login failed' });
+      Sentry.captureException(e);
+      res.status(500).json({
+        error: { message: 'Login failed' },
+        requestId: req.requestId,
+      });
     }
   },
 );
