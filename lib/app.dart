@@ -20,7 +20,7 @@ import 'controllers/profile/profile_bloc.dart';
 import 'controllers/wallet/wallet_cubit.dart';
 import 'models/job_list_type.dart';
 import 'models/user_roles.dart';
-import 'services/api_client.dart';
+import 'services/session_api_client.dart';
 import 'services/auth_service.dart';
 import 'services/bid_service.dart';
 import 'services/admin_service.dart';
@@ -128,7 +128,9 @@ class _FreetaskAppState extends State<FreetaskApp> {
   Widget build(BuildContext context) {
     return MultiRepositoryProvider(
       providers: [
-        RepositoryProvider<ApiClient>.value(value: widget.bootstrap.apiClient),
+        RepositoryProvider<SessionApiClient>.value(
+          value: widget.bootstrap.apiClient,
+        ),
         RepositoryProvider<AuthService>.value(value: widget.bootstrap.authService),
         RepositoryProvider<AuthRepository>.value(
           value: widget.bootstrap.authRepository,

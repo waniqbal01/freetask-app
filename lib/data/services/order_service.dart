@@ -1,11 +1,11 @@
 import '../../auth/role_permission.dart';
 import '../models/order_model.dart';
-import '../../services/api_client.dart';
+import '../../services/session_api_client.dart';
 
 class OrderService {
   OrderService(this._client);
 
-  final ApiClient _client;
+  final SessionApiClient _client;
 
   Future<OrderModel> createOrder({
     required String serviceId,

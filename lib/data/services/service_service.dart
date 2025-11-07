@@ -1,12 +1,12 @@
 import '../../auth/role_permission.dart';
 import '../models/order_model.dart';
 import '../models/service_model.dart';
-import '../../services/api_client.dart';
+import '../../services/session_api_client.dart';
 
 class ServiceService {
   ServiceService(this._client);
 
-  final ApiClient _client;
+  final SessionApiClient _client;
 
   Future<List<Service>> listServices({
     String? category,

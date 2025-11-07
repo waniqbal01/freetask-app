@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:freetask_app/services/api_client.dart';
+import 'package:freetask_app/services/session_api_client.dart';
 import 'package:freetask_app/services/auth_service.dart';
 import 'package:freetask_app/services/key_value_store.dart';
 import 'package:freetask_app/services/role_guard.dart';
@@ -37,7 +37,7 @@ class _SequenceAdapter implements HttpClientAdapter {
 }
 
 void main() {
-  group('ApiClient refresh flow', () {
+  group('SessionApiClient refresh flow', () {
     late StorageService storage;
     late Dio dio;
     late RoleGuard roleGuard;
@@ -72,7 +72,11 @@ void main() {
       ]);
       dio.httpClientAdapter = adapter;
 
-      final api = ApiClient(dio, storage, roleGuard);
+      final api = SessionApiClient(
+        dio: dio,
+        storage: storage,
+        roleGuard: roleGuard,
+      );
       var refreshCalled = false;
       api.setRefreshCallback(() async {
         refreshCalled = true;
@@ -103,7 +107,11 @@ void main() {
       ]);
       dio.httpClientAdapter = adapter;
 
-      final api = ApiClient(dio, storage, roleGuard);
+      final api = SessionApiClient(
+        dio: dio,
+        storage: storage,
+        roleGuard: roleGuard,
+      );
       api.setRefreshCallback(() async {
         throw AuthException('Session expired');
       });
@@ -131,7 +139,11 @@ void main() {
       ]);
       dio.httpClientAdapter = adapter;
 
-      final api = ApiClient(dio, storage, roleGuard);
+      final api = SessionApiClient(
+        dio: dio,
+        storage: storage,
+        roleGuard: roleGuard,
+      );
       final logoutEvents = <Object?>[];
       api.logoutStream.listen((_) => logoutEvents.add(null));
       api.setRefreshCallback(() async {
