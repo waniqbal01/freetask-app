@@ -56,15 +56,15 @@ Refer to `.env.example` for example values when wiring CI pipelines.
    The API listens on port `4000` by default and issues JWT access tokens plus
    secure refresh tokens.
 
-### Dev (Web)
+### Web development
 
 Run the Flutter web app with an explicit hostname/port and matching API base URL:
 
 ```bash
-flutter run -d chrome --web-hostname=127.0.0.1 --web-port=54040 --dart-define=API_BASE_URL=http://127.0.0.1:4000
+flutter run -d chrome --web-hostname=127.0.0.1 --web-port=54879 --dart-define=API_BASE_URL=http://127.0.0.1:4000
 ```
 
-> **Note:** Configure the server with `WEB_ORIGIN` set to the exact same origin (`127.0.0.1` vs `localhost`).
+> **Note:** Keep `127.0.0.1` consistent across both `WEB_ORIGIN` (Express) and `API_BASE_URL` (Flutter) to avoid origin mismatches.
 
 ## Flutter authentication architecture
 

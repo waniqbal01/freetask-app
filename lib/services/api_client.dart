@@ -11,15 +11,20 @@ import 'role_guard.dart';
 import 'storage_service.dart';
 
 class ApiClient {
-  ApiClient(Dio dio, this._storage, this._roleGuard)
-      : _dio = dio
-          ..options = BaseOptions(
-            baseUrl: Env.apiBaseUrl,
-            connectTimeout: const Duration(seconds: 10),
-            receiveTimeout: const Duration(seconds: 20),
-            sendTimeout: const Duration(seconds: 20),
-            headers: const {'Content-Type': 'application/json'},
-          ) {
+  ApiClient(Dio dio, this._storage, this._roleGuard) : _dio = dio {
+    final existingHeaders = Map<String, dynamic>.from(
+      _dio.options.headers ?? const <String, dynamic>{},
+    );
+    existingHeaders['Content-Type'] = existingHeaders['Content-Type'] ?? 'application/json';
+
+    _dio.options = _dio.options.copyWith(
+      baseUrl: Env.apiBaseUrl,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 20),
+      sendTimeout: const Duration(seconds: 20),
+      headers: existingHeaders,
+    );
+
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {

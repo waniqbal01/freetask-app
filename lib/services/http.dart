@@ -1,15 +1,13 @@
 import 'package:dio/dio.dart';
-import 'package:freetask_app/config/env.dart';
 
 Dio createDio() {
-  final dio = Dio(
-    BaseOptions(
-      baseUrl: Env.apiBaseUrl,
-      connectTimeout: const Duration(seconds: 8),
-      receiveTimeout: const Duration(seconds: 15),
-      sendTimeout: const Duration(seconds: 15),
-      headers: {'Content-Type': 'application/json'},
-    ),
+  final dio = Dio();
+
+  dio.options = dio.options.copyWith(
+    connectTimeout: const Duration(seconds: 8),
+    receiveTimeout: const Duration(seconds: 15),
+    sendTimeout: const Duration(seconds: 15),
+    headers: const {'Content-Type': 'application/json'},
   );
 
   dio.interceptors.add(LogInterceptor(
