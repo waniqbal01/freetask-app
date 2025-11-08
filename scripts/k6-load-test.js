@@ -13,7 +13,7 @@ export const options = {
 
 function authenticate(baseUrl, email) {
   const loginRes = http.post(
-    `${baseUrl}/auth/login`,
+    `${baseUrl}/api/auth/login`,
     JSON.stringify({ email }),
     { headers: { 'Content-Type': 'application/json' } }
   );
@@ -23,7 +23,7 @@ function authenticate(baseUrl, email) {
   });
   const otp = loginRes.json().data.otp;
   const verifyRes = http.post(
-    `${baseUrl}/auth/verify-otp`,
+    `${baseUrl}/api/auth/verify-otp`,
     JSON.stringify({ email, otp }),
     { headers: { 'Content-Type': 'application/json' } }
   );
@@ -51,7 +51,7 @@ export function setup() {
 export default function ({ baseUrl, client, freelancer }) {
   group('auth heartbeat', () => {
     const loginRes = http.post(
-      `${baseUrl}/auth/login`,
+      `${baseUrl}/api/auth/login`,
       JSON.stringify({ email: __ENV.CLIENT_EMAIL || 'client@example.com' }),
       { headers: { 'Content-Type': 'application/json' } }
     );

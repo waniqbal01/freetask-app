@@ -31,6 +31,7 @@ const shouldUseSecureCookies =
   typeof environmentConfig.cookies?.secure === 'boolean'
     ? environmentConfig.cookies.secure
     : APP_ENV === 'production';
+const API_PREFIX = process.env.API_PREFIX || '/api';
 const WEB_ORIGIN = process.env.WEB_ORIGIN || 'http://localhost:5555';
 const LOCALHOST_REGEX = /http:\/\/localhost:\d+$/;
 const allowedOrigins = new Set([
@@ -62,6 +63,13 @@ Sentry.init({
 
 const app = express();
 const payments = require('./routes/payments');
+
+const AUTH_BASE_PATH = `${API_PREFIX}/auth`;
+
+function registerAuthRoute(method, suffix, ...handlers) {
+  const normalizedSuffix = suffix.startsWith('/') ? suffix : `/${suffix}`;
+  app[method](AUTH_BASE_PATH + normalizedSuffix, ...handlers);
+}
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
@@ -209,12 +217,12 @@ function setRefreshCookie(res, token) {
     sameSite: 'lax',
     secure: shouldUseSecureCookies,
     maxAge: REFRESH_TOKEN_TTL * 1000,
-    path: '/auth',
+    path: AUTH_BASE_PATH,
   });
 }
 
 function clearRefreshCookie(res) {
-  res.clearCookie(COOKIE_NAME, { path: '/auth' });
+  res.clearCookie(COOKIE_NAME, { path: AUTH_BASE_PATH });
 }
 
 function validationErrorFormatter({ msg, param }) {
@@ -819,16 +827,18 @@ async function handleSignup(req, res) {
   }
 }
 
-app.post(
-  '/auth/signup',
+registerAuthRoute(
+  'post',
+  '/signup',
   signupLimiter,
   signupValidators,
   handleValidationResult,
   handleSignup,
 );
 
-app.post(
-  '/auth/register',
+registerAuthRoute(
+  'post',
+  '/register',
   signupLimiter,
   signupValidators,
   handleValidationResult,
@@ -850,8 +860,9 @@ const bypassVerificationAccounts = new Map(
   privilegedAccounts.map((account) => [account.email.toLowerCase(), account]),
 );
 
-app.post(
-  '/auth/login',
+registerAuthRoute(
+  'post',
+  '/login',
   loginLimiter,
   [
     body('email').isEmail().withMessage('A valid email is required').normalizeEmail(),
@@ -941,8 +952,9 @@ app.post(
   },
 );
 
-app.post(
-  '/auth/verify-email',
+registerAuthRoute(
+  'post',
+  '/verify-email',
   [
     body('email').isEmail().withMessage('A valid email is required').normalizeEmail(),
     body('code').isLength({ min: 4 }).withMessage('Verification code is required'),
@@ -968,8 +980,9 @@ app.post(
   },
 );
 
-app.post(
-  '/auth/refresh',
+registerAuthRoute(
+  'post',
+  '/refresh',
   refreshLimiter,
   [
     body('refreshToken').optional().isString(),
@@ -1015,8 +1028,9 @@ app.post(
   },
 );
 
-app.post(
-  '/auth/logout',
+registerAuthRoute(
+  'post',
+  '/logout',
   (req, res) => {
     const tokenFromBody = req.body?.refreshToken;
     const tokenFromCookie = req.cookies[COOKIE_NAME];
@@ -1029,8 +1043,9 @@ app.post(
   },
 );
 
-app.post(
-  '/auth/forgot-password',
+registerAuthRoute(
+  'post',
+  '/forgot-password',
   [body('email').isEmail().withMessage('A valid email is required').normalizeEmail()],
   handleValidationResult,
   async (req, res) => {
@@ -1058,8 +1073,9 @@ app.post(
   },
 );
 
-app.post(
-  '/auth/reset-password',
+registerAuthRoute(
+  'post',
+  '/reset-password',
   [
     body('email').isEmail().withMessage('A valid email is required').normalizeEmail(),
     body('token').notEmpty().withMessage('Reset token is required'),

@@ -31,7 +31,7 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/auth/login', (req, res) => {
+app.post('/api/auth/login', (req, res) => {
   const { email } = req.body ?? {};
 
   res.json({
