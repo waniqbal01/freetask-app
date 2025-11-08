@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 
 String _sanitizeBaseUrl(String url) {
   final trimmed = url.trim();
@@ -49,6 +49,10 @@ class AppEnv {
   static String _defaultForPlatform() {
     if (kIsWeb) {
       final baseOrigin = Uri.base;
+      final hostedBase = _resolveHostedDevBase(baseOrigin);
+      if (hostedBase != null) {
+        return hostedBase;
+      }
       final origin = baseOrigin.hasAuthority ? baseOrigin.origin : '';
       if (origin.isNotEmpty &&
           baseOrigin.host.isNotEmpty &&
@@ -113,4 +117,36 @@ class AppEnv {
 
     return null;
   }
+
+  static String? _resolveHostedDevBase(Uri uri) {
+    final host = uri.host;
+    if (host.isEmpty) {
+      return null;
+    }
+
+    final scheme = uri.scheme.isEmpty ? 'https' : uri.scheme;
+
+    final codespaceMatch = RegExp(
+      r'^(?<prefix>.+)-(?<port>\d+)(?<suffix>\.(?:app\.github\.dev|githubpreview\.dev))$',
+    ).firstMatch(host);
+    if (codespaceMatch != null) {
+      final prefix = codespaceMatch.namedGroup('prefix')!;
+      final suffix = codespaceMatch.namedGroup('suffix')!;
+      final newHost = '$prefix-4000$suffix';
+      return Uri(scheme: scheme, host: newHost).toString();
+    }
+
+    final gitpodMatch =
+        RegExp(r'^(?<port>\d+)-(?<rest>.+\.gitpod\.io)$').firstMatch(host);
+    if (gitpodMatch != null) {
+      final rest = gitpodMatch.namedGroup('rest')!;
+      final newHost = '4000-$rest';
+      return Uri(scheme: scheme, host: newHost).toString();
+    }
+
+    return null;
+  }
+
+  @visibleForTesting
+  static String? debugResolveHostedBase(Uri uri) => _resolveHostedDevBase(uri);
 }
