@@ -1,39 +1,41 @@
-import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase;
 
-import '../config/routes.dart';
-import '../auth/role_permission.dart';
+import '../auth/firebase_auth_service.dart';
 import '../models/auth_response.dart';
 import '../models/user.dart';
 import '../models/user_roles.dart';
-import 'api_client.dart';
 import 'session_api_client.dart';
 import 'storage_service.dart';
 
 class AuthService {
-  AuthService(this._apiClient, this._storage);
+  AuthService(
+    this._apiClient,
+    this._storage, {
+    FirebaseAuthService? firebaseAuthService,
+  }) : _firebaseAuth = firebaseAuthService ?? FirebaseAuthService() {
+    _apiClient.setRefreshCallback(refreshToken);
+  }
 
   final SessionApiClient _apiClient;
   final StorageService _storage;
+  final FirebaseAuthService _firebaseAuth;
+
+  firebase.User? get _currentUser => _firebaseAuth.currentUser;
 
   Future<AuthResponse> login({
     required String email,
     required String password,
   }) async {
     try {
-      final response = await _apiClient.client.post<Map<String, dynamic>>(
-        ApiRoutes.login,
-        data: {
-          'email': email,
-          'password': password,
-        },
-        options: _apiClient.guard(requiresAuth: false),
+      final credential = await _firebaseAuth.signInWithEmailPassword(
+        email: email,
+        password: password,
       );
-      final data = _unwrapData(response.data);
-      final authResponse = AuthResponse.fromJson(data);
-      return _persistAndHydrateSession(authResponse);
-    } on DioException catch (error) {
-      _logDioException(error);
-      throw AuthException(_mapError(error));
+      return await _persistSession(credential.user);
+    } on firebase.FirebaseAuthException catch (error) {
+      throw AuthException(_mapFirebaseError(error));
+    } catch (error) {
+      throw AuthException('Unable to sign in. Please try again.');
     }
   }
 
@@ -44,334 +46,157 @@ class AuthService {
     String role = kDefaultUserRoleName,
   }) async {
     try {
-      final response = await _apiClient.client.post<Map<String, dynamic>>(
-        ApiRoutes.register,
-        data: {
-          'name': name,
-          'email': email,
-          'password': password,
-          'role': role,
-        },
-        options: _apiClient.guard(requiresAuth: false),
+      final credential = await _firebaseAuth.registerWithEmailPassword(
+        email: email,
+        password: password,
       );
-      final data = _unwrapData(response.data);
-      final authResponse = AuthResponse.fromJson(data);
-      return _persistAndHydrateSession(authResponse);
-    } on DioException catch (error) {
-      _logDioException(error);
-      throw AuthException(_mapError(error));
+      final user = credential.user;
+      if (user != null && (user.displayName == null || user.displayName!.isEmpty)) {
+        await user.updateDisplayName(name);
+      }
+      final response = await _persistSession(
+        credential.user,
+        fallbackName: name,
+        fallbackRole: role,
+      );
+      await _storage.saveRole(role);
+      return response;
+    } on firebase.FirebaseAuthException catch (error) {
+      throw AuthException(_mapFirebaseError(error));
+    } catch (_) {
+      throw AuthException('Unable to complete registration. Please try again.');
     }
   }
 
   Future<User> fetchMe() async {
-    try {
-      final response = await _apiClient.client.get<Map<String, dynamic>>(
-        '/users/me',
-        options: _apiClient.guard(permission: RolePermission.viewDashboard),
-      );
-      final data = _unwrapData(response.data);
-      final userMap = data['user'] is Map<String, dynamic>
-          ? data['user'] as Map<String, dynamic>
-          : data;
-      final user = User.fromJson(userMap);
-      await _storage.saveUser(user);
-      return user;
-    } on DioException catch (error) {
-      _logDioException(error);
-      throw AuthException(_mapError(error));
+    final user = _currentUser;
+    if (user == null) {
+      throw AuthException('No authenticated user.');
     }
+    final mapped = _mapFirebaseUser(user);
+    await _storage.saveUser(mapped);
+    return mapped;
   }
 
   Future<void> logout() async {
-    final refreshToken = _storage.refreshToken;
-    try {
-      await _apiClient.client.post<void>(
-        '/api/auth/logout',
-        data: {
-          if (refreshToken != null && refreshToken.isNotEmpty)
-            'refreshToken': refreshToken,
-        },
-        options: _apiClient.guard(permission: RolePermission.viewDashboard),
-      );
-    } on DioException catch (error) {
-      _logDioException(error);
-      if (error.response?.statusCode != 401) {
-        rethrow;
-      }
-    } finally {
-      await _storage.clearAll();
-    }
+    await _firebaseAuth.signOut();
+    await _storage.clearAll();
   }
 
   Future<String> refreshToken() async {
-    final refreshToken = _storage.refreshToken;
-    if (refreshToken == null || refreshToken.isEmpty) {
-      await _storage.clearAll();
-      throw AuthException('Session expired. Please log in again.');
+    final token = await _firebaseAuth.getIdToken(forceRefresh: true);
+    if (token == null || token.isEmpty) {
+      throw AuthException('Unable to refresh authentication token.');
     }
-
-    try {
-      final response = await _apiClient.client.post<Map<String, dynamic>>(
-        ApiRoutes.refresh,
-        data: {'refreshToken': refreshToken},
-        options: _apiClient.guard(requiresAuth: false),
-      );
-      final data = _unwrapData(response.data);
-      final newToken =
-          data['accessToken'] as String? ?? data['token'] as String? ?? '';
-      if (newToken.isEmpty) {
-        await _storage.clearAll();
-        throw AuthException('Unable to refresh session. Please sign in again.');
-      }
-
-      final newRefreshToken = data['refreshToken'] as String? ??
-          data['refresh_token'] as String? ??
-          data['refresh'] as String?;
-      final expiresRaw =
-          data['expiresAt'] ?? data['expires_in'] ?? data['expiresIn'];
-      final expiresAt = AuthResponse.parseExpiry(expiresRaw);
-
-      await _storage.saveToken(newToken);
-      if (newRefreshToken != null && newRefreshToken.isNotEmpty) {
-        await _storage.saveRefreshToken(newRefreshToken);
-      } else {
-        await _storage.clearRefreshToken();
-      }
-      await _storage.saveTokenExpiry(expiresAt);
-      return newToken;
-    } on DioException catch (error) {
-      _logDioException(error);
-      await _storage.clearAll();
-      throw AuthException(_mapError(error));
-    }
-  }
-
-  Future<AuthResponse> _persistAndHydrateSession(
-    AuthResponse authResponse,
-  ) async {
-    final token = authResponse.token.trim();
-    if (token.isEmpty) {
-      throw AuthException(
-        'Invalid authentication response: missing access token.',
-      );
-    }
-
     await _storage.saveToken(token);
-    final refreshToken = authResponse.refreshToken;
-    if (refreshToken != null && refreshToken.isNotEmpty) {
-      await _storage.saveRefreshToken(refreshToken);
-    } else {
-      await _storage.clearRefreshToken();
-    }
-    await _storage.saveTokenExpiry(authResponse.expiresAt);
-
-    try {
-      var user = authResponse.user;
-      if (user.id.isEmpty || user.email.isEmpty) {
-        if (user.role.isNotEmpty) {
-          await _storage.saveRole(ensureUserRoleName(user.role));
-        }
-        user = await fetchMe();
-      }
-      await _storage.saveUser(user);
-      return AuthResponse(
-        token: authResponse.token,
-        refreshToken: refreshToken,
-        expiresAt: authResponse.expiresAt,
-        user: user,
-      );
-    } catch (error) {
-      await _storage.clearAll();
-      rethrow;
-    }
+    return token;
   }
 
-  Future<void> requestPasswordReset(String email) async {
-    try {
-      await _apiClient.client.post<void>(
-        '/api/auth/forgot-password',
-        data: {'email': email},
-        options: _apiClient.guard(requiresAuth: false),
-      );
-    } on DioException catch (error) {
-      _logDioException(error);
-      throw AuthException(_mapError(error));
-    }
+  Future<void> requestPasswordReset(String email) {
+    return firebase.FirebaseAuth.instance.sendPasswordResetEmail(email: email);
   }
 
   Future<void> confirmPasswordReset({
     required String email,
     required String token,
     required String password,
-  }) async {
-    try {
-      await _apiClient.client.post<void>(
-        '/api/auth/reset-password',
-        data: {
-          'email': email,
-          'token': token,
-          'password': password,
-        },
-        options: _apiClient.guard(requiresAuth: false),
-      );
-    } on DioException catch (error) {
-      _logDioException(error);
-      throw AuthException(_mapError(error));
-    }
+  }) {
+    return firebase.FirebaseAuth.instance.confirmPasswordReset(
+      code: token,
+      newPassword: password,
+    );
   }
 
   Future<void> verifyEmail({
     required String email,
     required String code,
   }) async {
-    try {
-      await _apiClient.client.post<void>(
-        '/api/auth/verify-email',
-        data: {
-          'email': email,
-          'code': code,
-        },
-        options: _apiClient.guard(requiresAuth: false),
-      );
-    } on DioException catch (error) {
-      _logDioException(error);
-      throw AuthException(_mapError(error));
+    await firebase.FirebaseAuth.instance.applyActionCode(code);
+    final user = firebase.FirebaseAuth.instance.currentUser;
+    if (user != null && !user.emailVerified) {
+      await user.reload();
     }
   }
 
-  void _logDioException(DioException error) {
-    // ignore: avoid_print
-    print(
-      '[DIO][TYPE]=${error.type} | [MSG]=${error.message} | [CODE]=${error.response?.statusCode}',
+  Future<AuthResponse> _persistSession(
+    firebase.User? firebaseUser, {
+    String? fallbackName,
+    String? fallbackRole,
+  }) async {
+    if (firebaseUser == null) {
+      throw AuthException('Authentication failed. Please try again.');
+    }
+
+    final token = await firebaseUser.getIdToken();
+    if (token == null || token.isEmpty) {
+      throw AuthException('Missing authentication token. Please try again.');
+    }
+
+    final refreshToken = firebaseUser.refreshToken;
+
+    final user = _mapFirebaseUser(
+      firebaseUser,
+      fallbackName: fallbackName,
+      fallbackRole: fallbackRole,
     );
+    await _storage.saveUser(user);
+    await _storage.saveToken(token);
+
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await _storage.saveRefreshToken(refreshToken);
+    } else {
+      await _storage.clearRefreshToken();
+    }
+
+    final authResponse = AuthResponse(
+      token: token,
+      refreshToken: refreshToken,
+      expiresAt: null,
+      user: user,
+    );
+
+    return authResponse;
   }
 
-  String _mapError(DioException error) {
-    if (error.type == DioExceptionType.connectionTimeout ||
-        error.type == DioExceptionType.sendTimeout ||
-        error.type == DioExceptionType.receiveTimeout) {
-      return 'Request timed out. Please check your connection and try again.';
+  String _mapFirebaseError(firebase.FirebaseAuthException error) {
+    switch (error.code) {
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Invalid credentials, please try again.';
+      case 'user-disabled':
+        return 'This account has been disabled. Please contact support.';
+      case 'email-already-in-use':
+        return 'An account already exists for that email address.';
+      case 'weak-password':
+        return 'Password is too weak. Please choose a stronger password.';
+      case 'invalid-email':
+        return 'The email address is invalid. Please check and try again.';
+      default:
+        return error.message ?? 'Authentication failed. Please try again later.';
     }
-
-    if (error.type == DioExceptionType.connectionError) {
-      final uri = error.requestOptions.uri;
-      final target = uri.hasAuthority ? uri.origin : uri.toString();
-      return 'Unable to reach the server at $target. Please ensure the API is running and try again.';
-    }
-
-    const fallbackMessage =
-        'Unable to complete your request right now. Please try again later.';
-
-    final response = error.response;
-    if (response != null) {
-      final extracted = _extractErrorMessage(response.data);
-      if (extracted != null && extracted.trim().isNotEmpty) {
-        return extracted.trim();
-      }
-
-      switch (response.statusCode) {
-        case 401:
-          return 'Invalid credentials, please try again.';
-        case 422:
-          return 'Provided data is invalid. Please review your inputs.';
-        default:
-          if ((response.statusMessage ?? '').isNotEmpty) {
-            return '${response.statusMessage}. Please try again later.';
-          }
-          return fallbackMessage;
-      }
-    }
-
-    return fallbackMessage;
   }
 
-  String? _extractErrorMessage(dynamic data) {
-    if (data == null) return null;
-    if (data is String) {
-      return data;
-    }
-    if (data is Map<String, dynamic>) {
-      final nestedError = data['error'];
-      if (nestedError is Map<String, dynamic>) {
-        final message = nestedError['message'];
-        if (message is String && message.trim().isNotEmpty) {
-          return message;
-        }
-        final details = nestedError['details'];
-        if (details is String && details.trim().isNotEmpty) {
-          return details;
-        }
-      }
-      for (final key in const ['message', 'error', 'detail', 'description']) {
-        final value = data[key];
-        if (value is String && value.trim().isNotEmpty) {
-          return value;
-        }
-      }
-      final errors = data['errors'];
-      if (errors is Map) {
-        final parts = <String>[];
-        for (final value in errors.values) {
-          if (value is String) {
-            parts.add(value);
-          } else if (value is Iterable) {
-            parts.addAll(value.whereType<String>());
-          }
-        }
-        if (parts.isNotEmpty) {
-          return parts.join('\n');
-        }
-      } else if (errors is Iterable) {
-        final parts = errors.whereType<String>().toList();
-        if (parts.isNotEmpty) {
-          return parts.join('\n');
-        }
-      }
-    }
-    if (data is Iterable) {
-      final parts = data.whereType<String>().toList();
-      if (parts.isNotEmpty) {
-        return parts.join('\n');
-      }
-    }
-    return null;
-  }
+  User _mapFirebaseUser(
+    firebase.User firebaseUser, {
+    String? fallbackName,
+    String? fallbackRole,
+  }) {
+    final displayName = firebaseUser.displayName;
+    final email = firebaseUser.email ?? '';
+    final name = (displayName != null && displayName.isNotEmpty)
+        ? displayName
+        : (fallbackName ?? email.split('@').first);
 
-  Map<String, dynamic> _unwrapData(Map<String, dynamic>? data) {
-    if (data == null) {
-      return <String, dynamic>{};
-    }
+    final role = fallbackRole ?? _storage.role ?? kDefaultUserRoleName;
 
-    Map<String, dynamic> current = data;
-
-    bool looksLikeAuthPayload(Map<String, dynamic> payload) {
-      return payload['user'] is Map<String, dynamic> ||
-          payload['profile'] is Map<String, dynamic> ||
-          payload.containsKey('accessToken') ||
-          payload.containsKey('access_token') ||
-          payload.containsKey('token') ||
-          payload.containsKey('refreshToken') ||
-          payload.containsKey('refresh_token');
-    }
-
-    for (var depth = 0; depth < 5; depth++) {
-      if (looksLikeAuthPayload(current)) {
-        return current;
-      }
-
-      final nested = current['data'];
-      if (nested is Map<String, dynamic>) {
-        current = nested;
-        continue;
-      }
-      break;
-    }
-
-    if (looksLikeAuthPayload(current)) {
-      return current;
-    }
-
-    return current;
+    return User(
+      id: firebaseUser.uid,
+      name: name,
+      email: email,
+      role: role,
+      verified: firebaseUser.emailVerified,
+    );
   }
 }
 
@@ -382,30 +207,4 @@ class AuthException implements Exception {
 
   @override
   String toString() => 'AuthException: $message';
-}
-
-class DevAuthService {
-  DevAuthService() : _http = ApiClient().client;
-
-  final Dio _http;
-
-  Future<Response<dynamic>> login(String email, String password) async {
-    final res = await _http.post(
-      '/api/auth/login',
-      data: {
-        'email': email,
-        'password': password,
-      },
-    );
-
-    final data = res.data;
-    if (res.statusCode == 200 &&
-        data is Map<String, dynamic> &&
-        data['accessToken'] is String) {
-      final token = data['accessToken'] as String;
-      _http.options.headers['Authorization'] = 'Bearer $token';
-    }
-
-    return res;
-  }
 }

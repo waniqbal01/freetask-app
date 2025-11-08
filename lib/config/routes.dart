@@ -1,5 +1,7 @@
-class ApiRoutes {
-  static const String login = '/api/auth/login';
-  static const String register = '/api/auth/register';
-  static const String refresh = '/api/auth/refresh';
+class ApiConfig {
+  // API asas anda – ubah dengan --dart-define=API_BASE_URL=...
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://127.0.0.1:4000',
+  );
 }
