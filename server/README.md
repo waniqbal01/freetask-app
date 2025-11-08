@@ -52,15 +52,15 @@ Configure beta infrastructure endpoints with the following variables:
 - `BETA_STORAGE_BUCKET` – Object storage bucket for uploads (e.g. S3/Cloud Storage)
 - `BETA_CLIENT_ORIGIN` – Frontend origin permitted via CORS (defaults to `https://beta.freetask.app`)
 
-Use the OTP returned by `POST /auth/login` during local testing.
+Use the OTP returned by `POST /api/auth/login` during local testing.
 
 ## Request Overview
 
 | Endpoint | Description |
 | -------- | ----------- |
-| `POST /auth/login` | Request OTP (rate-limited) |
-| `POST /auth/verify-otp` | Verify OTP and receive tokens |
-| `POST /auth/refresh` | Refresh access token |
+| `POST /api/auth/login` | Request OTP (rate-limited) |
+| `POST /api/auth/verify-otp` | Verify OTP and receive tokens |
+| `POST /api/auth/refresh` | Refresh access token |
 | `GET /jobs` | Paginated job listing with filters |
 | `POST /jobs` | Create new job (client only) |
 | `PATCH /jobs/:jobId/status` | Controlled status transitions |
