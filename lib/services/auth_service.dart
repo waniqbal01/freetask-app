@@ -5,6 +5,7 @@ import '../auth/role_permission.dart';
 import '../models/auth_response.dart';
 import '../models/user.dart';
 import '../models/user_roles.dart';
+import 'api_client.dart';
 import 'session_api_client.dart';
 import 'storage_service.dart';
 
@@ -362,4 +363,30 @@ class AuthException implements Exception {
 
   @override
   String toString() => 'AuthException: $message';
+}
+
+class DevAuthService {
+  DevAuthService() : _http = ApiClient().client;
+
+  final Dio _http;
+
+  Future<Response<dynamic>> login(String email, String password) async {
+    final res = await _http.post(
+      '/api/auth/login',
+      data: {
+        'email': email,
+        'password': password,
+      },
+    );
+
+    final data = res.data;
+    if (res.statusCode == 200 &&
+        data is Map<String, dynamic> &&
+        data['accessToken'] is String) {
+      final token = data['accessToken'] as String;
+      _http.options.headers['Authorization'] = 'Bearer $token';
+    }
+
+    return res;
+  }
 }

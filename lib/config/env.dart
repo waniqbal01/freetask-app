@@ -150,3 +150,10 @@ class AppEnv {
   @visibleForTesting
   static String? debugResolveHostedBase(Uri uri) => _resolveHostedDevBase(uri);
 }
+
+class Env {
+  static const String apiBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://127.0.0.1:4000',
+  );
+}
