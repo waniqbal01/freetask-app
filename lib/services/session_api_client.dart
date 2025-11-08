@@ -2,179 +2,91 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 
+import '../auth/firebase_auth_service.dart';
 import '../auth/role_permission.dart';
-import '../core/app_logger.dart';
 import '../utils/role_permissions.dart';
 import 'api_client.dart';
-import 'monitoring_service.dart';
 import 'role_guard.dart';
 import 'storage_service.dart';
 
 class SessionApiClient {
   SessionApiClient({
+    FirebaseAuthService? auth,
+    RoleGuard? roleGuard,
+    StorageService? storage,
     Dio? dio,
-    required StorageService storage,
-    required RoleGuard roleGuard,
-  })  : _dio = dio ?? ApiClient.instance,
+  })  : _auth = auth ?? FirebaseAuthService(),
+        _roleGuard = roleGuard,
         _storage = storage,
-        _roleGuard = roleGuard {
-    final existingHeaders = Map<String, dynamic>.from(
-      _dio.options.headers,
-    );
-    existingHeaders['Content-Type'] =
-        existingHeaders['Content-Type'] ?? 'application/json';
+        _apiClient = ApiClient(auth: auth ?? FirebaseAuthService()) {
+    _dio = dio ?? _apiClient.dio;
 
-    final options = _dio.options;
-    _dio.options = options.copyWith(
-      connectTimeout: options.connectTimeout ?? const Duration(seconds: 10),
-      receiveTimeout: options.receiveTimeout ?? const Duration(seconds: 20),
-      sendTimeout: options.sendTimeout ?? const Duration(seconds: 20),
-      headers: existingHeaders,
-    );
-
-    _interceptor = InterceptorsWrapper(
-      onRequest: (options, handler) {
-        AppLogger.d('→ ${options.method} ${options.uri}');
-        final token = _storage.token;
-        final requiresAuth = (options.extra['requiresAuth'] as bool?) ?? true;
-        if (requiresAuth && token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-
-        final role = _roleGuard.currentRole ?? _storage.role;
-        if (role != null && role.isNotEmpty) {
-          options.headers['X-User-Role'] = role;
-        }
-
-        final allowedRoles = (options.extra['allowedRoles'] as List?)
-                ?.whereType<String>()
-                .toSet() ??
-            const <String>{};
-        if (allowedRoles.isNotEmpty) {
-          try {
-            _roleGuard.ensureRoleIn(
-              allowedRoles,
-              actionDescription:
-                  options.extra['requiredPermission']?.toString() ??
-                      'perform this action',
-            );
-          } on RoleUnauthorizedException catch (error) {
-            return handler.reject(
-              DioException(
-                requestOptions: options,
-                type: DioExceptionType.badResponse,
-                error: error,
-                response: Response<dynamic>(
-                  requestOptions: options,
-                  statusCode: 403,
-                  data: {
-                    'message': error.message,
-                    'requiredRoles': allowedRoles.toList(),
-                  },
-                ),
-              ),
-            );
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          final requiresAuth = (options.extra['requiresAuth'] as bool?) ?? true;
+          if (requiresAuth && _roleGuard != null) {
+            final allowedRoles = (options.extra['allowedRoles'] as List?)
+                    ?.whereType<String>()
+                    .toSet() ??
+                const <String>{};
+            if (allowedRoles.isNotEmpty) {
+              try {
+                _roleGuard!.ensureRoleIn(
+                  allowedRoles,
+                  actionDescription:
+                      options.extra['requiredPermission']?.toString(),
+                );
+              } on RoleUnauthorizedException catch (error) {
+                return handler.reject(
+                  DioException(
+                    requestOptions: options,
+                    type: DioExceptionType.badResponse,
+                    error: error,
+                    response: Response<dynamic>(
+                      requestOptions: options,
+                      statusCode: 403,
+                      data: {
+                        'message': error.message,
+                        'requiredRoles': error.requiredRoles?.toList(),
+                      },
+                    ),
+                  ),
+                );
+              }
+            }
           }
-        }
-
-        return handler.next(options);
-      },
-      onResponse: (response, handler) {
-        AppLogger.d(
-            '← ${response.statusCode} ${response.requestOptions.method} ${response.requestOptions.uri}');
-        final requestId = response.headers.value('x-request-id');
-        MonitoringService.updateRequestContext(requestId);
-        return handler.next(response);
-      },
-      onError: (error, handler) async {
-        AppLogger.e(
-          '✖ ${error.requestOptions.method} ${error.requestOptions.uri}: ${error.message}',
-          error,
-          error.stackTrace,
-        );
-        final options = error.requestOptions;
-        if ((error.type == DioExceptionType.connectionError ||
-                error.type == DioExceptionType.connectionTimeout ||
-                error.type == DioExceptionType.receiveTimeout) &&
-            ((options.extra['__retry__'] as int?) ?? 0) < 2) {
-          final retries = ((options.extra['__retry__'] as int?) ?? 0) + 1;
-          final extra = Map<String, dynamic>.from(options.extra);
-          extra['__retry__'] = retries;
-          options.extra = extra;
-          AppLogger.w(
-              'Retrying ${options.method} ${options.uri} (attempt $retries) due to ${error.type}');
-          try {
-            final response = await _dio.fetch<dynamic>(options);
-            return handler.resolve(response);
-          } on DioException catch (retryError) {
-            return handler.next(retryError);
-          }
-        }
-        final response = error.response;
-        final statusCode = response?.statusCode;
-        final headers = response?.headers;
-        final requestId = headers?.value('x-request-id');
-        MonitoringService.updateRequestContext(requestId);
-        if ((statusCode ?? 0) >= 500) {
-          await MonitoringService.recordError(
-            error,
-            error.stackTrace,
-          );
-        }
-        final isSkipAuth = error.requestOptions.extra['skipAuth'] == true;
-        if (statusCode != 401 || isSkipAuth) {
-          if (statusCode == 401 && !isSkipAuth) {
+          handler.next(options);
+        },
+        onError: (error, handler) async {
+          final statusCode = error.response?.statusCode ?? 0;
+          final requiresAuth =
+              (error.requestOptions.extra['requiresAuth'] as bool?) ?? true;
+          if (statusCode == 401 && requiresAuth) {
+            final retryResponse = await _attemptTokenRefresh(error.requestOptions);
+            if (retryResponse != null) {
+              return handler.resolve(retryResponse);
+            }
             await _handleUnauthorized();
           }
-          return handler.next(error);
-        }
-
-        if (_refreshCallback == null) {
-          await _handleUnauthorized();
-          return handler.next(error);
-        }
-
-        try {
-          await _refreshToken();
-        } catch (_) {
-          await _handleUnauthorized();
-          return handler.next(error);
-        }
-
-        final refreshedToken = _storage.token;
-        if (refreshedToken == null || refreshedToken.isEmpty) {
-          await _handleUnauthorized();
-          return handler.next(error);
-        }
-
-        final requestOptions = error.requestOptions;
-        requestOptions.headers['Authorization'] = 'Bearer $refreshedToken';
-        requestOptions.extra = Map<String, dynamic>.from(requestOptions.extra)
-          ..['skipAuth'] = true;
-
-        try {
-          final response = await _dio.fetch<dynamic>(requestOptions);
-          return handler.resolve(response);
-        } on DioException catch (retryError) {
-          return handler.next(retryError);
-        }
-      },
+          handler.next(error);
+        },
+      ),
     );
-
-    _dio.interceptors.add(_interceptor);
   }
 
-  final Dio _dio;
-  final StorageService _storage;
-  final RoleGuard _roleGuard;
-  late final Interceptor _interceptor;
+  final FirebaseAuthService _auth;
+  final RoleGuard? _roleGuard;
+  final StorageService? _storage;
+  final ApiClient _apiClient;
+  late final Dio _dio;
+
   Future<String> Function()? _refreshCallback;
   Completer<void>? _refreshCompleter;
-  final _unauthorizedController = StreamController<void>.broadcast();
+  final _logoutController = StreamController<void>.broadcast();
 
   Dio get client => _dio;
-
-  Stream<void> get logoutStream => _unauthorizedController.stream;
+  Stream<void> get logoutStream => _logoutController.stream;
 
   void setRefreshCallback(Future<String> Function() callback) {
     _refreshCallback = callback;
@@ -197,46 +109,73 @@ class SessionApiClient {
       extra['allowedRoles'] = config.allowedRoles.toList();
       extra['requiresAuth'] = config.requiresAuth;
     }
-    if (allowedRoles != null) {
-      final combined = <String>{
-        ...((extra['allowedRoles'] as List?)?.whereType<String>() ?? const []),
-        ...allowedRoles,
-      };
-      extra['allowedRoles'] = combined.toList();
+    if (allowedRoles != null && allowedRoles.isNotEmpty) {
+      final existing =
+          (extra['allowedRoles'] as List?)?.whereType<String>().toSet() ??
+              <String>{};
+      extra['allowedRoles'] = {...existing, ...allowedRoles}.toList();
     }
     return Options(extra: extra);
   }
 
-  Future<void> _refreshToken() async {
-    if (_refreshCallback == null) return;
-    if (_refreshCompleter != null) {
-      return _refreshCompleter!.future;
+  Future<Response<dynamic>?> _attemptTokenRefresh(RequestOptions options) async {
+    if (options.extra['__retried__'] == true) {
+      return null;
     }
 
-    _refreshCompleter = Completer<void>();
-    try {
-      await _refreshCallback!.call();
-      _refreshCompleter!.complete();
-    } catch (error) {
-      final completer = _refreshCompleter;
-      if (completer != null && !completer.isCompleted) {
-        completer.completeError(error);
-      }
-      rethrow;
-    } finally {
-      _refreshCompleter = null;
+    final refreshed = await _refreshSession();
+    if (!refreshed) {
+      return null;
     }
+
+    final token = await _auth.getIdToken();
+    if (token == null || token.isEmpty) {
+      return null;
+    }
+
+    options.headers['Authorization'] = 'Bearer $token';
+    options.extra = Map<String, dynamic>.from(options.extra)
+      ..['__retried__'] = true;
+
+    try {
+      final response = await _dio.fetch<dynamic>(options);
+      return response;
+    } on DioException {
+      return null;
+    }
+  }
+
+  Future<bool> _refreshSession() async {
+    if (_refreshCallback != null) {
+      if (_refreshCompleter != null) {
+        await _refreshCompleter!.future;
+        return true;
+      }
+      _refreshCompleter = Completer<void>();
+      try {
+        final token = await _refreshCallback!.call();
+        return token.isNotEmpty;
+      } catch (_) {
+        return false;
+      } finally {
+        _refreshCompleter?.complete();
+        _refreshCompleter = null;
+      }
+    }
+
+    final token = await _auth.getIdToken(forceRefresh: true);
+    if (token == null || token.isEmpty) {
+      return false;
+    }
+    await _storage?.saveToken(token);
+    return true;
   }
 
   Future<void> _handleUnauthorized() async {
-    await _storage.clearAll();
-    if (!_unauthorizedController.isClosed) {
-      _unauthorizedController.add(null);
+    await _storage?.clearAll();
+    await _auth.signOut();
+    if (!_logoutController.isClosed) {
+      _logoutController.add(null);
     }
-  }
-
-  Future<void> close() async {
-    await _unauthorizedController.close();
-    _dio.interceptors.remove(_interceptor);
   }
 }
