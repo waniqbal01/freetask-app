@@ -85,7 +85,7 @@ class AuthService {
     final refreshToken = _storage.refreshToken;
     try {
       await _apiClient.client.post<void>(
-        '/auth/logout',
+        '/api/auth/logout',
         data: {
           if (refreshToken != null && refreshToken.isNotEmpty)
             'refreshToken': refreshToken,
@@ -181,7 +181,7 @@ class AuthService {
   Future<void> requestPasswordReset(String email) async {
     try {
       await _apiClient.client.post<void>(
-        '/auth/forgot-password',
+        '/api/auth/forgot-password',
         data: {'email': email},
         options: _apiClient.guard(requiresAuth: false),
       );
@@ -198,7 +198,7 @@ class AuthService {
   }) async {
     try {
       await _apiClient.client.post<void>(
-        '/auth/reset-password',
+        '/api/auth/reset-password',
         data: {
           'email': email,
           'token': token,
@@ -218,7 +218,7 @@ class AuthService {
   }) async {
     try {
       await _apiClient.client.post<void>(
-        '/auth/verify-email',
+        '/api/auth/verify-email',
         data: {
           'email': email,
           'code': code,

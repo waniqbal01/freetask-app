@@ -46,14 +46,11 @@
               "raw": "{\n  \"email\": \"{{clientEmail}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/login",
+              "raw": "{{baseUrl}}/api/auth/login",
               "host": [
                 "{{baseUrl}}"
               ],
-              "path": [
-                "auth",
-                "login"
-              ]
+              "path": ["api", "auth", "login"]
             }
           }
         },
@@ -91,14 +88,11 @@
               "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"otp\": \"{{clientOtp}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/verify-otp",
+              "raw": "{{baseUrl}}/api/auth/verify-otp",
               "host": [
                 "{{baseUrl}}"
               ],
-              "path": [
-                "auth",
-                "verify-otp"
-              ]
+              "path": ["api", "auth", "verify-otp"]
             }
           }
         },
@@ -165,14 +159,11 @@
               "raw": "{\n  \"email\": \"{{freelancerEmail}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/login",
+              "raw": "{{baseUrl}}/api/auth/login",
               "host": [
                 "{{baseUrl}}"
               ],
-              "path": [
-                "auth",
-                "login"
-              ]
+              "path": ["api", "auth", "login"]
             }
           }
         },
@@ -202,14 +193,11 @@
               "raw": "{\n  \"email\": \"{{freelancerEmail}}\",\n  \"otp\": \"{{freelancerOtp}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/verify-otp",
+              "raw": "{{baseUrl}}/api/auth/verify-otp",
               "host": [
                 "{{baseUrl}}"
               ],
-              "path": [
-                "auth",
-                "verify-otp"
-              ]
+              "path": ["api", "auth", "verify-otp"]
             }
           }
         },
@@ -438,9 +426,9 @@
               "raw": "{\n  \"refreshToken\": \"{{clientRefreshToken}}-tampered\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/auth/refresh",
+              "raw": "{{baseUrl}}/api/auth/refresh",
               "host": ["{{baseUrl}}"],
-              "path": ["auth", "refresh"]
+              "path": ["api", "auth", "refresh"]
             }
           }
         },

@@ -168,7 +168,7 @@ await apiClient.client.post(
 ### Refresh logic
 
 * Any response with status `401` triggers the `SessionApiClient` refresh flow.
-* The client attempts a single refresh `POST /auth/refresh` call.
+* The client attempts a single refresh `POST /api/auth/refresh` call.
 * On success the original request is retried transparently.
 * If refresh fails, the storage is wiped via `StorageService.clearAll()` and
   `AuthBloc` receives a `LogoutRequested` event through the `logoutStream`.
@@ -179,13 +179,13 @@ The Node.js backend has been rebuilt on Express with hardened security:
 
 | Endpoint | Description |
 | --- | --- |
-| `POST /auth/signup` | Validates input with `express-validator`, hashes passwords with `bcryptjs`, persists the user, and returns JWT + refresh tokens. A six-digit email verification code is generated and stored for 15 minutes. |
-| `POST /auth/verify-email` | Confirms the verification code and activates the user account. |
-| `POST /auth/login` | Rate limited (5/min), checks credentials, blocks unverified accounts, returns access/refresh tokens. |
-| `POST /auth/refresh` | Accepts refresh tokens from either the HTTP-only cookie or the request body, rotates the token, and returns a fresh access token. |
-| `POST /auth/logout` | Revokes the refresh token and clears the cookie. |
-| `POST /auth/forgot-password` | Issues a short-lived reset token. In development the token is returned in the response for easy testing. |
-| `POST /auth/reset-password` | Validates the reset token and updates the password hash. |
+| `POST /api/auth/signup` | Validates input with `express-validator`, hashes passwords with `bcryptjs`, persists the user, and returns JWT + refresh tokens. A six-digit email verification code is generated and stored for 15 minutes. |
+| `POST /api/auth/verify-email` | Confirms the verification code and activates the user account. |
+| `POST /api/auth/login` | Rate limited (5/min), checks credentials, blocks unverified accounts, returns access/refresh tokens. |
+| `POST /api/auth/refresh` | Accepts refresh tokens from either the HTTP-only cookie or the request body, rotates the token, and returns a fresh access token. |
+| `POST /api/auth/logout` | Revokes the refresh token and clears the cookie. |
+| `POST /api/auth/forgot-password` | Issues a short-lived reset token. In development the token is returned in the response for easy testing. |
+| `POST /api/auth/reset-password` | Validates the reset token and updates the password hash. |
 | `GET /users/me` | Protected endpoint returning the authenticated profile. |
 
 ### Token strategy
@@ -246,7 +246,7 @@ Refer to `lib/views/onboarding/login_view.dart` and
 ## Manual verification flow checklist
 
 1. **Signup** → `SignupRequested` dispatch.
-2. **Email verify** → call `POST /auth/verify-email` with the returned six-digit
+2. **Email verify** → call `POST /api/auth/verify-email` with the returned six-digit
    code.
 3. **Login** → `LoginRequested` dispatch.
 4. **Auto refresh** → allow the access token to age, trigger a guarded API call
