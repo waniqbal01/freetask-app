@@ -24,7 +24,7 @@ class AppEnv {
   static const bool enableSentry =
       bool.fromEnvironment('ENABLE_SENTRY', defaultValue: false);
 
-  static const String _defaultLocalBaseUrl = 'http://localhost:4000';
+  static const String _defaultLocalBaseUrl = 'http://127.0.0.1:4000';
 
   // Use runtime values if provided, else sensible defaults per platform
   static const String apiBaseUrl = String.fromEnvironment(
@@ -63,13 +63,20 @@ class AppEnv {
   }
 
   static String _translateLocalhost(String url) {
-    if (kIsWeb) {
+    final parsed = Uri.tryParse(url);
+    if (parsed == null) {
       return url;
     }
 
-    final parsed = Uri.tryParse(url);
-    if (parsed != null &&
-        (parsed.host == 'localhost' || parsed.host == '127.0.0.1')) {
+    if (kIsWeb) {
+      if (parsed.host == 'localhost' || parsed.host == '::1') {
+        return parsed.replace(host: '127.0.0.1').toString();
+      }
+      return url;
+    }
+
+    if (parsed.host == 'localhost' || parsed.host == '127.0.0.1' ||
+        parsed.host == '::1') {
       final translated = parsed.replace(host: '10.0.2.2');
       return translated.toString();
     }
