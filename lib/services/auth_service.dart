@@ -245,6 +245,12 @@ class AuthService {
       return 'Request timed out. Please check your connection and try again.';
     }
 
+    if (error.type == DioExceptionType.connectionError) {
+      final uri = error.requestOptions.uri;
+      final target = uri.hasAuthority ? uri.origin : uri.toString();
+      return 'Unable to reach the server at $target. Please ensure the API is running and try again.';
+    }
+
     const fallbackMessage =
         'Unable to complete your request right now. Please try again later.';
 
