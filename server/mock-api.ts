@@ -8,10 +8,43 @@ const WEB_ORIGIN = process.env.WEB_ORIGIN ?? 'http://127.0.0.1:54879';
 const PORT = Number.parseInt(process.env.PORT ?? '4000', 10);
 const HOST = '0.0.0.0';
 
+const LOCALHOST_REGEX = /^(https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])):\d+$/i;
+const extraOrigins = (process.env.EXTRA_ALLOWED_ORIGINS ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = new Set([
+  WEB_ORIGIN,
+  'http://localhost:4000',
+  'http://127.0.0.1:4000',
+  'https://localhost:4000',
+  'https://127.0.0.1:4000',
+  ...extraOrigins,
+].filter(Boolean));
+
 const app = express();
 
 const corsOptions = {
-  origin: WEB_ORIGIN,
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (LOCALHOST_REGEX.test(origin)) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.has(origin)) {
+      return callback(null, true);
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`[mock-api] Rejecting CORS origin ${origin}. Set WEB_ORIGIN or EXTRA_ALLOWED_ORIGINS to allow it.`);
+    }
+
+    return callback(null, false);
+  },
   credentials: false,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
