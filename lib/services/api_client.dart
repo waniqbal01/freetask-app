@@ -3,35 +3,30 @@ import 'package:dio/dio.dart';
 import '../config/env.dart';
 
 class ApiClient {
-  ApiClient._();
+  factory ApiClient() => _instance;
 
-  static final Dio _dio = _createDio();
-
-  static Dio _createDio() {
-    final baseUrl = AppEnv.resolvedApiBaseUrl();
-    // ignore: avoid_print
-    print('[HTTP] Dio baseUrl: $baseUrl');
-    final dio = Dio(
+  ApiClient._internal() {
+    final resolved = AppEnv.resolvedApiBaseUrl();
+    final baseUrl = resolved.isNotEmpty ? resolved : Env.apiBaseUrl;
+    _dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 20),
-        headers: const {'Content-Type': 'application/json'},
-        // Accept 4xx so we can map error bodies; let code handle throws.
-        validateStatus: (status) => status != null && status < 500,
+        sendTimeout: const Duration(seconds: 20),
+        headers: const {
+          'Content-Type': 'application/json',
+        },
+        validateStatus: (code) => code != null && code >= 200 && code < 500,
       ),
     );
-
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) => handler.next(options),
-        onResponse: (response, handler) => handler.next(response),
-        onError: (error, handler) => handler.next(error),
-      ),
-    );
-
-    return dio;
   }
 
-  static Dio get instance => _dio;
+  static final ApiClient _instance = ApiClient._internal();
+
+  late final Dio _dio;
+
+  Dio get client => _dio;
+
+  static Dio get instance => ApiClient().client;
 }
