@@ -56,6 +56,21 @@ Refer to `.env.example` for example values when wiring CI pipelines.
    The API listens on port `4000` by default and issues JWT access tokens plus
    secure refresh tokens.
 
+### Lightweight mock API
+
+For UI work that only requires the authentication surface, a lightweight mock
+server is available:
+
+```bash
+cd server
+npm run dev:mock
+```
+
+The mock server mirrors the development API routes and now automatically
+authorizes any `localhost`, `127.0.0.1`, or `[::1]` origin. Additional origins
+can be whitelisted via the `EXTRA_ALLOWED_ORIGINS` environment variable (a
+comma-separated list).
+
 ### Web development
 
 Run the Flutter web app with an explicit hostname/port and matching API base URL:
