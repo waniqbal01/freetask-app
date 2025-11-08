@@ -4,6 +4,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 
+const jobsRouter = require('./routes/jobs');
+
 const app = express();
 
 const origins = (process.env.CORS_ORIGINS || '')
@@ -45,23 +47,7 @@ app.get('/healthz', (_req, res) => {
   res.status(200).json({ ok: true, env: process.env.NODE_ENV });
 });
 
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body || {};
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Email & password required' });
-  }
-
-  if (email === 'client@freetask.local' && password === 'Client123!') {
-    return res.status(200).json({
-      accessToken: 'dev.jwt.token.example',
-      tokenType: 'Bearer',
-      expiresIn: 3600,
-      user: { id: 'u_1', email, name: 'Client' },
-    });
-  }
-
-  return res.status(401).json({ message: 'Invalid credentials' });
-});
+app.use('/api/jobs', jobsRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ message: 'Not Found' });
