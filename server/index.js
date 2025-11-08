@@ -33,11 +33,14 @@ const shouldUseSecureCookies =
     : APP_ENV === 'production';
 const API_PREFIX = process.env.API_PREFIX || '/api';
 const WEB_ORIGIN = process.env.WEB_ORIGIN || 'http://localhost:5555';
-const LOCALHOST_REGEX = /http:\/\/localhost:\d+$/;
+const LOCALHOST_REGEX =
+  /^(https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])):\d+$/i;
 const allowedOrigins = new Set([
   WEB_ORIGIN,
   'http://localhost:4000',
   'http://127.0.0.1:4000',
+  'https://localhost:4000',
+  'https://127.0.0.1:4000',
   'http://localhost:5000',
   'http://localhost:3000',
 ]);
