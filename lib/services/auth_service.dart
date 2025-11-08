@@ -149,7 +149,14 @@ class AuthService {
   Future<AuthResponse> _persistAndHydrateSession(
     AuthResponse authResponse,
   ) async {
-    await _storage.saveToken(authResponse.token);
+    final token = authResponse.token.trim();
+    if (token.isEmpty) {
+      throw AuthException(
+        'Invalid authentication response: missing access token.',
+      );
+    }
+
+    await _storage.saveToken(token);
     final refreshToken = authResponse.refreshToken;
     if (refreshToken != null && refreshToken.isNotEmpty) {
       await _storage.saveRefreshToken(refreshToken);
@@ -334,25 +341,37 @@ class AuthService {
     if (data == null) {
       return <String, dynamic>{};
     }
-    if (data['data'] is Map<String, dynamic>) {
-      final inner = data['data'] as Map<String, dynamic>;
-      if (inner['user'] is Map<String, dynamic> ||
-          inner['profile'] is Map<String, dynamic> ||
-          inner['accessToken'] != null ||
-          inner['token'] != null) {
-        return inner;
+
+    Map<String, dynamic> current = data;
+
+    bool looksLikeAuthPayload(Map<String, dynamic> payload) {
+      return payload['user'] is Map<String, dynamic> ||
+          payload['profile'] is Map<String, dynamic> ||
+          payload.containsKey('accessToken') ||
+          payload.containsKey('access_token') ||
+          payload.containsKey('token') ||
+          payload.containsKey('refreshToken') ||
+          payload.containsKey('refresh_token');
+    }
+
+    for (var depth = 0; depth < 5; depth++) {
+      if (looksLikeAuthPayload(current)) {
+        return current;
       }
+
+      final nested = current['data'];
+      if (nested is Map<String, dynamic>) {
+        current = nested;
+        continue;
+      }
+      break;
     }
-    if (data['user'] is Map<String, dynamic>) {
-      return data;
+
+    if (looksLikeAuthPayload(current)) {
+      return current;
     }
-    if (data['profile'] is Map<String, dynamic>) {
-      return data;
-    }
-    if (data['accessToken'] != null || data['token'] != null) {
-      return data;
-    }
-    return data;
+
+    return current;
   }
 }
 
