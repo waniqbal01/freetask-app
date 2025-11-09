@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 
+const authRouter = require('./routes/auth');
 const jobsRouter = require('./routes/jobs');
 
 const app = express();
@@ -47,10 +48,17 @@ app.get('/healthz', (_req, res) => {
   res.status(200).json({ ok: true, env: process.env.NODE_ENV });
 });
 
+app.use('/api/auth', authRouter);
 app.use('/api/jobs', jobsRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ message: 'Not Found' });
+});
+
+// eslint-disable-next-line no-unused-vars
+app.use((error, _req, res, _next) => {
+  console.error('[Server] Unhandled error:', error);
+  res.status(500).json({ message: 'Internal Server Error' });
 });
 
 const port = Number(process.env.PORT || 4000);

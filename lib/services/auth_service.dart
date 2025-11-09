@@ -1,6 +1,5 @@
-import 'package:firebase_auth/firebase_auth.dart' as firebase;
+import 'package:dio/dio.dart';
 
-import '../auth/firebase_auth_service.dart';
 import '../models/auth_response.dart';
 import '../models/user.dart';
 import '../models/user_roles.dart';
@@ -10,31 +9,36 @@ import 'storage_service.dart';
 class AuthService {
   AuthService(
     this._apiClient,
-    this._storage, {
-    FirebaseAuthService? firebaseAuthService,
-  }) : _firebaseAuth = firebaseAuthService ?? FirebaseAuthService() {
+    this._storage,
+  ) {
     _apiClient.setRefreshCallback(refreshToken);
   }
 
   final SessionApiClient _apiClient;
   final StorageService _storage;
-  final FirebaseAuthService _firebaseAuth;
 
-  firebase.User? get _currentUser => _firebaseAuth.currentUser;
+  Dio get _http => _apiClient.client;
 
   Future<AuthResponse> login({
     required String email,
     required String password,
   }) async {
     try {
-      final credential = await _firebaseAuth.signInWithEmailPassword(
-        email: email,
-        password: password,
+      final response = await _http.post<Map<String, dynamic>>(
+        '/api/auth/login',
+        data: {
+          'email': email,
+          'password': password,
+        },
+        options: _apiClient.guard(requiresAuth: false),
       );
-      return await _persistSession(credential.user);
-    } on firebase.FirebaseAuthException catch (error) {
-      throw AuthException(_mapFirebaseError(error));
-    } catch (error) {
+
+      return _persistAuthResponse(response.data);
+    } on DioException catch (error) {
+      throw AuthException(
+        _extractErrorMessage(error, 'Unable to sign in. Please try again.'),
+      );
+    } catch (_) {
       throw AuthException('Unable to sign in. Please try again.');
     }
   }
@@ -46,64 +50,114 @@ class AuthService {
     String role = kDefaultUserRoleName,
   }) async {
     try {
-      final credential = await _firebaseAuth.registerWithEmailPassword(
-        email: email,
-        password: password,
+      final response = await _http.post<Map<String, dynamic>>(
+        '/api/auth/register',
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'role': role,
+        },
+        options: _apiClient.guard(requiresAuth: false),
       );
-      final user = credential.user;
-      if (user != null && (user.displayName == null || user.displayName!.isEmpty)) {
-        await user.updateDisplayName(name);
-      }
-      final response = await _persistSession(
-        credential.user,
-        fallbackName: name,
-        fallbackRole: role,
+
+      final authResponse = await _persistAuthResponse(response.data);
+      await _storage.saveRole(authResponse.user.role);
+      return authResponse;
+    } on DioException catch (error) {
+      throw AuthException(
+        _extractErrorMessage(
+          error,
+          'Unable to complete registration. Please try again.',
+        ),
       );
-      await _storage.saveRole(role);
-      return response;
-    } on firebase.FirebaseAuthException catch (error) {
-      throw AuthException(_mapFirebaseError(error));
     } catch (_) {
       throw AuthException('Unable to complete registration. Please try again.');
     }
   }
 
   Future<User> fetchMe() async {
-    final user = _currentUser;
-    if (user == null) {
-      throw AuthException('No authenticated user.');
+    try {
+      final response = await _http.get<Map<String, dynamic>>(
+        '/api/auth/me',
+        options: _apiClient.guard(),
+      );
+
+      final data = response.data ?? <String, dynamic>{};
+      final payload = (data['user'] is Map<String, dynamic>)
+          ? data['user'] as Map<String, dynamic>
+          : data;
+      final user = User.fromJson(payload);
+      await _storage.saveUser(user);
+      await _storage.saveRole(user.role);
+      return user;
+    } on DioException catch (error) {
+      throw AuthException(
+        _extractErrorMessage(error, 'Failed to load account information.'),
+      );
+    } catch (_) {
+      throw AuthException('Failed to load account information.');
     }
-    final mapped = _mapFirebaseUser(user);
-    await _storage.saveUser(mapped);
-    return mapped;
   }
 
   Future<void> logout() async {
-    await _firebaseAuth.signOut();
-    await _storage.clearAll();
+    final refreshToken = _storage.refreshToken;
+    try {
+      await _http.post<void>(
+        '/api/auth/logout',
+        data: {
+          if (refreshToken != null && refreshToken.isNotEmpty)
+            'refreshToken': refreshToken,
+        },
+        options: _apiClient.guard(requiresAuth: false),
+      );
+    } catch (_) {
+      // Ignore logout failures – session will be cleared locally regardless.
+    } finally {
+      await _storage.clearAll();
+    }
   }
 
   Future<String> refreshToken() async {
-    final token = await _firebaseAuth.getIdToken(forceRefresh: true);
-    if (token == null || token.isEmpty) {
+    final refreshToken = _storage.refreshToken;
+    if (refreshToken == null || refreshToken.isEmpty) {
       throw AuthException('Unable to refresh authentication token.');
     }
-    await _storage.saveToken(token);
-    return token;
+
+    try {
+      final response = await _http.post<Map<String, dynamic>>(
+        '/api/auth/refresh',
+        data: {'refreshToken': refreshToken},
+        options: _apiClient.guard(requiresAuth: false),
+      );
+
+      final authResponse = await _persistAuthResponse(response.data);
+      return authResponse.token;
+    } on DioException catch (error) {
+      throw AuthException(
+        _extractErrorMessage(
+          error,
+          'Unable to refresh authentication token.',
+        ),
+      );
+    } catch (_) {
+      throw AuthException('Unable to refresh authentication token.');
+    }
   }
 
-  Future<void> requestPasswordReset(String email) {
-    return firebase.FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+  Future<void> requestPasswordReset(String email) async {
+    throw AuthException(
+      'Password reset via email is not supported in this environment.',
+    );
   }
 
   Future<void> confirmPasswordReset({
     required String email,
     required String token,
     required String password,
-  }) {
-    return firebase.FirebaseAuth.instance.confirmPasswordReset(
-      code: token,
-      newPassword: password,
+  }) async {
+    throw AuthException(
+      'Password reset confirmation is not supported in this environment.',
     );
   }
 
@@ -111,92 +165,41 @@ class AuthService {
     required String email,
     required String code,
   }) async {
-    await firebase.FirebaseAuth.instance.applyActionCode(code);
-    final user = firebase.FirebaseAuth.instance.currentUser;
-    if (user != null && !user.emailVerified) {
-      await user.reload();
-    }
+    throw AuthException('Email verification is not supported.');
   }
 
-  Future<AuthResponse> _persistSession(
-    firebase.User? firebaseUser, {
-    String? fallbackName,
-    String? fallbackRole,
-  }) async {
-    if (firebaseUser == null) {
-      throw AuthException('Authentication failed. Please try again.');
-    }
+  Future<AuthResponse> _persistAuthResponse(Map<String, dynamic>? data) async {
+    final payload = data ?? <String, dynamic>{};
+    final response = AuthResponse.fromJson(payload);
 
-    final token = await firebaseUser.getIdToken();
-    if (token == null || token.isEmpty) {
+    if (response.token.isEmpty) {
       throw AuthException('Missing authentication token. Please try again.');
     }
 
-    final refreshToken = firebaseUser.refreshToken;
+    await _storage.saveToken(response.token);
+    await _storage.saveUser(response.user);
+    await _storage.saveRole(response.user.role);
 
-    final user = _mapFirebaseUser(
-      firebaseUser,
-      fallbackName: fallbackName,
-      fallbackRole: fallbackRole,
-    );
-    await _storage.saveUser(user);
-    await _storage.saveToken(token);
-
-    if (refreshToken != null && refreshToken.isNotEmpty) {
-      await _storage.saveRefreshToken(refreshToken);
+    if (response.refreshToken != null && response.refreshToken!.isNotEmpty) {
+      await _storage.saveRefreshToken(response.refreshToken!);
     } else {
       await _storage.clearRefreshToken();
     }
 
-    final authResponse = AuthResponse(
-      token: token,
-      refreshToken: refreshToken,
-      expiresAt: null,
-      user: user,
-    );
+    await _storage.saveTokenExpiry(response.expiresAt);
 
-    return authResponse;
+    return response;
   }
 
-  String _mapFirebaseError(firebase.FirebaseAuthException error) {
-    switch (error.code) {
-      case 'user-not-found':
-      case 'wrong-password':
-      case 'invalid-credential':
-        return 'Invalid credentials, please try again.';
-      case 'user-disabled':
-        return 'This account has been disabled. Please contact support.';
-      case 'email-already-in-use':
-        return 'An account already exists for that email address.';
-      case 'weak-password':
-        return 'Password is too weak. Please choose a stronger password.';
-      case 'invalid-email':
-        return 'The email address is invalid. Please check and try again.';
-      default:
-        return error.message ?? 'Authentication failed. Please try again later.';
+  String _extractErrorMessage(DioException error, String fallback) {
+    final data = error.response?.data;
+    if (data is Map && data['message'] != null) {
+      final message = data['message'];
+      if (message is String && message.trim().isNotEmpty) {
+        return message.trim();
+      }
     }
-  }
-
-  User _mapFirebaseUser(
-    firebase.User firebaseUser, {
-    String? fallbackName,
-    String? fallbackRole,
-  }) {
-    final displayName = firebaseUser.displayName;
-    final email = firebaseUser.email ?? '';
-    final name = (displayName != null && displayName.isNotEmpty)
-        ? displayName
-        : (fallbackName ?? email.split('@').first);
-
-    final role = fallbackRole ?? _storage.role ?? kDefaultUserRoleName;
-
-    return User(
-      id: firebaseUser.uid,
-      name: name,
-      email: email,
-      role: role,
-      verified: firebaseUser.emailVerified,
-    );
+    return fallback;
   }
 }
 

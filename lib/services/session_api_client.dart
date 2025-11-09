@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 
-import '../auth/firebase_auth_service.dart';
 import '../auth/role_permission.dart';
 import '../utils/role_permissions.dart';
 import 'api_client.dart';
@@ -11,14 +10,12 @@ import 'storage_service.dart';
 
 class SessionApiClient {
   SessionApiClient({
-    FirebaseAuthService? auth,
     RoleGuard? roleGuard,
-    StorageService? storage,
+    required StorageService storage,
     Dio? dio,
-  })  : _auth = auth ?? FirebaseAuthService(),
-        _roleGuard = roleGuard,
+  })  : _roleGuard = roleGuard,
         _storage = storage,
-        _apiClient = ApiClient(auth: auth ?? FirebaseAuthService()) {
+        _apiClient = ApiClient(storage: storage) {
     _dio = dio ?? _apiClient.dio;
 
     _dio.interceptors.add(
@@ -75,9 +72,8 @@ class SessionApiClient {
     );
   }
 
-  final FirebaseAuthService _auth;
   final RoleGuard? _roleGuard;
-  final StorageService? _storage;
+  final StorageService _storage;
   final ApiClient _apiClient;
   late final Dio _dio;
 
@@ -128,7 +124,7 @@ class SessionApiClient {
       return null;
     }
 
-    final token = await _auth.getIdToken();
+    final token = _storage.token;
     if (token == null || token.isEmpty) {
       return null;
     }
@@ -163,17 +159,11 @@ class SessionApiClient {
       }
     }
 
-    final token = await _auth.getIdToken(forceRefresh: true);
-    if (token == null || token.isEmpty) {
-      return false;
-    }
-    await _storage?.saveToken(token);
-    return true;
+    return false;
   }
 
   Future<void> _handleUnauthorized() async {
-    await _storage?.clearAll();
-    await _auth.signOut();
+    await _storage.clearAll();
     if (!_logoutController.isClosed) {
       _logoutController.add(null);
     }

@@ -1,5 +1,4 @@
 import '../adapters/shared_prefs_store.dart';
-import '../auth/firebase_auth_service.dart';
 import '../data/services/order_service.dart';
 import '../data/services/role_service.dart';
 import '../data/services/service_service.dart';
@@ -52,16 +51,13 @@ class AppBootstrap {
     final storage = StorageService(store);
     final roleService = RoleStorageService(storage);
     final roleGuard = RoleGuard(roleService);
-    final firebaseAuth = FirebaseAuthService();
     final apiClient = SessionApiClient(
-      auth: firebaseAuth,
       storage: storage,
       roleGuard: roleGuard,
     );
     final authService = AuthService(
       apiClient,
       storage,
-      firebaseAuthService: firebaseAuth,
     );
     final authRepository = AuthRepository(
       authService: authService,
