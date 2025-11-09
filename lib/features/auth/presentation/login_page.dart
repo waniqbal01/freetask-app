@@ -1,6 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
+import 'package:freetask_app/config/routes.dart';
 import 'package:freetask_app/core/router/app_router.dart';
+import 'package:freetask_app/features/auth/presentation/register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -30,24 +33,57 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _loading = true);
     try {
-      // TODO: ganti logic ini dengan AuthService sebenar anda
-      // Contoh panggilan:
-      // final ok = await context.read<AuthService>().login(_email.text, _password.text);
-      // if (!ok) throw Exception('Invalid credentials');
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: ApiConfig.baseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 20),
+          sendTimeout: const Duration(seconds: 20),
+          headers: const {'Content-Type': 'application/json'},
+        ),
+      );
 
-      // --- DEMO MOCK: padam bila sambung API ---
-      await Future<void>.delayed(const Duration(milliseconds: 800));
-      if (_email.text.isEmpty || _password.text.isEmpty) {
-        throw Exception('Sila isi emel & kata laluan');
+      final res = await dio.post<Map<String, dynamic>>(
+        '/auth/login',
+        data: {
+          'email': _email.text.trim(),
+          'password': _password.text,
+        },
+        options: Options(validateStatus: (status) => status != null && status < 500),
+      );
+
+      final statusCode = res.statusCode ?? 500;
+      if (statusCode != 200) {
+        final data = res.data;
+        final message = data != null && data['message'] != null
+            ? data['message'].toString()
+            : 'Gagal log masuk (kod $statusCode)';
+        throw Exception(message);
       }
-      // ------------------------------------------
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Berjaya log masuk')),
       );
-      // TODO: tukar ke route sebenar selepas login (contoh: /home)
-      Navigator.of(context).pushReplacementNamed(AppRoutes.marketplaceHome);
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.home,
+        (route) => false,
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final response = e.response;
+      final data = response?.data;
+      late final String message;
+      if (data is Map && data['message'] != null) {
+        message = data['message'].toString();
+      } else if (response?.statusCode != null) {
+        message = 'Gagal log masuk (kod ${response!.statusCode})';
+      } else {
+        message = 'Tidak dapat menghubungi pelayan';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -120,12 +156,11 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 12),
                   TextButton(
-                    onPressed: () {
-                      // TODO: route ke halaman daftar jika ada
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Halaman daftar belum tersedia')),
-                      );
-                    },
+                    onPressed: _loading
+                        ? null
+                        : () {
+                            Navigator.of(context).pushNamed(RegisterPage.route);
+                          },
                     child: const Text('Belum ada akaun? Daftar'),
                   ),
                 ],

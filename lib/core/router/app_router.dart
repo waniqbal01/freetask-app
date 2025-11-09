@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models/service_model.dart';
+import '../../features/auth/presentation/login_page.dart';
+import '../../features/auth/presentation/register_page.dart';
+import '../../features/home/presentation/home_page.dart';
 import '../../features/marketplace/views/marketplace_home_view.dart';
 import '../../features/marketplace/views/service_detail_view.dart';
 import '../../models/user_roles.dart';
@@ -10,7 +13,6 @@ import '../../views/common/forbidden_view.dart';
 import '../../views/job_detail/job_detail_view.dart';
 import '../../views/notification/notifications_view.dart';
 import '../../views/onboarding/forgot_password_view.dart';
-import '../../features/auth/presentation/login_page.dart';
 import '../../views/onboarding/splash_view.dart';
 import '../../views/orders/order_detail_view.dart';
 import '../../views/profile/profile_view.dart';
@@ -22,7 +24,9 @@ import 'route_guard.dart';
 class AppRoutes {
   static const onboarding = '/';
   static const login = '/login';
+  static const register = '/register';
   static const forgotPassword = '/forgot-password';
+  static const home = '/home';
   static const marketplaceHome = '/marketplace';
   static const sellerDashboard = '/seller';
   static const serviceDetail = '/marketplace/service';
@@ -79,9 +83,19 @@ class AppRouter {
           builder: (_) => const LoginPage(),
           settings: settings,
         );
+      case AppRoutes.register:
+        return MaterialPageRoute<void>(
+          builder: (_) => const RegisterPage(),
+          settings: settings,
+        );
       case AppRoutes.forgotPassword:
         return MaterialPageRoute<void>(
           builder: (_) => const ForgotPasswordView(),
+          settings: settings,
+        );
+      case AppRoutes.home:
+        return MaterialPageRoute<void>(
+          builder: (_) => const HomePage(),
           settings: settings,
         );
       case AppRoutes.marketplaceHome:
