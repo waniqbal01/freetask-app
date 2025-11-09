@@ -14,9 +14,20 @@ const origins = (process.env.CORS_ORIGINS || '')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const isLocalDevelopmentOrigin = (origin) => {
+  if (!origin) return false;
+  try {
+    const { hostname } = new URL(origin);
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  } catch (error) {
+    console.warn('[Server] Unable to parse origin for CORS check:', origin, error);
+    return false;
+  }
+};
+
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin || origins.includes(origin)) {
+    if (!origin || origins.includes(origin) || isLocalDevelopmentOrigin(origin)) {
       return callback(null, true);
     }
     return callback(new Error(`CORS blocked: ${origin}`));

@@ -7,9 +7,10 @@ class FreetaskTheme {
   static ThemeData build() {
     final base = ThemeData.light(useMaterial3: true);
     const scaffoldBackground = Color(0xFFF9F9F9);
+    const primaryColor = Color(0xFF4EA1FF);
     final colorScheme = base.colorScheme.copyWith(
-      primary: const Color(0xFF3A7BD5),
-      secondary: const Color(0xFF3A7BD5),
+      primary: primaryColor,
+      secondary: primaryColor,
       surface: Colors.white,
       surfaceContainerLowest: scaffoldBackground,
     );
@@ -48,7 +49,7 @@ class FreetaskTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF3A7BD5)),
+          borderSide: const BorderSide(color: primaryColor),
         ),
       ),
       cardTheme: base.cardTheme.copyWith(
@@ -60,7 +61,7 @@ class FreetaskTheme {
         ),
       ),
       floatingActionButtonTheme: base.floatingActionButtonTheme.copyWith(
-        backgroundColor: const Color(0xFF3A7BD5),
+        backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
