@@ -7,7 +7,6 @@ import '../../controllers/auth/auth_event.dart';
 import '../../controllers/profile/profile_bloc.dart';
 import '../../models/user.dart';
 import '../../core/widgets/custom_button.dart';
-import '../onboarding/login_view.dart';
 
 class ProfileView extends StatefulWidget {
   const ProfileView({super.key});
@@ -33,7 +32,7 @@ class _ProfileViewState extends State<ProfileView> {
       const SnackBar(content: Text('Logged out successfully.')),
     );
     Navigator.of(context).pushNamedAndRemoveUntil(
-      LoginView.routeName,
+      AppRoutes.login,
       (route) => false,
     );
   }
