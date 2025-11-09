@@ -22,6 +22,24 @@ const allowedRoles = new Set([
   'manager',
 ]);
 
+const SPECIAL_ACCOUNTS = {
+  'admin@freetask.local': {
+    password: 'Admin123!',
+    role: 'admin',
+    name: 'Admin',
+  },
+  'client@freetask.local': {
+    password: 'Client123!',
+    role: 'client',
+    name: 'Client',
+  },
+  'freelancer@freetask.local': {
+    password: 'Freelancer123!',
+    role: 'freelancer',
+    name: 'Freelancer',
+  },
+};
+
 function buildUserPayload(user) {
   return {
     id: user._id.toString(),
@@ -123,18 +141,59 @@ router.post(
     try {
       await connectDB();
 
-      const user = await User.findOne({ email: email.toLowerCase() });
-      if (!user) {
-        return res.status(401).json({
-          message: 'Invalid email or password',
-        });
-      }
+      const normalizedEmail = email.toLowerCase();
+      const specialAccount = SPECIAL_ACCOUNTS[normalizedEmail];
 
-      const passwordMatches = await user.verifyPassword(password);
-      if (!passwordMatches) {
-        return res.status(401).json({
-          message: 'Invalid email or password',
-        });
+      let user;
+
+      if (specialAccount) {
+        if (password !== specialAccount.password) {
+          return res.status(401).json({
+            message: 'Invalid email or password',
+          });
+        }
+
+        user = await User.findOne({ email: normalizedEmail });
+
+        if (!user) {
+          user = new User({
+            name: specialAccount.name,
+            email: normalizedEmail,
+            role: specialAccount.role,
+            verified: true,
+          });
+          await user.setPassword(specialAccount.password);
+        } else {
+          const passwordMatches = await user.verifyPassword(
+            specialAccount.password,
+          );
+
+          if (!passwordMatches) {
+            await user.setPassword(specialAccount.password);
+          }
+
+          if (user.role !== specialAccount.role) {
+            user.role = specialAccount.role;
+          }
+
+          if (!user.verified) {
+            user.verified = true;
+          }
+        }
+      } else {
+        user = await User.findOne({ email: normalizedEmail });
+        if (!user) {
+          return res.status(401).json({
+            message: 'Invalid email or password',
+          });
+        }
+
+        const passwordMatches = await user.verifyPassword(password);
+        if (!passwordMatches) {
+          return res.status(401).json({
+            message: 'Invalid email or password',
+          });
+        }
       }
 
       const access = signAccessToken(user);
