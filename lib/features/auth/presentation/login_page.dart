@@ -1,9 +1,10 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
-import 'package:freetask_app/config/routes.dart';
 import 'package:freetask_app/core/router/app_router.dart';
 import 'package:freetask_app/features/auth/presentation/register_page.dart';
+import 'package:freetask_app/bootstrap/app_bootstrap.dart';
+import 'package:freetask_app/repositories/auth_repository.dart';
+import 'package:freetask_app/services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,6 +21,8 @@ class _LoginPageState extends State<LoginPage> {
   final _password = TextEditingController();
   bool _obscure = true;
   bool _loading = false;
+  late final Future<AppBootstrap> _bootstrapFuture;
+  AuthRepository? _repository;
 
   @override
   void dispose() {
@@ -28,66 +31,53 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _bootstrapFuture = AppBootstrap.init();
+  }
+
+  Future<AuthRepository> _loadRepository() async {
+    if (_repository != null) {
+      return _repository!;
+    }
+    final bootstrap = await _bootstrapFuture;
+    _repository = bootstrap.authRepository;
+    return _repository!;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
     try {
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: ApiConfig.baseUrl,
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 20),
-          sendTimeout: const Duration(seconds: 20),
-          headers: const {'Content-Type': 'application/json'},
-        ),
+      final repository = await _loadRepository();
+      final session = await repository.login(
+        email: _email.text.trim(),
+        password: _password.text,
       );
-
-      final res = await dio.post<Map<String, dynamic>>(
-        '/auth/login',
-        data: {
-          'email': _email.text.trim(),
-          'password': _password.text,
-        },
-        options: Options(validateStatus: (status) => status != null && status < 500),
-      );
-
-      final statusCode = res.statusCode ?? 500;
-      if (statusCode != 200) {
-        final data = res.data;
-        final message = data != null && data['message'] != null
-            ? data['message'].toString()
-            : 'Gagal log masuk (kod $statusCode)';
-        throw Exception(message);
-      }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Berjaya log masuk')),
+        SnackBar(
+          content: Text(
+            'Selamat datang, ${session.user.name.split(' ').first}!',
+          ),
+        ),
       );
       Navigator.of(context).pushNamedAndRemoveUntil(
         AppRoutes.home,
         (route) => false,
       );
-    } on DioException catch (e) {
+    } on AuthException catch (error) {
       if (!mounted) return;
-      final response = e.response;
-      final data = response?.data;
-      late final String message;
-      if (data is Map && data['message'] != null) {
-        message = data['message'].toString();
-      } else if (response?.statusCode != null) {
-        message = 'Gagal log masuk (kod ${response!.statusCode})';
-      } else {
-        message = 'Tidak dapat menghubungi pelayan';
-      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(content: Text(error.message)),
       );
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        const SnackBar(content: Text('Tidak dapat menghubungi pelayan')), 
       );
     } finally {
       if (mounted) setState(() => _loading = false);

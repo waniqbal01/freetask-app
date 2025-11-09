@@ -1,12 +1,12 @@
 import 'package:dio/dio.dart';
 import '../config/routes.dart';
-import '../auth/firebase_auth_service.dart';
+import 'storage_service.dart';
 
 class ApiClient {
   final Dio dio;
-  final FirebaseAuthService auth;
+  final StorageService storage;
 
-  ApiClient({required this.auth})
+  ApiClient({required this.storage})
       : dio = Dio(BaseOptions(
           baseUrl: ApiConfig.baseUrl,
           connectTimeout: const Duration(seconds: 10),
@@ -28,7 +28,7 @@ class ApiClient {
             return handler.next(options);
           }
 
-          final token = await auth.getIdToken();
+          final token = storage.token;
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           } else {
@@ -37,8 +37,6 @@ class ApiClient {
           handler.next(options);
         },
         onError: (e, handler) {
-          // Log ringkas; anda boleh tambah mapping mesej di sini
-          // Jika 401 disebabkan token tamat, Firebase akan keluarkan token baru automatik bila next getIdToken(forceRefresh: true)
           handler.next(e);
         },
       ),
