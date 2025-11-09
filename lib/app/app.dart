@@ -60,7 +60,7 @@ class _AppState extends State<App> {
         return MaterialApp(
           title: 'Freetask',
           onGenerateRoute: onGenerateRoute,
-          initialRoute: isLoggedIn ? HomePage.route : LoginPage.route,
+          home: isLoggedIn ? const HomePage() : const LoginPage(),
           debugShowCheckedModeBanner: false,
         );
       },
