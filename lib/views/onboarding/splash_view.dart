@@ -6,7 +6,6 @@ import '../../controllers/auth/auth_bloc.dart';
 import '../../controllers/auth/auth_event.dart';
 import '../../controllers/auth/auth_state.dart';
 import '../../models/user_roles.dart';
-import 'login_view.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -43,7 +42,7 @@ class _SplashViewState extends State<SplashView>
     } else if (state.status == AuthStatus.unauthenticated) {
       _navigated = true;
       Navigator.of(context).pushNamedAndRemoveUntil(
-        LoginView.routeName,
+        AppRoutes.login,
         (route) => false,
       );
     }

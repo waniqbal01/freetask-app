@@ -206,6 +206,7 @@ class _AppView extends StatefulWidget {
 class _AppViewState extends State<_AppView> {
   RouteGuard? _routeGuard;
   AppRouter? _router;
+  String? _initialRoute;
 
   @override
   void didChangeDependencies() {
@@ -215,12 +216,18 @@ class _AppViewState extends State<_AppView> {
       _routeGuard = RouteGuard(roleService);
       _router = AppRouter(_routeGuard!);
     }
+    if (_initialRoute == null) {
+      final storage = RepositoryProvider.of<StorageService>(context);
+      final hasSession = storage.token?.isNotEmpty == true;
+      _initialRoute = hasSession ? AppRoutes.onboarding : AppRoutes.login;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final router = _router!;
     final routeGuard = _routeGuard!;
+    final initialRoute = _initialRoute ?? AppRoutes.onboarding;
     return BlocListener<ProfileBloc, ProfileState>(
       listenWhen: (previous, current) =>
           previous.errorMessage != current.errorMessage ||
@@ -242,7 +249,7 @@ class _AppViewState extends State<_AppView> {
         debugShowCheckedModeBanner: false,
         navigatorKey: widget.navigatorKey,
         scaffoldMessengerKey: scaffoldMessengerKey,
-        initialRoute: AppRoutes.onboarding,
+        initialRoute: initialRoute,
         onGenerateRoute: router.onGenerateRoute,
         navigatorObservers: [routeGuard],
       ),

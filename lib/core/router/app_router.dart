@@ -10,7 +10,7 @@ import '../../views/common/forbidden_view.dart';
 import '../../views/job_detail/job_detail_view.dart';
 import '../../views/notification/notifications_view.dart';
 import '../../views/onboarding/forgot_password_view.dart';
-import '../../views/onboarding/login_view.dart';
+import '../../features/auth/presentation/login_page.dart';
 import '../../views/onboarding/splash_view.dart';
 import '../../views/orders/order_detail_view.dart';
 import '../../views/profile/profile_view.dart';
@@ -76,7 +76,7 @@ class AppRouter {
         );
       case AppRoutes.login:
         return MaterialPageRoute<void>(
-          builder: (_) => const LoginView(),
+          builder: (_) => const LoginPage(),
           settings: settings,
         );
       case AppRoutes.forgotPassword:
