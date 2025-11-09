@@ -151,9 +151,8 @@ class AppEnv {
   static String? debugResolveHostedBase(Uri uri) => _resolveHostedDevBase(uri);
 }
 
+/// Legacy alias kept for backward compatibility.
+@Deprecated('Use AppEnv.resolvedApiBaseUrl instead')
 class Env {
-  static const String apiBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:4000',
-  );
+  static String get apiBaseUrl => AppEnv.resolvedApiBaseUrl();
 }
