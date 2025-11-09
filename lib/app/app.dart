@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../adapters/shared_prefs_store.dart';
 import '../config/routes.dart';
+import '../config/theme.dart';
 import '../features/auth/presentation/login_page.dart';
 import '../features/home/presentation/home_page.dart';
 import '../services/storage_service.dart';
@@ -59,6 +60,7 @@ class _AppState extends State<App> {
 
         return MaterialApp(
           title: 'Freetask',
+          theme: FreetaskTheme.build(),
           onGenerateRoute: onGenerateRoute,
           home: isLoggedIn ? const HomePage() : const LoginPage(),
           debugShowCheckedModeBanner: false,
