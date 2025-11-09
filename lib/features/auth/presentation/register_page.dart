@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'package:freetask_app/bootstrap/app_bootstrap.dart';
-import 'package:freetask_app/repositories/auth_repository.dart';
-import 'package:freetask_app/services/auth_service.dart';
 import 'package:freetask_app/core/router/app_router.dart';
 import 'package:freetask_app/models/user_roles.dart';
+import 'package:freetask_app/repositories/auth_repository.dart';
+import 'package:freetask_app/services/auth_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -16,6 +16,17 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  static const _roleItems = <DropdownMenuItem<String>>[
+    DropdownMenuItem(
+      value: 'client',
+      child: Text('Pelanggan'),
+    ),
+    DropdownMenuItem(
+      value: 'freelancer',
+      child: Text('Freelancer'),
+    ),
+  ];
+
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _email = TextEditingController();
@@ -158,16 +169,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
                               value: _selectedRole,
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'client',
-                                  child: Text('Pelanggan'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'freelancer',
-                                  child: Text('Freelancer'),
-                                ),
-                              ],
+                              items: _roleItems,
                               onChanged: _loading
                                   ? null
                                   : (value) {
